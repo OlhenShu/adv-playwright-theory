@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Теоретичні матеріали курсу Playwright</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&display=swap&subset=cyrillic" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F5F9; --surface:#FFFFFF; --surface-2:#EAEFF7; --ink:#15213A; --muted:#55627B; --line:#D6DDEA;
+  --navy:#14284B; --navy-ink:#FFFFFF; --accent:#E8740C; --accent-ink:#B45400; --accent-soft:#FDEBD8;
+  --font:"Onest", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  box-sizing:border-box;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0A1426; --surface:#101E37; --surface-2:#17284A; --ink:#E6ECF6; --muted:#9CA9C2; --line:#24375C;
+    --navy:#0E1D38; --navy-ink:#E6ECF6; --accent:#FF9A3C; --accent-ink:#FFB068; --accent-soft:#3A2814;
+    color-scheme:dark;
+  }
+}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased}
+a{color:var(--accent-ink)}
+code{font-size:.9em;background:var(--surface-2);padding:.08em .35em;border-radius:4px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+.topbar{background:var(--navy);color:var(--navy-ink)}
+.topbar-in{max-width:860px;margin:0 auto;padding:16px 20px}
+.topbar h1{margin:0;font-size:1.05rem;font-weight:700;letter-spacing:-.005em}
+.topbar small{display:block;margin-top:2px;opacity:.78;font-size:.82rem}
+main{max-width:860px;margin:0 auto;padding:40px 20px 80px}
+.lead{font-size:1.12rem;margin:0 0 18px}
+p{margin:0 0 16px}
+h2{font-size:1.25rem;margin:36px 0 12px;letter-spacing:-.01em}
+.card{display:block;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;text-decoration:none;color:inherit}
+.card:hover{border-color:var(--accent)}
+.card strong{display:block;font-size:1.02rem}
+.card span{display:block;margin-top:4px;color:var(--muted);font-size:.95rem}
+.note{color:var(--muted);font-size:.95rem}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <h1>Теоретичні матеріали курсу Playwright</h1>
+    <small>Playwright + TypeScript</small>
+  </div>
+</header>
+<main>
+  <p class="lead">Це репозиторій теоретичних матеріалів курсу з Playwright. Тут зібрані конспекти тем: пояснення концепцій, приклади й довідкові нотатки, які доповнюють практичні завдання.</p>
+  <p>Структура репозиторія розбита по спринтах. Кожен спринт — окрема папка (<code>sprint-01</code>, <code>sprint-02</code> і далі), а всередині неї лежать HTML-конспекти відповідних тем. Новий матеріал додається в папку того спринту, до якого він належить.</p>
+
+  <h2>Матеріали</h2>
+  <a class="card" href="sprint-07/playwright-fixtures.html">
+    <strong>Спринт 07. Фікстури в Playwright Test</strong>
+    <span>Вбудовані та кастомні фікстури: область життя, опції, воркери й проєкти.</span>
+  </a>
+  <p class="note">Інші спринти з’являться тут у міру того, як будуть готові конспекти.</p>
+</main>
+</body>
+</html>

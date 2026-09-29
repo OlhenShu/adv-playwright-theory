@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Фікстури в Playwright Test: вбудовані та кастомні</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap&subset=cyrillic" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F5F9; --surface:#FFFFFF; --surface-2:#EAEFF7; --ink:#15213A; --muted:#55627B; --line:#D6DDEA;
+  --navy:#14284B; --navy-ink:#FFFFFF; --accent:#E8740C; --accent-ink:#B45400; --accent-soft:#FDEBD8;
+  --ok:#1C7A4A; --ok-soft:#DDF3E6; --bad:#B3261E; --bad-soft:#FBE3E1;
+  --code-bg:#0F1B31; --code-ink:#E4EBF6; --code-line:#22324F;
+  --tk-k:#FF9F4A; --tk-s:#9EDB8A; --tk-c:#7F8FAD; --tk-n:#F7C66B; --tk-t:#7CC4FF; --tk-f:#D7B8FF;
+  --radius-lg:14px; --radius-sm:6px;
+  --font:"Onest", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0A1426; --surface:#101E37; --surface-2:#17284A; --ink:#E6ECF6; --muted:#9CA9C2; --line:#24375C;
+    --navy:#A9C2EC; --navy-ink:#0A1426; --accent:#FF9A3C; --accent-ink:#FFB068; --accent-soft:#3A2814;
+    --ok:#6FD39C; --ok-soft:#113524; --bad:#FF8A80; --bad-soft:#3D1715;
+    --code-bg:#07101F; --code-line:#1B2A47;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0A1426; --surface:#101E37; --surface-2:#17284A; --ink:#E6ECF6; --muted:#9CA9C2; --line:#24375C;
+  --navy:#A9C2EC; --navy-ink:#0A1426; --accent:#FF9A3C; --accent-ink:#FFB068; --accent-soft:#3A2814;
+  --ok:#6FD39C; --ok-soft:#113524; --bad:#FF8A80; --bad-soft:#3D1715;
+  --code-bg:#07101F; --code-line:#1B2A47;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top, 0px) + 80px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased}
+a{color:var(--accent-ink)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:.08em .35em;border-radius:4px}
+img{max-width:100%}
+
+/* header */
+.topbar{position:sticky;top:env(safe-area-inset-top, 0px);z-index:20;background:var(--navy);color:var(--navy-ink)}
+:root[data-theme="dark"] .topbar{background:#0E1D38;color:#E6ECF6}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .topbar{background:#0E1D38;color:#E6ECF6}}
+.topbar-in{display:flex;align-items:center;gap:14px;padding:12px 20px;max-width:1320px;margin:0 auto}
+.brand{display:flex;flex-direction:column;min-width:0;flex:1}
+.brand h1{font-size:1.02rem;font-weight:700;margin:0;line-height:1.25;letter-spacing:-.005em}
+.brand small{opacity:.78;font-size:.8rem}
+.ver{font-family:var(--mono);font-size:.75rem;background:var(--accent);color:#1B0E00;padding:3px 8px;border-radius:999px;white-space:nowrap;font-weight:600}
+.theme-switch{display:inline-flex;border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:2px;gap:2px}
+.theme-switch button{appearance:none;border:0;background:transparent;color:inherit;font:inherit;font-size:.8rem;padding:5px 11px;border-radius:999px;cursor:pointer}
+.theme-switch button[aria-pressed="true"]{background:var(--accent);color:#1B0E00;font-weight:600}
+.menu-btn{display:none;appearance:none;border:1px solid rgba(255,255,255,.35);background:transparent;color:inherit;font:inherit;font-size:.85rem;padding:6px 12px;border-radius:8px;cursor:pointer}
+.progress{height:4px;background:rgba(255,255,255,.14)}
+.progress > span{display:block;height:100%;width:0;background:var(--accent);transition:width .35s ease}
+
+/* layout */
+.layout{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1320px;margin:0 auto}
+.side{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 66px);align-self:start;height:calc(100vh - 66px - env(safe-area-inset-top, 0px));overflow:auto;padding:22px 14px 30px 20px;border-right:1px solid var(--line)}
+.side-stat{font-size:.85rem;color:var(--muted);margin:0 0 12px 8px}
+.side-stat b{color:var(--ink)}
+[role="tablist"]{display:flex;flex-direction:column;gap:2px}
+.tab{appearance:none;border:0;background:transparent;color:var(--ink);font:inherit;font-size:.9rem;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer;display:grid;grid-template-columns:26px 1fr 16px;gap:6px;align-items:start;line-height:1.35}
+.tab .n{font-family:var(--mono);font-size:.75rem;color:var(--muted);padding-top:2px}
+.tab .v{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--line);margin-top:3px}
+.tab.visited .v{background:var(--ok);border-color:var(--ok)}
+.tab:hover{background:var(--surface-2)}
+.tab[aria-selected="true"]{background:var(--surface);box-shadow:inset 3px 0 0 var(--accent);font-weight:600}
+.side hr{border:0;border-top:1px solid var(--line);margin:10px 8px}
+
+main{padding:34px clamp(18px,4vw,56px) 80px;min-width:0}
+.panel{max-width:860px}
+.panel[hidden]{display:none}
+.panel h2{font-size:clamp(1.6rem,3.2vw,2.2rem);line-height:1.15;letter-spacing:-.02em;margin:0 0 6px;font-weight:800;color:var(--ink)}
+.panel h3{font-size:1.2rem;margin:34px 0 8px;letter-spacing:-.01em}
+.panel h4{font-size:1rem;margin:22px 0 6px}
+.kicker{font-family:var(--mono);font-size:.8rem;color:var(--accent-ink);margin:0 0 6px}
+.docs{display:inline-flex;align-items:center;gap:6px;font-size:.88rem;font-weight:600;text-decoration:none;border-bottom:1.5px solid var(--accent);padding-bottom:1px;margin:2px 0 18px}
+.docs:hover{color:var(--ink)}
+.lead{font-size:1.08rem;color:var(--muted)}
+.badge-new{display:inline-block;font-family:var(--mono);font-size:.72rem;font-weight:600;background:var(--accent);color:#1B0E00;padding:2px 8px;border-radius:999px;vertical-align:middle;margin-left:6px}
+
+/* problem → why → solution → when */
+.pwsw{margin:22px 0;border-left:4px solid var(--accent);background:var(--surface);border-radius:0 var(--radius-lg) var(--radius-lg) 0;padding:6px 0}
+.pwsw > div{display:grid;grid-template-columns:150px 1fr;gap:14px;padding:10px 18px}
+.pwsw > div + div{border-top:1px dashed var(--line)}
+.pwsw .k{font-weight:700;font-size:.9rem;color:var(--accent-ink)}
+.pwsw p{margin:0}
+.note{background:var(--surface-2);border-radius:var(--radius-lg);padding:14px 18px;margin:18px 0;font-size:.95rem}
+.note strong:first-child{display:block;margin-bottom:2px}
+
+/* code */
+.codebox{margin:16px 0 20px;border-radius:12px;overflow:hidden;background:var(--code-bg);border:1px solid var(--code-line)}
+.codebox .bar{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 6px 14px;border-bottom:1px solid var(--code-line);color:#9FB0CC;font-family:var(--mono);font-size:.76rem}
+.copy{appearance:none;border:1px solid #33476B;background:transparent;color:#DCE5F3;font:600 .75rem var(--font);padding:4px 10px;border-radius:6px;cursor:pointer}
+.copy:hover{border-color:var(--accent);color:#fff}
+.codebox pre{margin:0;overflow-x:auto;padding:14px 16px;color:var(--code-ink);font-family:var(--mono);font-size:.84rem;line-height:1.6;tab-size:2}
+.codebox pre code{background:none;padding:0;font-size:inherit;color:inherit}
+.t-k{color:var(--tk-k)}.t-s{color:var(--tk-s)}.t-c{color:var(--tk-c);font-style:italic}.t-n{color:var(--tk-n)}.t-t{color:var(--tk-t)}.t-f{color:var(--tk-f)}
+details.src{margin:12px 0;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+details.src summary{cursor:pointer;padding:10px 14px;font-weight:600;font-size:.93rem}
+details.src .codebox{margin:0 12px 12px}
+
+/* generic controls */
+.btn{appearance:none;border:1.5px solid var(--navy);background:transparent;color:var(--ink);font:600 .9rem var(--font);padding:8px 14px;border-radius:9px;cursor:pointer}
+:root[data-theme="dark"] .btn{border-color:var(--line)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#1B0E00}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:3px;margin:8px 0 2px}
+.seg button{appearance:none;border:0;background:transparent;color:var(--ink);font:600 .9rem var(--font);padding:7px 14px;border-radius:8px;cursor:pointer}
+.seg button[aria-selected="true"]{background:var(--surface);box-shadow:0 1px 0 var(--line), inset 0 -2px 0 var(--accent)}
+
+/* advantages */
+.adv{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0;border-top:1px solid var(--line);margin:14px 0}
+.adv > div{padding:12px 14px 12px 0;border-bottom:1px solid var(--line)}
+.adv b{display:block;color:var(--accent-ink)}
+
+/* built-in fixture list */
+.fx{border-top:1px solid var(--line);margin:10px 0 18px}
+.fx > div{display:grid;grid-template-columns:130px 1fr;gap:16px;padding:14px 0;border-bottom:1px solid var(--line)}
+.fx .nm{font-family:var(--mono);font-weight:600;font-size:.95rem}
+.fx .sc{display:inline-block;font-size:.72rem;font-family:var(--mono);padding:1px 7px;border-radius:999px;margin-top:4px}
+.sc-w{background:var(--navy);color:var(--navy-ink)}
+.sc-t{background:var(--accent-soft);color:var(--accent-ink)}
+.fx p{margin:0 0 4px}
+
+/* visualizer */
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px;margin:22px 0}
+.lab h4{margin-top:0}
+.matrix{overflow-x:auto}
+.matrix table{border-collapse:collapse;width:100%;min-width:560px;font-size:.88rem}
+.matrix th,.matrix td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:center}
+.matrix th:first-child,.matrix td:first-child{text-align:left}
+.matrix thead th{font-family:var(--mono);font-weight:600;font-size:.78rem;color:var(--muted)}
+.matrix input{width:18px;height:18px;accent-color:var(--accent)}
+.tl{list-style:none;margin:16px 0 0;padding:0;counter-reset:s}
+.tl .ph{font-weight:700;font-size:.85rem;color:var(--muted);margin:16px 0 6px;padding-left:2px}
+.tl li.st{display:grid;grid-template-columns:34px 92px 1fr;gap:10px;align-items:start;padding:8px 10px;border-radius:9px;opacity:.28;transition:opacity .2s}
+.tl li.st.shown{opacity:1}
+.tl li.st.cur{background:var(--accent-soft)}
+.tl .idx{font-family:var(--mono);font-size:.75rem;color:var(--muted);padding-top:3px}
+.kind{font:600 .72rem var(--mono);padding:3px 8px;border-radius:6px;text-align:center}
+.k-setup{background:var(--accent);color:#1B0E00}
+.k-teardown{background:var(--navy);color:var(--navy-ink)}
+.k-hook{background:var(--surface-2);color:var(--ink);border:1px solid var(--line)}
+.k-test{background:var(--ok);color:#fff}
+:root[data-theme="dark"] .k-test{color:#062414}
+.tl .what{font-weight:600}
+.tl .why{font-size:.86rem;color:var(--muted)}
+.explain{margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--surface-2);min-height:3em;font-size:.95rem}
+.summary{margin-top:10px;font-size:.92rem}
+
+/* scope anim */
+.scope-stage{display:grid;gap:14px;margin-top:12px}
+.lane{border:1.5px dashed var(--line);border-radius:12px;padding:12px}
+.lane-title{font-weight:700;font-size:.9rem;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.lane-title span{font-weight:400;color:var(--muted);font-size:.85rem}
+.tests{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tcard{border:1.5px solid var(--line);border-radius:10px;padding:10px;min-height:128px;transition:border-color .25s, background .25s}
+.tcard.run{border-color:var(--accent);background:var(--accent-soft)}
+.tcard.done{opacity:.7}
+.tcard b{font-size:.85rem}
+.tcard .st2{font-size:.78rem;color:var(--muted);display:block;margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:600 .75rem var(--mono);padding:4px 8px;border-radius:999px;border:1.5px solid var(--line);color:var(--muted);transition:all .3s}
+.chip.on{border-color:var(--accent);background:var(--accent);color:#1B0E00}
+.chip.w.on{background:var(--navy);border-color:var(--navy);color:var(--navy-ink)}
+.chip.off{text-decoration:line-through;opacity:.5}
+@media (max-width:640px){.tests{grid-template-columns:1fr}}
+
+/* builder */
+.builder{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:18px}
+.builder label{display:block;font-size:.88rem;font-weight:600;margin:10px 0 4px}
+.builder input[type=text],.builder input[type=number],.builder select{width:100%;font:inherit;font-size:.9rem;padding:7px 9px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+.builder .cb{display:flex;gap:8px;align-items:center;font-weight:500;margin:8px 0}
+.builder .cb input{width:17px;height:17px;accent-color:var(--accent)}
+.err{color:var(--bad);font-size:.82rem;min-height:1.2em}
+.hint{font-size:.82rem;color:var(--muted)}
+@media (max-width:820px){.builder{grid-template-columns:1fr}}
+
+/* cheat table */
+.tbl{overflow-x:auto;margin:14px 0}
+.tbl table{border-collapse:collapse;width:100%;min-width:560px;font-size:.93rem}
+.tbl th,.tbl td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+.tbl th{font-size:.82rem;color:var(--muted)}
+.tbl td:first-child{font-family:var(--mono);font-weight:600;white-space:nowrap}
+
+/* bugs & quiz */
+.bug{border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface);padding:16px 18px;margin:18px 0}
+.bug h4{margin:0 0 6px}
+.reveal{margin-top:6px}
+.answer{margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--ok-soft)}
+.answer[hidden]{display:none}
+.q{border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface);padding:16px 18px;margin:16px 0}
+.q legend{font-weight:700;padding:0 4px}
+.q fieldset{border:0;margin:0;padding:0}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:8px;margin:4px 0;cursor:pointer;border:1.5px solid transparent}
+.opt input{margin-top:5px;accent-color:var(--accent)}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.fb{margin-top:8px;font-size:.93rem}
+.fb[hidden]{display:none}
+.score{position:sticky;bottom:calc(env(safe-area-inset-bottom, 0px) + 12px);display:inline-flex;gap:12px;align-items:center;background:var(--navy);color:var(--navy-ink);padding:10px 16px;border-radius:12px;font-weight:600;margin-top:10px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:18px;border-top:1px solid var(--line)}
+.pager .btn{max-width:48%}
+footer.small{font-size:.82rem;color:var(--muted);margin-top:28px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr}
+  .menu-btn{display:inline-block}
+  .side{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top, 0px) + 62px);bottom:0;height:auto;background:var(--bg);z-index:19;border-right:0;transform:translateX(-100%);transition:transform .25s;padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 24px)}
+  .side.open{transform:none}
+  .brand small{display:none}
+  .pwsw > div{grid-template-columns:1fr;gap:2px}
+  .fx > div{grid-template-columns:1fr;gap:4px}
+  .tl li.st{grid-template-columns:26px 80px 1fr}
+}
+@media (max-width:520px){.theme-switch button{padding:5px 8px}.ver{display:none}}
+@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="side">Розділи</button>
+    <div class="brand">
+      <h1>Фікстури в Playwright Test: вбудовані та кастомні</h1>
+      <small>Курс Playwright + TypeScript</small>
+    </div>
+    <span class="ver">@playwright/test 1.63</span>
+    <div class="theme-switch" role="group" aria-label="Тема оформлення">
+      <button type="button" data-theme-set="auto" aria-pressed="true">Авто</button>
+      <button type="button" data-theme-set="light" aria-pressed="false">Світла</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Темна</button>
+    </div>
+  </div>
+  <div class="progress" role="progressbar" aria-label="Прогрес проходження" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress"><span id="progressFill"></span></div>
+</header>
+
+<div class="layout">
+<nav class="side" id="side" aria-label="Розділи уроку">
+  <p class="side-stat" id="sideStat">Пройдено <b>0</b> з 17</p>
+  <div role="tablist" aria-orientation="vertical" aria-label="Розділи" id="tablist"></div>
+</nav>
+
+<main id="main">
+
+<!-- 1 -->
+<section class="panel" role="tabpanel" id="p1" data-title="Що таке фікстура" tabindex="0">
+  <p class="kicker">Розділ 1</p>
+  <h2>Що таке фікстура</h2>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#introduction" target="_blank" rel="noopener">Документація →</a>
+  <p class="lead">Playwright Test побудований навколо ідеї тестових фікстур. Фікстура встановлює середовище для кожного тесту: дає йому все, що потрібно, і нічого зайвого. Фікстури ізольовані між тестами, тож тести можна групувати за змістом, а не за спільним налаштуванням.</p>
+  <p>Ви вже користувалися фікстурою в першому ж тесті. Аргумент <code>{ page }</code> — це не просто деструктуризація: він повідомляє раннеру, що тесту потрібна фікстура <code>page</code>, і раннер налаштує її до запуску тесту, а після завершення прибере.</p>
+<div class="codebox"><pre data-file="example.spec.ts"><code>import { test, expect } from '@playwright/test';
+
+test('basic test', async ({ page }) => {
+  await page.goto('https://playwright.dev/');
+  await expect(page).toHaveTitle(/Playwright/);
+});</code></pre></div>
+  <p>За довідником API механіка така: Playwright Test дивиться на оголошення кожного тесту, аналізує, які фікстури йому потрібні, і готує саме їх. Значення, підготовлені фікстурами, зливаються в один об'єкт, який передається першим параметром у тест, хуки, анотації та інші фікстури. Саме тому ви пишете <code>async ({ page, request }) =&gt; ...</code> і отримуєте рівно те, що назвали.</p>
+  <div class="pwsw">
+    <div><span class="k">Проблема</span><p>Тесту потрібне готове оточення — сторінка, контекст, дані, авторизація — і кожен тест має починати з чистого стану.</p></div>
+    <div><span class="k">Чому</span><p>Якщо тести ділять між собою змінюваний стан, результат одного починає залежати від іншого, і ізоляція ламається.</p></div>
+    <div><span class="k">Рішення</span><p>Фікстура готує оточення під конкретний тест і прибирає за собою. Раннер створює лише ті фікстури, які тест назвав у своїх аргументах.</p></div>
+    <div><span class="k">Коли застосовувати</span><p>Фактично завжди: навіть найпростіший тест із <code>{ page }</code> уже працює через фікстуру. Питання лише в тому, чи достатньо вбудованих, чи час писати власні.</p></div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="panel" role="tabpanel" id="p2" data-title="Вбудовані фікстури" tabindex="0" hidden>
+  <p class="kicker">Розділ 2</p>
+  <h2>Вбудовані фікстури</h2>
+  <a class="docs" href="https://playwright.dev/docs/api/class-fixtures" target="_blank" rel="noopener">Документація →</a>
+  <p>Playwright Test постачається з набором готових фікстур. Ключова відмінність між ними — область життя (scope). Браузер спільний для всіх тестів одного воркера, бо запускати його для кожного тесту дорого. Натомість контекст, сторінка й API-контекст створюються окремо для кожного тесту, тому кожен тест отримує свіже оточення, навіть коли всі вони працюють в одному браузері.</p>
+  <div class="fx">
+    <div><div><span class="nm">page</span><br><span class="sc sc-t">тест</span></div><div><p>Тип <code>Page</code>. Ізольована сторінка, створена для кожного тесту; сторінки ізольовані між тестами завдяки ізоляції контексту. Це найуживаніша фікстура.</p></div></div>
+    <div><div><span class="nm">context</span><br><span class="sc sc-t">тест</span></div><div><p>Тип <code>BrowserContext</code>. Ізольований контекст для кожного тесту; фікстура <code>page</code> за замовчуванням належить саме йому. Зручно, коли треба налаштувати щось на рівні контексту, наприклад маршрутизацію запитів.</p></div></div>
+    <div><div><span class="nm">browser</span><br><span class="sc sc-w">воркер</span></div><div><p>Тип <code>Browser</code>. Спільний для всіх тестів у тому самому воркері, що робить тестування ефективним. Кожен тест при цьому все одно працює в ізольованому контексті.</p></div></div>
+    <div><div><span class="nm">browserName</span></div><div><p>Рядок <code>'chromium' | 'firefox' | 'webkit'</code>, за замовчуванням <code>'chromium'</code>. Корисний для анотування тестів залежно від браузера.</p></div></div>
+    <div><div><span class="nm">request</span><br><span class="sc sc-t">тест</span></div><div><p>Тип <code>APIRequestContext</code>. Ізольований екземпляр для кожного тесту — для роботи з API без браузера.</p></div></div>
+  </div>
+
+  <h3>Типові сценарії з довідника API</h3>
+<div class="codebox"><pre data-file="builtin.spec.ts"><code>import { test } from '@playwright/test';
+
+// context: block requests to an external domain for this test only
+test('example test', async ({ page, context }) => {
+  await context.route('*external.com/*', route => route.abort());
+  // ...
+});
+
+// browser: shared between tests in the same worker
+test.beforeAll(async ({ browser }) => {
+  const page = await browser.newPage();
+  // ...
+});
+
+// browserName: annotate tests per browser
+test('skip this test in Firefox', async ({ page, browserName }) => {
+  test.skip(browserName === 'firefox', 'Still working on it');
+  // ...
+});
+
+// request: isolated APIRequestContext per test
+test('api test', async ({ request }) => {
+  await request.post('/signin', {
+    data: {
+      username: 'user',
+      password: 'password',
+    },
+  });
+  // ...
+});</code></pre></div>
+
+  <h3>Вбудовані option-фікстури з TestOptions</h3>
+  <a class="docs" href="https://playwright.dev/docs/api/class-testoptions" target="_blank" rel="noopener">Документація →</a>
+  <p>Окрім «робочих» фікстур, Playwright Test надає опції, через які налаштовуються <code>browser</code>, <code>context</code> і <code>page</code>. Це теж фікстури, тільки їхнє значення ви задаєте декларативно: у блоці <code>use</code> конфігу, у конкретному проєкті або локально у файлі через <code>test.use()</code>. Серед них <code>baseURL</code>, <code>storageState</code>, <code>viewport</code>, <code>locale</code>, <code>colorScheme</code>, <code>trace</code>, <code>screenshot</code>, <code>video</code>; у версії 1.63 до них додалися окремі опції <code>reducedMotion</code>, <code>forcedColors</code> і <code>contrast</code>.</p>
+<div class="codebox"><pre data-file="playwright.config.ts"><code>import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    baseURL: 'https://playwright.dev',
+    storageState: 'state.json',
+  },
+});</code></pre></div>
+<div class="codebox"><pre data-file="intro.spec.ts"><code>import { test } from '@playwright/test';
+
+// Override an option fixture for this file only.
+test.use({ baseURL: 'https://playwright.dev/docs/intro' });</code></pre></div>
+  <p>Оскільки це фікстури, від них можуть залежати ваші власні фікстури — наприклад, перевизначена <code>page</code> у розділі 6 бере <code>baseURL</code> зі своїх аргументів.</p>
+
+  <h3>fixtures.mount <span class="badge-new">NEW in 1.62</span></h3>
+  <a class="docs" href="https://playwright.dev/docs/api/class-fixtures#fixtures-mount" target="_blank" rel="noopener">Документація →</a>
+  <p>У версії 1.62 компонентне тестування перейшло на модель stories і galleries, і з'явилася фікстура <code>mount</code>. <b>Story</b> — це маленький компонент-обгортка, який вбудовує тестований компонент в один конкретний сценарій: захардкоджені props, мок-дані, провайдери, записані колбеки. <b>Gallery</b> — сторінка, яку ви реалізуєте самі й віддаєте за адресою <code>baseURL</code>; вона надає функції <code>window.mount(params)</code> і <code>window.unmount()</code>, що рендерять story в кореневий елемент.</p>
+  <p>Кожен виклик <code>mount()</code> переходить на <code>baseURL</code> і викликає <code>window.mount()</code> з ідентифікатором story та props, тож тести повністю ізольовані один від одного. Повертається <code>Locator</code>, що вказує на кореневий елемент, у який відрендерилась story, — і запити варто будувати саме від нього: <code>component.getByRole('button')</code>, а не <code>page.getByRole('button')</code>.</p>
+<div class="codebox"><pre data-file="expandable.spec.ts"><code>import { test, expect } from '@playwright/test';
+
+test('click should expand', async ({ mount }) => {
+  const component = await mount('components/Expandable/Stateful');
+  await component.getByRole('button').click();
+  await expect(component.getByTestId('expanded')).toHaveValue('true');
+});</code></pre></div>
+  <p>Щоб перевіряти типи props, передайте тип story як generic-аргумент:</p>
+<div class="codebox"><pre data-file="button.spec.ts"><code>import { test, expect } from '@playwright/test';
+import type { WithTitle } from './Button.story';
+
+test('renders the title', async ({ mount }) => {
+  const component = await mount&lt;typeof WithTitle&gt;('Button/WithTitle', { title: 'Hello' });
+  await expect(component).toContainText('Hello');
+});</code></pre></div>
+  <p>Повернутий локатор доповнений двома методами: <code>update(props)</code> перерендерює ту саму story з новими props без перемонтування, зберігаючи стан компонента, а <code>unmount()</code> демонтує story. Аргумент <code>storyId</code> — ідентифікатор, який розпізнає gallery; за конвенцією це шлях до файлу story плюс ім'я експорту, наприклад <code>'components/Button/Primary'</code>. Props необов'язкові й мають бути простими серіалізованими значеннями. У нотатках до 1.63 додано, що ідентифікатори stories можна типізувати через згенерований реєстр <code>Stories</code>, а старі пакети <code>@playwright/experimental-ct-*</code> для React і Vue більше не оновлюватимуться.</p>
+</section>
+
+<!-- 3 -->
+<section class="panel" role="tabpanel" id="p3" data-title="Без фікстур vs з фікстурами" tabindex="0" hidden>
+  <p class="kicker">Розділ 3</p>
+  <h2>Без фікстур vs з фікстурами</h2>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#without-fixtures" target="_blank" rel="noopener">Документація →</a>
+  <p>Документація порівнює два стилі на прикладі <code>TodoPage</code> — класу за патерном Page Object Model, який працює з todo-списком через внутрішній <code>page</code>. У традиційному стилі екземпляр живе у змінній <code>describe</code>-блоку, створюється в <code>beforeEach</code> і прибирається в <code>afterEach</code>. У стилі з фікстурами той самий життєвий цикл описаний в одному місці.</p>
+  <details class="src"><summary>Код класу TodoPage (todo-page.ts)</summary>
+<div class="codebox"><pre data-file="todo-page.ts"><code>import type { Page, Locator } from '@playwright/test';
+
+export class TodoPage {
+  private readonly inputBox: Locator;
+  private readonly todoItems: Locator;
+
+  constructor(public readonly page: Page) {
+    this.inputBox = this.page.locator('input.new-todo');
+    this.todoItems = this.page.getByTestId('todo-item');
+  }
+
+  async goto() {
+    await this.page.goto('https://demo.playwright.dev/todomvc/');
+  }
+
+  async addToDo(text: string) {
+    await this.inputBox.fill(text);
+    await this.inputBox.press('Enter');
+  }
+
+  async remove(text: string) {
+    const todo = this.todoItems.filter({ hasText: text });
+    await todo.hover();
+    await todo.getByLabel('Delete').click();
+  }
+
+  async removeAll() {
+    while ((await this.todoItems.count()) > 0) {
+      await this.todoItems.first().hover();
+      await this.todoItems.getByLabel('Delete').first().click();
+    }
+  }
+}</code></pre></div>
+  </details>
+
+  <div class="seg" role="tablist" aria-label="Порівняння стилів">
+    <button role="tab" id="cmpA" aria-selected="true" aria-controls="cmpPanelA">Без фікстур</button>
+    <button role="tab" id="cmpB" aria-selected="false" aria-controls="cmpPanelB" tabindex="-1">З фікстурами</button>
+  </div>
+  <div role="tabpanel" id="cmpPanelA" aria-labelledby="cmpA">
+<div class="codebox"><pre data-file="todo.spec.ts"><code>import { test } from '@playwright/test';
+import { TodoPage } from './todo-page';
+
+test.describe('todo tests', () => {
+  let todoPage: TodoPage;
+
+  test.beforeEach(async ({ page }) => {
+    todoPage = new TodoPage(page);
+    await todoPage.goto();
+    await todoPage.addToDo('item1');
+    await todoPage.addToDo('item2');
+  });
+
+  test.afterEach(async () => {
+    await todoPage.removeAll();
+  });
+
+  test('should add an item', async () => {
+    await todoPage.addToDo('my item');
+    // ...
+  });
+
+  test('should remove an item', async () => {
+    await todoPage.remove('item1');
+    // ...
+  });
+});</code></pre></div>
+    <p>Setup і teardown розірвані між двома хуками, стан живе у змінній, спільній для всього блоку, а щоб перевикористати цю підготовку в іншому файлі, її доведеться копіювати.</p>
+  </div>
+  <div role="tabpanel" id="cmpPanelB" aria-labelledby="cmpB" hidden>
+<div class="codebox"><pre data-file="example.spec.ts"><code>import { test as base } from '@playwright/test';
+import { TodoPage } from './todo-page';
+
+// Extend basic test by providing a "todoPage" fixture.
+const test = base.extend&lt;{ todoPage: TodoPage }&gt;({
+  todoPage: async ({ page }, use) => {
+    const todoPage = new TodoPage(page);
+    await todoPage.goto();
+    await todoPage.addToDo('item1');
+    await todoPage.addToDo('item2');
+    await use(todoPage);
+    await todoPage.removeAll();
+  },
+});
+
+test('should add an item', async ({ todoPage }) => {
+  await todoPage.addToDo('my item');
+  // ...
+});
+
+test('should remove an item', async ({ todoPage }) => {
+  await todoPage.remove('item1');
+  // ...
+});</code></pre></div>
+    <p>Уся підготовка і прибирання — в одній функції, розділеній викликом <code>await use(todoPage)</code>. Тест просто називає <code>todoPage</code> в аргументах і отримує готовий об'єкт, а <code>describe</code> більше не потрібен для спільного setup.</p>
+  </div>
+
+  <h3>Переваги фікстур за документацією</h3>
+  <div class="adv">
+    <div><b>Encapsulate</b>Setup і teardown в одному місці, тож писати простіше. Якщо after-хук прибирає те, що створив before-хук, це кандидат на фікстуру.</div>
+    <div><b>Reusable</b>Визначаєте один раз і використовуєте в усіх тестових файлах — так працює і вбудована <code>page</code>.</div>
+    <div><b>On-demand</b>Фікстур може бути скільки завгодно; раннер налаштує лише ті, що потрібні конкретному тесту.</div>
+    <div><b>Composable</b>Фікстури можуть залежати одна від одної й разом давати складну поведінку.</div>
+    <div><b>Flexible</b>Тести комбінують будь-який набір фікстур під свої потреби, не впливаючи на інші тести.</div>
+    <div><b>Grouping</b>Не треба обгортати тести в <code>describe</code> заради спільного setup — групуйте їх за змістом.</div>
+  </div>
+  <div class="pwsw">
+    <div><span class="k">Проблема</span><p>Підготовка оточення розкидана між <code>beforeEach</code> і <code>afterEach</code>, а стан тримається в змінній блоку.</p></div>
+    <div><span class="k">Чому</span><p>Хуки прив'язані до файлу й <code>describe</code>, тож та сама підготовка дублюється між файлами, а тести групуються за спільним setup, а не за змістом.</p></div>
+    <div><span class="k">Рішення</span><p>Перенести пару «створити — прибрати» у фікстуру і віддавати значення тесту через <code>use()</code>.</p></div>
+    <div><span class="k">Коли застосовувати</span><p>Коли after-хук прибирає створене before-хуком, або коли допоміжна функція повторюється в кількох тестах.</p></div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="panel" role="tabpanel" id="p4" data-title="Створення кастомної фікстури" tabindex="0" hidden>
+  <p class="kicker">Розділ 4</p>
+  <h2>Створення кастомної фікстури</h2>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#creating-a-fixture" target="_blank" rel="noopener">Документація →</a>
+  <p>Власна фікстура створюється через <code>test.extend()</code>: метод повертає новий об'єкт <code>test</code>, який уміє все те саме, що й базовий, плюс ваші фікстури. У TypeScript типи фікстур описують окремим типом і передають першим generic-параметром — <code>base.extend&lt;MyFixtures&gt;()</code>.</p>
+  <p>Кожна фікстура — це асинхронна функція виду <code>async ({ залежності }, use, testInfo) =&gt; { ... }</code>. Першим аргументом вона деструктуризує інші фікстури, від яких залежить (тут <code>page</code>). Другим отримує функцію <code>use</code>. Третім — <code>testInfo</code> з метаданими поточного тесту; у воркер-фікстур на цьому місці <code>workerInfo</code>. Усе, що написано до <code>await use(value)</code>, — фаза setup; значення, передане в <code>use</code>, отримує тест; усе після — фаза teardown, яка виконується, коли фікстура тесту більше не потрібна.</p>
+  <details class="src"><summary>Код класу SettingsPage (settings-page.ts)</summary>
+<div class="codebox"><pre data-file="settings-page.ts"><code>import type { Page } from '@playwright/test';
+
+export class SettingsPage {
+  constructor(public readonly page: Page) {
+  }
+
+  async switchToDarkMode() {
+    // ...
+  }
+}</code></pre></div>
+  </details>
+<div class="codebox"><pre data-file="my-test.ts"><code>import { test as base } from '@playwright/test';
+import { TodoPage } from './todo-page';
+import { SettingsPage } from './settings-page';
+
+// Declare the types of your fixtures.
+type MyFixtures = {
+  todoPage: TodoPage;
+  settingsPage: SettingsPage;
+};
+
+// Extend base test by providing "todoPage" and "settingsPage".
+// This new "test" can be used in multiple test files, and each of them will get the fixtures.
+export const test = base.extend&lt;MyFixtures&gt;({
+  todoPage: async ({ page }, use) => {
+    // Set up the fixture.
+    const todoPage = new TodoPage(page);
+    await todoPage.goto();
+    await todoPage.addToDo('item1');
+    await todoPage.addToDo('item2');
+
+    // Use the fixture value in the test.
+    await use(todoPage);
+
+    // Clean up the fixture.
+    await todoPage.removeAll();
+  },
+
+  settingsPage: async ({ page }, use) => {
+    await use(new SettingsPage(page));
+  },
+});
+export { expect } from '@playwright/test';</code></pre></div>
+  <p>Зверніть увагу на останній рядок: файл фікстур реекспортує <code>expect</code>, щоб тести імпортували і <code>test</code>, і <code>expect</code> з одного місця — з <code>./my-test</code>, а не з <code>@playwright/test</code>.</p>
+  <div class="note"><strong>Правило іменування</strong>Ім'я кастомної фікстури має починатися з літери або підкреслення і може містити лише літери, цифри та підкреслення. <code>todoPage</code> і <code>_seed</code> — коректні імена, <code>todo-page</code> чи <code>2ndPage</code> — ні.</div>
+  <div class="pwsw">
+    <div><span class="k">Проблема</span><p>Потрібен готовий об'єкт — Page Object, тестові дані, клієнт — з гарантованим прибиранням після тесту.</p></div>
+    <div><span class="k">Чому</span><p>Без фікстури створення й прибирання доводиться повторювати в кожному файлі або розносити по хуках.</p></div>
+    <div><span class="k">Рішення</span><p><code>base.extend&lt;MyFixtures&gt;()</code> з функцією, де setup іде до <code>await use(value)</code>, а teardown — після; експорт <code>test</code> і <code>expect</code> з окремого файлу.</p></div>
+    <div><span class="k">Коли застосовувати</span><p>Коли одна й та сама підготовка потрібна кільком тестам або файлам.</p></div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="panel" role="tabpanel" id="p5" data-title="Використання фікстур" tabindex="0" hidden>
+  <p class="kicker">Розділ 5</p>
+  <h2>Використання фікстур у тестах, хуках та інших фікстурах</h2>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#using-a-fixture" target="_blank" rel="noopener">Документація →</a>
+  <p>Щоб скористатися фікстурою, достатньо згадати її в аргументах тестової функції — про решту подбає раннер. Фікстури доступні так само в хуках і в інших фікстурах: <code>todoPage</code> вище вже залежить від <code>page</code>. Якщо ви пишете на TypeScript, фікстури типобезпечні: редактор підкаже доступні імена й типи значень, а опечатка в назві стане помилкою компіляції.</p>
+<div class="codebox"><pre data-file="todo.spec.ts"><code>import { test, expect } from './my-test';
+
+test.beforeEach(async ({ settingsPage }) => {
+  await settingsPage.switchToDarkMode();
+});
+
+test('basic test', async ({ todoPage, page }) => {
+  await todoPage.addToDo('something nice');
+  await expect(page.getByTestId('todo-title')).toContainText(['something nice']);
+});</code></pre></div>
+  <p>Тут хук <code>beforeEach</code> отримує <code>settingsPage</code>, а тест — і кастомну <code>todoPage</code>, і вбудовану <code>page</code>. Обидві сторінки-обгортки працюють з тим самим екземпляром <code>page</code> в межах тесту, бо тест-фікстура створюється один раз на тест.</p>
+  <div class="pwsw">
+    <div><span class="k">Проблема</span><p>Тесту й хуку потрібні ті самі об'єкти, а фікстурам — інші фікстури.</p></div>
+    <div><span class="k">Чому</span><p>Ручне передавання об'єктів між хуками та тестами повертає нас до спільних змінних.</p></div>
+    <div><span class="k">Рішення</span><p>Називати фікстуру в першому аргументі — у тесті, хуку чи іншій фікстурі; TypeScript перевіряє імена й типи.</p></div>
+    <div><span class="k">Коли застосовувати</span><p>Щоразу, коли тест чи хук потребує підготовленого значення.</p></div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="panel" role="tabpanel" id="p6" data-title="Перевизначення вбудованих фікстур" tabindex="0" hidden>
+  <p class="kicker">Розділ 6</p>
+  <h2>Перевизначення (override) вбудованих фікстур</h2>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#overriding-fixtures" target="_blank" rel="noopener">Документація →</a>
+  <p>Окрім створення нових фікстур, можна перевизначати наявні. Класичний приклад з документації — <code>page</code>, яка автоматично переходить на <code>baseURL</code>. Перевизначена фікстура може залежати від самої себе в базовому варіанті (<code>page</code> в аргументах — це вбудована сторінка) та від інших вбудованих фікстур, як-от option-фікстури <code>baseURL</code>.</p>
+<div class="codebox"><pre data-file="my-test.ts"><code>import { test as base } from '@playwright/test';
+
+export const test = base.extend({
+  page: async ({ baseURL, page }, use) => {
+    // baseURL is typed as string | undefined
+    if (baseURL)
+      await page.goto(baseURL);
+    await use(page);
+  },
+});</code></pre></div>
+  <p>Тепер <code>baseURL</code> налаштовується в конфігу або локально у файлі:</p>
+<div class="codebox"><pre data-file="example.spec.ts"><code>test.use({ baseURL: 'https://playwright.dev' });</code></pre></div>
+  <p>Фікстуру можна й повністю замінити на щось інше. Документація показує перевизначення option-фікстури <code>storageState</code>, щоб подати власні дані замість значення з конфігу:</p>
+<div class="codebox"><pre data-file="my-test.ts"><code>import { test as base } from '@playwright/test';
+import { getAuthCookie } from './auth-helpers'; // your own helper
+
+export const test = base.extend({
+  storageState: async ({}, use) => {
+    const cookie = await getAuthCookie();
+    await use({ cookies: [cookie], origins: [] });
+  },
+});</code></pre></div>
+  <p class="hint">У документації передається лише <code>{ cookies: [cookie] }</code>; поле <code>origins: []</code> додано, щоб об'єкт відповідав типу storage state у TypeScript.</p>
+  <div class="pwsw">
+    <div><span class="k">Проблема</span><p>Вбудована фікстура майже підходить, але кожен тест робить однакову додаткову дію — перехід на стартову сторінку, логін, підміну стану.</p></div>
+    <div><span class="k">Чому</span><p>Повторювати ту саму дію на початку кожного тесту — це дублювання, яке легко забути.</p></div>
+    <div><span class="k">Рішення</span><p>Перевизначити фікстуру під тим самим ім'ям у <code>base.extend()</code>: взяти базову версію з аргументів, доповнити й передати в <code>use()</code> — або повністю замінити значення.</p></div>
+    <div><span class="k">Коли застосовувати</span><p>Коли всім тестам, що імпортують ваш <code>test</code>, потрібна однаково підготовлена <code>page</code> чи інше вбудоване значення.</p></div>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="panel" role="tabpanel" id="p7" data-title="Worker-scoped фікстури" tabindex="0" hidden>
+  <p class="kicker">Розділ 7</p>
+  <h2>Worker-scoped фікстури</h2>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#worker-scoped-fixtures" target="_blank" rel="noopener">Документація →</a>
+  <p>Playwright Test запускає тестові файли у воркер-процесах. Як тест-фікстури налаштовуються для кожного запуску тесту, так воркер-фікстури налаштовуються для кожного воркер-процесу. Це місце для сервісів, серверів і всього, що дорого створювати. Раннер перевикористовує воркер для стількох тестових файлів, скільки зможе, — за умови, що воркер-фікстури збігаються, тобто оточення ідентичні.</p>
+  <p>Воркер-фікстура оголошується кортежем: функція плюс об'єкт опцій <code>{ scope: 'worker' }</code>. Без цієї опції раннер вважатиме її звичайною тест-фікстурою. Типи воркер-фікстур передаються другим generic-параметром — <code>base.extend&lt;{}, { account: Account }&gt;</code>. Для унікальних даних документація використовує <code>workerInfo.workerIndex</code>, доступний у будь-якому тесті чи фікстурі.</p>
+<div class="codebox"><pre data-file="my-test.ts"><code>import { test as base, expect } from '@playwright/test';
+
+type Account = {
+  username: string;
+  password: string;
+};
+
+// Note that we pass worker fixture types as a second template parameter.
+export const test = base.extend&lt;{}, { account: Account }&gt;({
+  account: [async ({ browser }, use, workerInfo) => {
+    // Unique username.
+    const username = 'user' + workerInfo.workerIndex;
+    const password = 'verysecure';
+
+    // Create the account with Playwright.
+    const page = await browser.newPage();
+    await page.goto('/signup');
+    await page.getByLabel('User Name').fill(username);
+    await page.getByLabel('Password').fill(password);
+    await page.getByText('Sign up').click();
+    // Make sure everything is ok.
+    await expect(page.getByTestId('result')).toHaveText('Success');
+    // Do not forget to cleanup.
+    await page.close();
+
+    // Use the account value.
+    await use({ username, password });
+  }, { scope: 'worker' }],
+
+  page: async ({ page, account }, use) => {
+    // Sign in with our account.
+    const { username, password } = account;
+    await page.goto('/signin');
+    await page.getByLabel('User Name').fill(username);
+    await page.getByLabel('Password').fill(password);
+    await page.getByText('Sign in').click();
+    await expect(page.getByTestId('userinfo')).toHaveText(username);
+
+    // Use signed-in page in the test.
+    await use(page);
+  },
+});
+export { expect };</code></pre></div>
+  <p>Акаунт створюється один раз на воркер, а перевизначена <code>page</code> логіниться в нього перед кожним тестом. Окрім того, що воркер-фікстури запускаються раз на воркер, вони отримують власний таймаут, рівний таймауту тесту за замовчуванням; змінити його можна опцією <code>timeout</code> (розділ 9).</p>
+
+  <div class="lab" aria-labelledby="scopeTitle">
+    <h4 id="scopeTitle">Візуалізація scope: що живе у воркері, а що в тесті</h4>
+    <p class="hint">Натисніть «Відтворити», щоб побачити, як один воркер виконує три тести. Помаранчеві фікстури створюються й знищуються для кожного тесту, темно-сині — один раз на воркер.</p>
+    <div class="row"><button class="btn primary" id="scopePlay">Відтворити</button><button class="btn" id="scopeReset">Скинути</button></div>
+    <div class="scope-stage">
+      <div class="lane">
+        <div class="lane-title">Воркер-процес <span id="scopeWorkerStat">ще не запущений</span></div>
+        <div class="chips"><span class="chip w" data-w="browser">browser</span><span class="chip w" data-w="account">account</span></div>
+      </div>
+      <div class="tests" id="scopeTests"></div>
+    </div>
+    <p class="sr" aria-live="polite" id="scopeLive"></p>
+    <p class="summary" id="scopeCount">Створено: browser — 0, account — 0, page — 0, context — 0, request — 0.</p>
+  </div>
+  <div class="pwsw">
+    <div><span class="k">Проблема</span><p>Деякі ресурси дорого створювати для кожного тесту: акаунт, сервер, сервіс.</p></div>
+    <div><span class="k">Чому</span><p>Тест-фікстура налаштовується для кожного тесту заново — це правильно для ізоляції, але марнотратно для важких і незмінних ресурсів.</p></div>
+    <div><span class="k">Рішення</span><p>Кортеж <code>[fn, { scope: 'worker' }]</code>, тип у другому generic-параметрі, <code>workerInfo.workerIndex</code> для унікальності між паралельними воркерами.</p></div>
+    <div><span class="k">Коли застосовувати</span><p>Коли ресурс можна безпечно ділити між тестами одного воркера.</p></div>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="panel" role="tabpanel" id="p8" data-title="Automatic фікстури" tabindex="0" hidden>
+  <p class="kicker">Розділ 8</p>
+  <h2>Automatic фікстури</h2>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#automatic-fixtures" target="_blank" rel="noopener">Документація →</a>
+  <p>Автоматичні фікстури налаштовуються для кожного тесту чи воркера, навіть якщо тест не згадує їх у своїх аргументах. Для цього використовується кортежний синтаксис з опцією <code>{ auto: true }</code>. Оскільки тест не отримує від такої фікстури значення, її тип зазвичай <code>void</code>, а виклик — <code>await use()</code> без аргументу.</p>
+  <p>Приклад з документації автоматично прикріплює налагоджувальні логи, коли тест падає. Фікстура використовує <code>testInfo</code>: після <code>await use()</code> порівнює <code>testInfo.status</code> з <code>testInfo.expectedStatus</code>, отримує унікальний шлях до файлу через <code>testInfo.outputPath()</code> і додає вкладення в <code>testInfo.attachments</code>, щоб його було видно в репорті.</p>
+<div class="codebox"><pre data-file="my-test.ts"><code>import debug from 'debug';
+import fs from 'fs';
+import { test as base } from '@playwright/test';
+
+export const test = base.extend&lt;{ saveLogs: void }&gt;({
+  saveLogs: [async ({}, use, testInfo) => {
+    // Collecting logs during the test.
+    const logs: string[] = [];
+    debug.log = (...args) => logs.push(args.map(String).join(''));
+    debug.enable('myserver');
+
+    await use();
+
+    // After the test we can check whether the test passed or failed.
+    if (testInfo.status !== testInfo.expectedStatus) {
+      // outputPath() API guarantees a unique file name.
+      const logFile = testInfo.outputPath('logs.txt');
+      await fs.promises.writeFile(logFile, logs.join('\n'), 'utf8');
+      testInfo.attachments.push({ name: 'logs', contentType: 'text/plain', path: logFile });
+    }
+  }, { auto: true }],
+});
+export { expect } from '@playwright/test';</code></pre></div>
+  <p class="hint">Приклад використовує npm-пакет <code>debug</code>; для TypeScript також знадобляться його типи.</p>
+  <div class="pwsw">
+    <div><span class="k">Проблема</span><p>Деяка логіка має відпрацювати для кожного тесту — збір логів, діагностика — але вимагати від кожного тесту її назвати незручно й ненадійно.</p></div>
+    <div><span class="k">Чому</span><p>Звичайні фікстури ліниві: якщо тест їх не назвав, вони не запускаються.</p></div>
+    <div><span class="k">Рішення</span><p>Опція <code>{ auto: true }</code> у кортежі — фікстура запускається для кожного тесту (або воркера, разом із <code>scope: 'worker'</code>).</p></div>
+    <div><span class="k">Коли застосовувати</span><p>Для наскрізних речей на кшталт логування, вкладень у репорт, спільної підготовки середовища.</p></div>
+  </div>
+</section>
+
+<!-- 9 -->
+<section class="panel" role="tabpanel" id="p9" data-title="Таймаут фікстури" tabindex="0" hidden>
+  <p class="kicker">Розділ 9</p>
+  <h2>Таймаут фікстури</h2>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#fixture-timeout" target="_blank" rel="noopener">Документація →</a>
+  <p>Фікстура вважається частиною тесту, тому час її setup і teardown зараховується в таймаут тесту. Повільна фікстура може спричинити таймаут самого тесту. Щоб не піднімати загальний таймаут, фікстурі можна дати окремий, більший таймаут через опцію <code>timeout</code> у кортежі.</p>
+<div class="codebox"><pre data-file="slow.spec.ts"><code>import { test as base, expect } from '@playwright/test';
+
+const test = base.extend&lt;{ slowFixture: string }&gt;({
+  slowFixture: [async ({}, use) => {
+    // ... perform a slow operation ...
+    await use('hello');
+  }, { timeout: 60000 }],
+});
+
+test('example test', async ({ slowFixture }) => {
+  // ...
+});</code></pre></div>
+  <p>На відміну від звичайних тест-фікстур, кожна воркер-фікстура має власний таймаут, рівний таймауту тесту, і його змінюють так само — опцією <code>timeout</code>.</p>
+  <div class="pwsw">
+    <div><span class="k">Проблема</span><p>Тест падає по таймауту, хоча сам він швидкий — повільною є підготовка.</p></div>
+    <div><span class="k">Чому</span><p>Setup і teardown тест-фікстури входять у бюджет часу тесту.</p></div>
+    <div><span class="k">Рішення</span><p><code>{ timeout: 60000 }</code> для конкретної фікстури, а загальний таймаут тесту лишається малим.</p></div>
+    <div><span class="k">Коли застосовувати</span><p>Для завідомо повільних операцій у фікстурах, коли не хочеться послаблювати таймаут для всіх тестів.</p></div>
+  </div>
+</section>
+
+<!-- 10 -->
+<section class="panel" role="tabpanel" id="p10" data-title="Option-фікстури" tabindex="0" hidden>
+  <p class="kicker">Розділ 10</p>
+  <h2>Option-фікстури</h2>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#fixtures-options" target="_blank" rel="noopener">Документація →</a>
+  <p>Playwright Test вміє запускати кілька проєктів з окремими налаштуваннями. Option-фікстури роблять такі налаштування декларативними й типобезпечними. Опція оголошується кортежем <code>[значенняЗаЗамовчуванням, { option: true }]</code>, а інші фікстури можуть від неї залежати, як від будь-якої іншої.</p>
+<div class="codebox"><pre data-file="my-test.ts"><code>import { test as base } from '@playwright/test';
+import { TodoPage } from './todo-page';
+
+// Declare your options to type-check your configuration.
+export type MyOptions = {
+  defaultItem: string;
+};
+type MyFixtures = {
+  todoPage: TodoPage;
+};
+
+// Specify both option and fixture types.
+export const test = base.extend&lt;MyOptions &amp; MyFixtures&gt;({
+  // Define an option and provide a default value.
+  // We can later override it in the config.
+  defaultItem: ['Something nice', { option: true }],
+
+  // Our "todoPage" fixture depends on the option.
+  todoPage: async ({ page, defaultItem }, use) => {
+    const todoPage = new TodoPage(page);
+    await todoPage.goto();
+    await todoPage.addToDo(defaultItem);
+    await use(todoPage);
+    await todoPage.removeAll();
+  },
+});
+export { expect } from '@playwright/test';</code></pre></div>
+  <p>У конфігу тип опцій передається в <code>defineConfig&lt;MyOptions&gt;</code>, і тоді значення в <code>use</code> перевіряються компілятором. Різні проєкти отримують різні значення:</p>
+<div class="codebox"><pre data-file="playwright.config.ts"><code>import { defineConfig } from '@playwright/test';
+import type { MyOptions } from './my-test';
+
+export default defineConfig&lt;MyOptions&gt;({
+  projects: [
+    {
+      name: 'shopping',
+      use: { defaultItem: 'Buy milk' },
+    },
+    {
+      name: 'wellbeing',
+      use: { defaultItem: 'Exercise!' },
+    },
+  ],
+});</code></pre></div>
+  <p>Гайд <a href="https://playwright.dev/docs/test-parameterize#parameterized-projects" target="_blank" rel="noopener">Parameterize tests</a> показує той самий підхід з опцією <code>person</code>: проєкт <code>alice</code> запускає тести зі значенням <code>'Alice'</code>, а <code>bob</code> — з <code>'Bob'</code>. У нотатках до версії 1.60 зазначено, що раннер видає помилку, якщо конфіг намагається перевизначити фікстуру, яка не є опцією, — тож через <code>use</code> у конфігу задаються саме option-фікстури.</p>
+
+  <h3>Масив як значення опції</h3>
+  <p>Якщо значення опції — масив, його треба обгорнути ще в один масив і передати scope. Причина в тому, що масив у позиції значення раннер сприймає як кортеж «значення + опції».</p>
+<div class="codebox"><pre data-file="persons.spec.ts"><code>import { test as base } from '@playwright/test';
+
+type Person = { name: string };
+const test = base.extend&lt;{ persons: Person[] }&gt;({
+  // Declare the option, default value is an empty array.
+  persons: [[], { option: true }],
+});
+
+// Option value is an array of persons.
+const actualPersons = [{ name: 'Alice' }, { name: 'Bob' }];
+test.use({
+  // CORRECT: Wrap the value into an array and pass the scope.
+  persons: [actualPersons, { scope: 'test' }],
+});
+
+test.use({
+  // WRONG: passing an array value directly will not work.
+  persons: actualPersons,
+});</code></pre></div>
+
+  <h3>Скидання опції</h3>
+  <p>Щоб повернути опцію до значення з конфігу, присвойте їй <code>undefined</code>. Наприклад, конфіг задає <code>baseURL: 'https://playwright.dev'</code>, файл перевизначає його, а окремий блок повертає конфігове значення:</p>
+<div class="codebox"><pre data-file="intro.spec.ts"><code>import { test } from '@playwright/test';
+
+// Configure baseURL for this file.
+test.use({ baseURL: 'https://playwright.dev/docs/intro' });
+
+test('check intro contents', async ({ page }) => {
+  // This test will use "https://playwright.dev/docs/intro" base url as defined above.
+});
+
+test.describe(() => {
+  // Reset the value to a config-defined one.
+  test.use({ baseURL: undefined });
+
+  test('can navigate to intro from the home page', async ({ page }) => {
+    // This test will use "https://playwright.dev" base url as defined in the config.
+  });
+});</code></pre></div>
+  <p>Якщо ж потрібно повністю зробити значення <code>undefined</code>, а не конфіговим, використовують довгу форму фікстури:</p>
+<div class="codebox"><pre data-file="intro.spec.ts"><code>import { test } from '@playwright/test';
+
+// Completely unset baseURL for this file.
+test.use({
+  baseURL: [async ({}, use) => {
+    await use(undefined);
+  }, { scope: 'test' }],
+});
+
+test('no base url', async ({ page }) => {
+  // This test will not have a base url.
+});</code></pre></div>
+  <div class="pwsw">
+    <div><span class="k">Проблема</span><p>Тим самим тестам потрібні різні вхідні параметри в різних проєктах — інші дані, інше оточення.</p></div>
+    <div><span class="k">Чому</span><p>Хардкод значень у фікстурах змушує дублювати тести або городити умови на змінних середовища.</p></div>
+    <div><span class="k">Рішення</span><p><code>[default, { option: true }]</code> у фікстурах, <code>defineConfig&lt;MyOptions&gt;</code> і значення в <code>use</code> кожного проєкту.</p></div>
+    <div><span class="k">Коли застосовувати</span><p>Для параметризації на рівні проєктів і для значень, які хочеться перевизначати через <code>test.use()</code>.</p></div>
+  </div>
+</section>
+
+<!-- 11 -->
+<section class="panel" role="tabpanel" id="p11" data-title="Порядок виконання" tabindex="0" hidden>
+  <p class="kicker">Розділ 11</p>
+  <h2>Порядок виконання</h2>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#execution-order" target="_blank" rel="noopener">Документація →</a>
+  <p>Кожна фікстура має фазу setup до виклику <code>await use()</code> і фазу teardown після нього. Setup виконується перед тестом або хуком, якому фікстура потрібна, а teardown — коли тест чи хук її більше не використовує. Порядок визначають три правила:</p>
+  <div class="note"><strong>Правило 1. Залежності</strong>Якщо фікстура A залежить від B, то B завжди налаштовується раніше за A і знищується пізніше за A.</div>
+  <div class="note"><strong>Правило 2. Лінивість</strong>Неавтоматичні фікстури виконуються ліниво — лише тоді, коли вони потрібні тесту чи хуку.</div>
+  <div class="note"><strong>Правило 3. Scope і teardown</strong>Тест-фікстури знищуються після кожного тесту, а воркер-фікстури — лише тоді, коли знищується воркер-процес, що виконує тести.</div>
+<div class="codebox"><pre data-file="order.spec.ts"><code>import { test as base } from '@playwright/test';
+
+const test = base.extend&lt;{
+  testFixture: string,
+  autoTestFixture: string,
+  unusedFixture: string,
+}, {
+  workerFixture: string,
+  autoWorkerFixture: string,
+}&gt;({
+  workerFixture: [async ({ browser }, use) => {
+    // workerFixture setup...
+    await use('workerFixture');
+    // workerFixture teardown...
+  }, { scope: 'worker' }],
+
+  autoWorkerFixture: [async ({ browser }, use) => {
+    // autoWorkerFixture setup...
+    await use('autoWorkerFixture');
+    // autoWorkerFixture teardown...
+  }, { scope: 'worker', auto: true }],
+
+  testFixture: [async ({ page, workerFixture }, use) => {
+    // testFixture setup...
+    await use('testFixture');
+    // testFixture teardown...
+  }, { scope: 'test' }],
+
+  autoTestFixture: [async ({}, use) => {
+    // autoTestFixture setup...
+    await use('autoTestFixture');
+    // autoTestFixture teardown...
+  }, { scope: 'test', auto: true }],
+
+  unusedFixture: [async ({ page }, use) => {
+    // unusedFixture setup...
+    await use('unusedFixture');
+    // unusedFixture teardown...
+  }, { scope: 'test' }],
+});
+
+test.beforeAll(async () => { /* ... */ });
+test.beforeEach(async ({ page }) => { /* ... */ });
+test('first test', async ({ page }) => { /* ... */ });
+test('second test', async ({ testFixture }) => { /* ... */ });
+test.afterEach(async () => { /* ... */ });
+test.afterAll(async () => { /* ... */ });</code></pre></div>
+  <p>Коли всі тести проходять без помилок, документація описує такий порядок. На старті воркера налаштовується <code>browser</code>, бо він потрібен <code>autoWorkerFixture</code>, потім сама <code>autoWorkerFixture</code> (автоматичні воркер-фікстури налаштовуються раніше за все) і лише тоді виконується <code>beforeAll</code>. Для першого тесту спочатку налаштовується <code>autoTestFixture</code> — автоматичні тест-фікстури завжди стартують до тесту й <code>beforeEach</code>, потім <code>page</code>, бо її вимагає <code>beforeEach</code>; далі йдуть <code>beforeEach</code>, тест і <code>afterEach</code>, після чого знищуються <code>page</code> і <code>autoTestFixture</code>. Другий тест повторює початок, але після <code>beforeEach</code> лениво налаштовується <code>workerFixture</code> (її потребує <code>testFixture</code>) і сама <code>testFixture</code>; після тесту й <code>afterEach</code> знищуються <code>testFixture</code>, <code>page</code> і <code>autoTestFixture</code>. Наприкінці виконується <code>afterAll</code>, а потім знищуються <code>workerFixture</code>, <code>autoWorkerFixture</code> і <code>browser</code>.</p>
+  <p>Кілька спостережень з документації: <code>page</code> і <code>autoTestFixture</code> створюються й знищуються для кожного тесту; <code>unusedFixture</code> не налаштовується ніколи, бо її не використовує жоден тест чи хук; <code>testFixture</code> залежить від <code>workerFixture</code> і запускає її setup; <code>workerFixture</code> налаштовується ліниво перед другим тестом, але знищується один раз під час завершення воркера; <code>autoWorkerFixture</code> налаштовується для хука <code>beforeAll</code>, а <code>autoTestFixture</code> — ні.</p>
+
+  <div class="lab" aria-labelledby="vizTitle">
+    <h4 id="vizTitle">Візуалізатор порядку виконання</h4>
+    <p class="hint">Позначте, які фікстури називають у своїх аргументах <code>beforeEach</code>, «first test» і «second test». Хуки <code>beforeAll</code>, <code>afterEach</code> і <code>afterAll</code> фікстур не використовують, як у прикладі. Залежності такі самі, як у коді вище: <code>testFixture</code> ← <code>page</code> + <code>workerFixture</code>; <code>workerFixture</code> і <code>autoWorkerFixture</code> ← <code>browser</code>.</p>
+    <div class="matrix">
+      <table>
+        <caption class="sr">Вибір фікстур для хука і тестів</caption>
+        <thead><tr><th scope="col">Хто використовує</th><th scope="col">page</th><th scope="col">testFixture</th><th scope="col">autoTestFixture</th><th scope="col">workerFixture</th><th scope="col">autoWorkerFixture</th></tr></thead>
+        <tbody id="vizBody"></tbody>
+      </table>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary" id="vizRun">Запустити</button>
+      <button class="btn" id="vizPrev" disabled>Крок назад</button>
+      <button class="btn" id="vizNext" disabled>Наступний крок</button>
+      <button class="btn" id="vizAll" disabled>Показати все</button>
+      <button class="btn" id="vizDoc">Як у документації</button>
+      <button class="btn" id="vizClear">Очистити вибір</button>
+    </div>
+    <div class="explain" id="vizExplain" aria-live="polite">Оберіть фікстури й натисніть «Запустити».</div>
+    <ol class="tl" id="vizTimeline" aria-label="Таймлайн setup і teardown"></ol>
+    <div class="summary" id="vizSummary"></div>
+  </div>
+  <div class="pwsw">
+    <div><span class="k">Проблема</span><p>Незрозуміло, коли саме відпрацює код фікстури відносно хуків і тестів, і чому якась фікстура «не запустилася».</p></div>
+    <div><span class="k">Чому</span><p>Порядок визначають залежності, лінивість і scope, а не порядок оголошення в <code>extend()</code>.</p></div>
+    <div><span class="k">Рішення</span><p>Застосовувати три правила: залежність стартує раніше й завершується пізніше; неавтоматичні фікстури ліниві; тест-фікстури живуть до кінця тесту, воркер-фікстури — до кінця воркера.</p></div>
+    <div><span class="k">Коли застосовувати</span><p>При налагодженні побічних ефектів у setup/teardown і при проєктуванні ланцюжків залежних фікстур.</p></div>
+  </div>
+</section>
+
+<!-- 12 -->
+<section class="panel" role="tabpanel" id="p12" data-title="mergeTests" tabindex="0" hidden>
+  <p class="kicker">Розділ 12</p>
+  <h2>mergeTests: об'єднання фікстур з кількох модулів</h2>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#combine-custom-fixtures-from-multiple-modules" target="_blank" rel="noopener">Документація →</a>
+  <p>Коли фікстури розкладені по різних файлах чи модулях, <code>mergeTests()</code> об'єднує кілька об'єктів <code>test</code> в один. Тест, що імпортує результат, бачить фікстури з усіх джерел одразу, разом із вбудованими.</p>
+<div class="codebox"><pre data-file="fixtures.ts"><code>import { mergeTests } from '@playwright/test';
+import { test as dbTest } from './db-fixtures';
+import { test as a11yTest } from './a11y-fixtures';
+
+export const test = mergeTests(dbTest, a11yTest);</code></pre></div>
+<div class="codebox"><pre data-file="test.spec.ts"><code>import { test } from './fixtures';
+
+test('passes', async ({ database, page, a11y }) => {
+  // use database and a11y fixtures.
+});</code></pre></div>
+  <p class="hint">У документації модулі називаються <code>database-test-utils</code> і <code>a11y-test-utils</code>; тут замінено на локальні файли, суть та сама. Для кастомних матчерів з кількох модулів існує парний <code>mergeExpects()</code>.</p>
+  <div class="pwsw">
+    <div><span class="k">Проблема</span><p>Фікстури для бази, доступності, API живуть в окремих модулях, а тесту потрібні всі одночасно.</p></div>
+    <div><span class="k">Чому</span><p>Кожен модуль експортує свій <code>test</code>; імпортувати два різні <code>test</code> в один файл не вийде.</p></div>
+    <div><span class="k">Рішення</span><p><code>mergeTests(a, b)</code> і експорт об'єднаного <code>test</code> з одного файлу.</p></div>
+    <div><span class="k">Коли застосовувати</span><p>Коли набір фікстур росте і його розбивають на тематичні модулі.</p></div>
+  </div>
+</section>
+
+<!-- 13 -->
+<section class="panel" role="tabpanel" id="p13" data-title="Box-фікстури та title" tabindex="0" hidden>
+  <p class="kicker">Розділ 13</p>
+  <h2>Box-фікстури і кастомний title</h2>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#box-fixtures" target="_blank" rel="noopener">Документація →</a>
+  <p>Зазвичай кастомні фікстури показуються окремими кроками в UI mode, Trace Viewer і різних репортах, а також з'являються в повідомленнях про помилки раннера. Для часто вживаних фікстур це може давати багато шуму. «Запакована» фікстура — з опцією <code>{ box: true }</code> — ховає свої кроки з інтерфейсу. Це зручно для нецікавих допоміжних фікстур, наприклад автоматичної, яка готує спільні дані.</p>
+<div class="codebox"><pre data-file="my-test.ts"><code>import { test as base } from '@playwright/test';
+
+export const test = base.extend&lt;{ helperFixture: void }&gt;({
+  helperFixture: [async ({}, use) => {
+    // ...
+    await use();
+  }, { box: true }],
+});</code></pre></div>
+  <p>Значення <code>box: 'self'</code> ховає лише саму фікстуру, але залишає в репорті всі кроки, що виконуються всередині неї.</p>
+  <h3>Кастомний title</h3>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#custom-fixture-title" target="_blank" rel="noopener">Документація →</a>
+  <p>Замість звичайного імені фікстурі можна дати власну назву, яка показуватиметься в тестових репортах і повідомленнях про помилки.</p>
+<div class="codebox"><pre data-file="my-test.ts"><code>import { test as base } from '@playwright/test';
+
+export const test = base.extend&lt;{ innerFixture: void }&gt;({
+  innerFixture: [async ({}, use) => {
+    // ...
+    await use();
+  }, { title: 'my fixture' }],
+});</code></pre></div>
+  <div class="pwsw">
+    <div><span class="k">Проблема</span><p>Репорти й трейси засмічені кроками допоміжних фікстур, а технічні імена фікстур погано читаються в помилках.</p></div>
+    <div><span class="k">Чому</span><p>За замовчуванням кожна кастомна фікстура стає окремим кроком у UI mode, Trace Viewer і репортах.</p></div>
+    <div><span class="k">Рішення</span><p><code>box: true</code> ховає фікстуру повністю, <code>box: 'self'</code> — лише її саму, <code>title</code> дає зрозумілу назву.</p></div>
+    <div><span class="k">Коли застосовувати</span><p>Для службових і автоматичних фікстур, які не несуть інформації для читача репорту.</p></div>
+  </div>
+</section>
+
+<!-- 14 -->
+<section class="panel" role="tabpanel" id="p14" data-title="Глобальні хуки через auto-фікстури" tabindex="0" hidden>
+  <p class="kicker">Розділ 14</p>
+  <h2>Глобальні хуки через auto-фікстури</h2>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#adding-global-beforeeachaftereach-hooks" target="_blank" rel="noopener">Документація →</a>
+  <p>Хуки <code>test.beforeEach()</code> і <code>test.afterEach()</code> працюють лише для тестів у тому самому файлі й тому самому <code>describe</code>-блоці. Щоб отримати глобальний аналог, оголошують автоматичну тест-фікстуру. Код до <code>await use()</code> виконується перед кожним тестом, код після — після кожного.</p>
+<div class="codebox"><pre data-file="fixtures.ts"><code>import { test as base } from '@playwright/test';
+
+export const test = base.extend&lt;{ forEachTest: void }&gt;({
+  forEachTest: [async ({ page }, use) => {
+    // This code runs before every test.
+    await page.goto('http://localhost:8000');
+    await use();
+    // This code runs after every test.
+    console.log('Last URL:', page.url());
+  }, { auto: true }],  // automatically starts for every test.
+});</code></pre></div>
+<div class="codebox"><pre data-file="mytest.spec.ts"><code>import { test } from './fixtures';
+import { expect } from '@playwright/test';
+
+test('basic', async ({ page }) => {
+  await expect(page).toHaveURL('http://localhost:8000');
+  await page.goto('https://playwright.dev');
+});</code></pre></div>
+  <h3>Глобальні beforeAll/afterAll</h3>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures#adding-global-beforeallafterall-hooks" target="_blank" rel="noopener">Документація →</a>
+  <p><code>test.beforeAll()</code> і <code>test.afterAll()</code> виконуються раз на воркер-процес, але знову ж лише для тестів свого файлу й <code>describe</code>. Глобальний аналог — автоматична воркер-фікстура з <code>{ scope: 'worker', auto: true }</code>. Вона так само запускається раз на воркер-процес, просто її не треба оголошувати в кожному файлі.</p>
+<div class="codebox"><pre data-file="fixtures.ts"><code>import { test as base } from '@playwright/test';
+
+export const test = base.extend&lt;{}, { forEachWorker: void }&gt;({
+  forEachWorker: [async ({}, use, workerInfo) => {
+    // This code runs before all the tests in the worker process.
+    console.log(`Starting test worker ${workerInfo.workerIndex}`);
+    await use();
+    // This code runs after all the tests in the worker process.
+    console.log(`Stopping test worker ${workerInfo.workerIndex}`);
+  }, { scope: 'worker', auto: true }],  // automatically starts for every worker.
+});</code></pre></div>
+  <p class="hint">Документація отримує індекс через <code>test.info().workerIndex</code>; тут використано третій аргумент <code>workerInfo</code>, який воркер-фікстура отримує напряму, — так TypeScript не скаржиться на звернення до <code>test</code> всередині власного оголошення.</p>
+  <div class="pwsw">
+    <div><span class="k">Проблема</span><p>Потрібен хук, що спрацьовує для всіх тестів проєкту, а не одного файлу.</p></div>
+    <div><span class="k">Чому</span><p>Звичайні хуки обмежені файлом і <code>describe</code>-блоком, де оголошені.</p></div>
+    <div><span class="k">Рішення</span><p><code>forEachTest</code> з <code>{ auto: true }</code> як глобальний beforeEach/afterEach; <code>forEachWorker</code> з <code>{ scope: 'worker', auto: true }</code> як глобальний beforeAll/afterAll.</p></div>
+    <div><span class="k">Коли застосовувати</span><p>Коли дія має бути наскрізною і не повинна залежати від того, чи не забув автор файлу її додати.</p></div>
+  </div>
+</section>
+
+<!-- 15 -->
+<section class="panel" role="tabpanel" id="p15" data-title="Шпаргалка опцій кортежу" tabindex="0" hidden>
+  <p class="kicker">Розділ 15</p>
+  <h2>Шпаргалка опцій кортежу</h2>
+  <a class="docs" href="https://playwright.dev/docs/test-fixtures" target="_blank" rel="noopener">Документація →</a>
+  <p>Усі опції передаються другим елементом кортежу: <code>name: [fn, { ...опції }]</code> або, для option-фікстур, <code>name: [значення, { option: true }]</code>.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th scope="col">Опція</th><th scope="col">Що робить</th></tr></thead>
+      <tbody>
+        <tr><td>scope</td><td><code>'test'</code> — фікстура налаштовується для кожного тесту і знищується після нього. <code>'worker'</code> — раз на воркер-процес, знищується при завершенні воркера.</td></tr>
+        <tr><td>auto</td><td><code>true</code> — фікстура налаштовується для кожного тесту чи воркера, навіть якщо тест не згадує її в аргументах.</td></tr>
+        <tr><td>option</td><td><code>true</code> — оголошує опцію: перший елемент кортежу стає значенням за замовчуванням, яке перевизначається в конфігу, проєкті чи <code>test.use()</code>.</td></tr>
+        <tr><td>timeout</td><td>Окремий таймаут фікстури в мілісекундах. Setup/teardown тест-фікстури інакше входять у таймаут тесту; воркер-фікстура має власний таймаут, рівний тестовому.</td></tr>
+        <tr><td>box</td><td><code>true</code> ховає кроки фікстури з UI mode, Trace Viewer і репортів; <code>'self'</code> ховає лише саму фікстуру, залишаючи кроки всередині неї.</td></tr>
+        <tr><td>title</td><td>Власна назва фікстури, яку видно в тестових репортах і повідомленнях про помилки.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="lab" aria-labelledby="bTitle">
+    <h4 id="bTitle">Конструктор кортежу</h4>
+    <p class="hint">Змінюйте параметри — код фікстури оновлюється одразу.</p>
+    <div class="builder">
+      <div>
+        <label for="bName">Ім'я фікстури</label>
+        <input type="text" id="bName" value="myFixture" aria-describedby="bNameErr" spellcheck="false">
+        <div class="err" id="bNameErr" aria-live="polite"></div>
+        <div class="cb"><input type="checkbox" id="bOption"><label for="bOption" style="margin:0">option: true</label></div>
+        <label for="bScope">scope</label>
+        <select id="bScope"><option value="test">'test' (за замовчуванням)</option><option value="worker">'worker'</option></select>
+        <div class="cb"><input type="checkbox" id="bAuto"><label for="bAuto" style="margin:0">auto: true</label></div>
+        <div class="cb"><input type="checkbox" id="bTimeoutOn"><label for="bTimeoutOn" style="margin:0">timeout</label></div>
+        <input type="number" id="bTimeout" value="60000" min="0" step="1000" aria-label="Таймаут у мілісекундах" disabled>
+        <label for="bBox">box</label>
+        <select id="bBox"><option value="">не задано</option><option value="true">true</option><option value="self">'self'</option></select>
+        <label for="bTitle2">title</label>
+        <input type="text" id="bTitle2" placeholder="наприклад, my fixture">
+        <p class="hint" id="bOptHint" hidden>Документація показує option-фікстури у формі <code>[значення, { option: true }]</code>, тому в цьому режимі інші опції вимкнено.</p>
+      </div>
+      <div id="bOut"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 16 -->
+<section class="panel" role="tabpanel" id="p16" data-title="Знайди помилку" tabindex="0" hidden>
+  <p class="kicker">Практика</p>
+  <h2>Знайди помилку</h2>
+  <p>У кожному фрагменті є помилка, яка прямо випливає з документації. Спробуйте знайти її самостійно, а потім відкрийте пояснення.</p>
+  <div id="bugs"></div>
+</section>
+
+<!-- 17 -->
+<section class="panel" role="tabpanel" id="p17" data-title="Фінальний квіз" tabindex="0" hidden>
+  <p class="kicker">Перевірка</p>
+  <h2>Фінальний квіз</h2>
+  <p>Десять питань за матеріалом уроку. Відповідь фіксується одразу після вибору.</p>
+  <div id="quiz"></div>
+  <div class="score" id="score" aria-live="polite">Бали: 0 з 10</div>
+  <div class="row" style="margin-top:14px"><button class="btn" id="quizReset">Пройти заново</button></div>
+  <footer class="small">Матеріал звірено з документацією playwright.dev для версії 1.63 (вересень 2026).</footer>
+</section>
+
+<nav class="pager" aria-label="Попередній і наступний розділ">
+  <button class="btn" id="prevBtn">Попередній розділ</button>
+  <button class="btn primary" id="nextBtn">Наступний розділ</button>
+</nav>
+</main>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ---------- theme ---------- */
+  const root = document.documentElement;
+  const themeBtns = document.querySelectorAll('[data-theme-set]');
+  themeBtns.forEach(b => b.addEventListener('click', () => {
+    const v = b.dataset.themeSet;
+    if (v === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', v);
+    themeBtns.forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  }));
+
+  /* ---------- syntax highlight + copy ---------- */
+  const KW = new Set(['import','export','from','const','let','var','async','await','function','return','type','new','if','else','while','for','of','in','true','false','undefined','null','class','private','public','readonly','constructor','typeof','void']);
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  function highlight(src){
+    const re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|('(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`)|(\b\d+\b)|([A-Za-z_$][\w$]*)|([\s\S])/g;
+    let out = '', m;
+    while ((m = re.exec(src))) {
+      if (m[1]) out += '<span class="t-c">' + esc(m[1]) + '</span>';
+      else if (m[2]) out += '<span class="t-s">' + esc(m[2]) + '</span>';
+      else if (m[3]) out += '<span class="t-n">' + m[3] + '</span>';
+      else if (m[4]) {
+        const w = m[4];
+        if (KW.has(w)) out += '<span class="t-k">' + w + '</span>';
+        else if (/^[A-Z]/.test(w)) out += '<span class="t-t">' + w + '</span>';
+        else if (src[re.lastIndex] === '(') out += '<span class="t-f">' + w + '</span>';
+        else out += w;
+      } else out += esc(m[5]);
+    }
+    return out;
+  }
+  async function copyText(text, btn){
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+      const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+      ta.remove();
+    }
+    btn.textContent = ok ? 'Скопійовано' : 'Не вдалося';
+    setTimeout(() => { btn.textContent = 'Копіювати'; }, 1600);
+  }
+  function enhance(box){
+    const pre = box.querySelector('pre'); if (!pre || box.dataset.ready) return;
+    box.dataset.ready = '1';
+    const code = pre.querySelector('code') || pre;
+    const raw = code.textContent;
+    box.dataset.raw = raw;
+    code.innerHTML = highlight(raw);
+    const bar = document.createElement('div'); bar.className = 'bar';
+    const nm = document.createElement('span'); nm.textContent = pre.dataset.file || 'TypeScript';
+    const btn = document.createElement('button'); btn.type='button'; btn.className='copy'; btn.textContent='Копіювати';
+    btn.setAttribute('aria-label', 'Копіювати код ' + (pre.dataset.file || ''));
+    btn.addEventListener('click', () => copyText(box.dataset.raw, btn));
+    bar.append(nm, btn); box.prepend(bar);
+  }
+  function codeBox(file, src){
+    const box = document.createElement('div'); box.className = 'codebox';
+    const pre = document.createElement('pre'); pre.dataset.file = file;
+    const code = document.createElement('code'); code.textContent = src;
+    pre.appendChild(code); box.appendChild(pre); enhance(box); return box;
+  }
+
+  /* ---------- tabs / navigation / progress ---------- */
+  const panels = Array.from(document.querySelectorAll('main > .panel'));
+  const tablist = document.getElementById('tablist');
+  const visited = new Set();
+  const tabs = panels.map((p, i) => {
+    const t = document.createElement('button');
+    t.type = 'button'; t.className = 'tab'; t.id = 'tab-' + p.id;
+    t.setAttribute('role','tab'); t.setAttribute('aria-controls', p.id);
+    t.setAttribute('aria-selected','false'); t.tabIndex = -1;
+    const num = i < 15 ? String(i + 1) : (i === 15 ? '✎' : '?');
+    t.innerHTML = '<span class="n">' + num + '</span><span>' + p.dataset.title + '</span><span class="v" aria-hidden="true"></span>';
+    p.setAttribute('aria-labelledby', t.id);
+    if (i === 15) { const hr = document.createElement('hr'); tablist.appendChild(hr); }
+    tablist.appendChild(t);
+    return t;
+  });
+  let current = 0;
+  const side = document.getElementById('side');
+  const menuBtn = document.getElementById('menuBtn');
+  function updateProgress(){
+    const pct = Math.round(visited.size / panels.length * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    const pb = document.getElementById('progress'); pb.setAttribute('aria-valuenow', pct);
+    document.getElementById('sideStat').innerHTML = 'Пройдено <b>' + visited.size + '</b> з ' + panels.length;
+  }
+  function show(i, focusTab){
+    current = Math.max(0, Math.min(panels.length - 1, i));
+    panels.forEach((p, k) => { p.hidden = k !== current; });
+    tabs.forEach((t, k) => { t.setAttribute('aria-selected', String(k === current)); t.tabIndex = k === current ? 0 : -1; });
+    visited.add(current); tabs[current].classList.add('visited');
+    updateProgress();
+    document.getElementById('prevBtn').disabled = current === 0;
+    const nb = document.getElementById('nextBtn');
+    nb.disabled = current === panels.length - 1;
+    nb.textContent = current < panels.length - 1 ? 'Далі: ' + panels[current + 1].dataset.title : 'Кінець уроку';
+    if (focusTab) tabs[current].focus();
+    panels[current].querySelectorAll('.codebox').forEach(enhance);
+    window.scrollTo({ top: 0 });
+    side.classList.remove('open'); menuBtn.setAttribute('aria-expanded','false');
+  }
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => show(i));
+    t.addEventListener('keydown', e => {
+      let n = null;
+      if (e.key === 'ArrowDown') n = (i + 1) % tabs.length;
+      else if (e.key === 'ArrowUp') n = (i - 1 + tabs.length) % tabs.length;
+      else if (e.key === 'Home') n = 0;
+      else if (e.key === 'End') n = tabs.length - 1;
+      if (n !== null) { e.preventDefault(); show(n, true); }
+    });
+  });
+  document.getElementById('prevBtn').addEventListener('click', () => show(current - 1));
+  document.getElementById('nextBtn').addEventListener('click', () => { show(current + 1); panels[current].focus({ preventScroll: true }); });
+  menuBtn.addEventListener('click', () => {
+    const open = !side.classList.contains('open');
+    side.classList.toggle('open', open); menuBtn.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && side.classList.contains('open')) { side.classList.remove('open'); menuBtn.setAttribute('aria-expanded','false'); menuBtn.focus(); } });
+
+  /* ---------- compare toggle ---------- */
+  const cmpTabs = [document.getElementById('cmpA'), document.getElementById('cmpB')];
+  function cmpShow(k, focus){
+    cmpTabs.forEach((t, j) => {
+      t.setAttribute('aria-selected', String(j === k)); t.tabIndex = j === k ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = j !== k;
+    });
+    document.getElementById(cmpTabs[k].getAttribute('aria-controls')).querySelectorAll('.codebox').forEach(enhance);
+    if (focus) cmpTabs[k].focus();
+  }
+  cmpTabs.forEach((t, j) => {
+    t.addEventListener('click', () => cmpShow(j));
+    t.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); cmpShow(1 - j, true); } });
+  });
+
+  /* ---------- execution-order visualizer ---------- */
+  const DEFS = {
+    browser:           { scope:'worker', deps:[] },
+    autoWorkerFixture: { scope:'worker', auto:true, deps:['browser'] },
+    workerFixture:     { scope:'worker', deps:['browser'] },
+    page:              { scope:'test', deps:['browser'] },
+    autoTestFixture:   { scope:'test', auto:true, deps:[] },
+    testFixture:       { scope:'test', deps:['page','workerFixture'] },
+    unusedFixture:     { scope:'test', deps:['page'] },
+  };
+  const COLS = ['page','testFixture','autoTestFixture','workerFixture','autoWorkerFixture'];
+  const ROWS = [
+    { key:'be', label:'beforeEach' },
+    { key:'t1', label:"test('first test')" },
+    { key:'t2', label:"test('second test')" },
+  ];
+  const DOC_PRESET = { be:['page'], t1:['page'], t2:['testFixture'] };
+  const vizBody = document.getElementById('vizBody');
+  ROWS.forEach(r => {
+    const tr = document.createElement('tr');
+    const th = document.createElement('th'); th.scope = 'row'; th.innerHTML = '<code>' + r.label + '</code>'; tr.appendChild(th);
+    COLS.forEach(c => {
+      const td = document.createElement('td');
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.dataset.row = r.key; cb.dataset.col = c;
+      cb.setAttribute('aria-label', r.label + ' використовує ' + c);
+      td.appendChild(cb); tr.appendChild(td);
+    });
+    vizBody.appendChild(tr);
+  });
+  function setPreset(p){
+    vizBody.querySelectorAll('input').forEach(cb => { cb.checked = (p[cb.dataset.row] || []).includes(cb.dataset.col); });
+  }
+  setPreset(DOC_PRESET);
+
+  function simulate(sel){
+    const steps = [];
+    const worker = [], ever = new Set();
+    let tst = [];
+    let phase = '';
+    function active(name){ return DEFS[name].scope === 'worker' ? worker.includes(name) : tst.includes(name); }
+    function setup(name, why){
+      if (active(name)) return;
+      DEFS[name].deps.forEach(d => setup(d, 'потрібна фікстурі ' + name + ' — залежність налаштовується раніше за залежну фікстуру (правило 1).'));
+      (DEFS[name].scope === 'worker' ? worker : tst).push(name);
+      ever.add(name);
+      steps.push({ type:'setup', name, phase, why: why + (DEFS[name].scope === 'worker' ? ' Це воркер-фікстура: вона залишиться до завершення воркера.' : '') });
+    }
+    function dependentsNote(name, list){
+      const deps = list.filter(n => n !== name && DEFS[n].deps.includes(name));
+      return deps.length ? ' Від неї залежить ' + deps.join(', ') + ', тому вона знищується пізніше (правило 1).' : '';
+    }
+    phase = 'Старт воркера і beforeAll';
+    setup('autoWorkerFixture', 'автоматична воркер-фікстура — налаштовується раніше за все інше.');
+    steps.push({ type:'hook', name:'beforeAll', phase, why:'Хук не використовує фікстур. autoWorkerFixture уже готова, а autoTestFixture для beforeAll не створюється — вона тест-фікстура.' });
+    [['t1','first test'],['t2','second test']].forEach(([key, title]) => {
+      tst = [];
+      phase = 'Тест «' + title + '»';
+      setup('autoTestFixture', 'автоматична тест-фікстура — завжди налаштовується перед beforeEach і тестом.');
+      COLS.forEach(c => { if (sel.be.includes(c)) setup(c, c === 'autoTestFixture' || c === 'autoWorkerFixture' ? '' : 'потрібна хуку beforeEach (лінива фікстура, правило 2).'); });
+      steps.push({ type:'hook', name:'beforeEach', phase, why: sel.be.length ? 'Хук отримує: ' + sel.be.join(', ') + '.' : 'Хук не називає жодної фікстури.' });
+      COLS.forEach(c => { if (sel[key].includes(c)) setup(c, 'потрібна тесту «' + title + '» (лінива фікстура, правило 2).'); });
+      steps.push({ type:'test', name:title, phase, why: sel[key].length ? 'Тест отримує: ' + sel[key].join(', ') + '.' : 'Тест не називає жодної фікстури.' });
+      steps.push({ type:'hook', name:'afterEach', phase, why:'Хук не використовує фікстур; тест-фікстури ще живі.' });
+      const list = tst.slice();
+      list.slice().reverse().forEach(n => {
+        steps.push({ type:'teardown', name:n, phase, why:'Тест-фікстура знищується після завершення тесту (правило 3).' + dependentsNote(n, list) });
+        tst.splice(tst.indexOf(n), 1);
+      });
+    });
+    phase = 'afterAll і завершення воркера';
+    steps.push({ type:'hook', name:'afterAll', phase, why:'Останній хук воркера; воркер-фікстури ще доступні.' });
+    const wl = worker.slice();
+    wl.slice().reverse().forEach(n => {
+      steps.push({ type:'teardown', name:n, phase, why:'Воркер-фікстура знищується один раз, коли завершується воркер (правило 3).' + dependentsNote(n, wl) });
+    });
+    // fix reasons for auto fixtures picked explicitly (they never reach setup twice)
+    steps.forEach(s => { if (s.type === 'setup' && !s.why.trim()) s.why = 'автоматична фікстура.'; });
+    const never = Object.keys(DEFS).filter(n => !ever.has(n));
+    return { steps, never };
+  }
+
+  const tl = document.getElementById('vizTimeline');
+  const explain = document.getElementById('vizExplain');
+  const summary = document.getElementById('vizSummary');
+  const btnPrev = document.getElementById('vizPrev'), btnNext = document.getElementById('vizNext'), btnAll = document.getElementById('vizAll');
+  let vSteps = [], vPos = -1, vItems = [];
+  const KLABEL = { setup:'setup', teardown:'teardown', hook:'хук', test:'тест' };
+  function vizRender(){
+    vItems.forEach((li, i) => { li.classList.toggle('shown', i <= vPos); li.classList.toggle('cur', i === vPos); li.setAttribute('aria-current', i === vPos ? 'step' : 'false'); });
+    btnPrev.disabled = vPos <= 0; btnNext.disabled = vPos >= vSteps.length - 1; btnAll.disabled = vPos >= vSteps.length - 1;
+    if (vPos >= 0) {
+      const s = vSteps[vPos];
+      explain.textContent = 'Крок ' + (vPos + 1) + ' з ' + vSteps.length + '. ' + (s.type === 'setup' ? s.name + ' setup: ' : s.type === 'teardown' ? s.name + ' teardown: ' : s.name + ': ') + s.why;
+      vItems[vPos].scrollIntoView({ block:'nearest' });
+    }
+  }
+  document.getElementById('vizRun').addEventListener('click', () => {
+    const sel = { be:[], t1:[], t2:[] };
+    vizBody.querySelectorAll('input:checked').forEach(cb => sel[cb.dataset.row].push(cb.dataset.col));
+    const res = simulate(sel);
+    vSteps = res.steps; tl.innerHTML = ''; vItems = [];
+    let lastPhase = null;
+    vSteps.forEach((s, i) => {
+      if (s.phase !== lastPhase) { const h = document.createElement('li'); h.className = 'ph'; h.textContent = s.phase; tl.appendChild(h); lastPhase = s.phase; }
+      const li = document.createElement('li'); li.className = 'st';
+      li.innerHTML = '<span class="idx">' + (i + 1) + '</span><span class="kind k-' + s.type + '">' + KLABEL[s.type] + '</span><span><span class="what"></span><br><span class="why"></span></span>';
+      li.querySelector('.what').textContent = s.type === 'test' ? '«' + s.name + '» виконується' : s.type === 'hook' ? s.name + ' виконується' : s.name + ' ' + s.type;
+      li.querySelector('.why').textContent = s.why;
+      tl.appendChild(li); vItems.push(li);
+    });
+    const autoPicked = [];
+    vizBody.querySelectorAll('input:checked').forEach(cb => { if (/^auto/.test(cb.dataset.col) && !autoPicked.includes(cb.dataset.col)) autoPicked.push(cb.dataset.col); });
+    summary.innerHTML = '';
+    const p = document.createElement('p');
+    p.textContent = 'Жодного разу не налаштовувались: ' + (res.never.length ? res.never.join(', ') : 'усі фікстури були використані') + '. Неавтоматичні фікстури ліниві — без використання їхній код не виконується.' + (autoPicked.length ? ' Позначка для ' + autoPicked.join(' і ') + ' нічого не змінює: автоматичні фікстури запускаються завжди.' : '');
+    summary.appendChild(p);
+    vPos = 0; vizRender();
+  });
+  btnNext.addEventListener('click', () => { vPos = Math.min(vPos + 1, vSteps.length - 1); vizRender(); });
+  btnPrev.addEventListener('click', () => { vPos = Math.max(vPos - 1, 0); vizRender(); });
+  btnAll.addEventListener('click', () => { vPos = vSteps.length - 1; vizRender(); });
+  document.getElementById('vizDoc').addEventListener('click', () => setPreset(DOC_PRESET));
+  document.getElementById('vizClear').addEventListener('click', () => setPreset({}));
+
+  /* ---------- scope animation ---------- */
+  const scopeTests = document.getElementById('scopeTests');
+  const TEST_CHIPS = ['context','page','request','todoPage'];
+  function buildScope(){
+    scopeTests.innerHTML = '';
+    for (let i = 1; i <= 3; i++) {
+      const c = document.createElement('div'); c.className = 'tcard'; c.dataset.i = i;
+      c.innerHTML = '<b>Тест ' + i + '</b><span class="st2">очікує</span><div class="chips">' + TEST_CHIPS.map(n => '<span class="chip" data-t="' + n + '">' + n + '</span>').join('') + '</div>';
+      scopeTests.appendChild(c);
+    }
+    document.querySelectorAll('[data-w]').forEach(ch => ch.className = 'chip w');
+    document.getElementById('scopeWorkerStat').textContent = 'ще не запущений';
+    counts = { browser:0, account:0, page:0, context:0, request:0 };
+    renderCount();
+  }
+  let counts, scopeRun = 0;
+  function renderCount(){
+    document.getElementById('scopeCount').textContent = 'Створено: browser — ' + counts.browser + ', account — ' + counts.account + ', page — ' + counts.page + ', context — ' + counts.context + ', request — ' + counts.request + '.';
+  }
+  const live = document.getElementById('scopeLive');
+  async function playScope(){
+    const id = ++scopeRun;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const wait = ms => new Promise(r => setTimeout(r, reduce ? 60 : ms));
+    buildScope();
+    const alive = () => id === scopeRun;
+    document.getElementById('scopeWorkerStat').textContent = 'запускається';
+    for (const w of ['browser','account']) {
+      await wait(450); if (!alive()) return;
+      document.querySelector('[data-w="' + w + '"]').classList.add('on'); counts[w]++; renderCount();
+    }
+    document.getElementById('scopeWorkerStat').textContent = 'працює: browser і account створено один раз';
+    live.textContent = 'Воркер налаштував browser і account.';
+    for (const card of scopeTests.children) {
+      await wait(500); if (!alive()) return;
+      card.classList.add('run'); card.querySelector('.st2').textContent = 'setup';
+      for (const n of TEST_CHIPS) {
+        await wait(260); if (!alive()) return;
+        card.querySelector('[data-t="' + n + '"]').classList.add('on');
+        if (counts[n] !== undefined) counts[n]++; renderCount();
+      }
+      card.querySelector('.st2').textContent = 'виконується'; live.textContent = 'Тест ' + card.dataset.i + ' виконується зі свіжими context, page, request і todoPage.';
+      await wait(800); if (!alive()) return;
+      card.querySelector('.st2').textContent = 'teardown';
+      for (const n of TEST_CHIPS.slice().reverse()) {
+        await wait(200); if (!alive()) return;
+        const ch = card.querySelector('[data-t="' + n + '"]'); ch.classList.remove('on'); ch.classList.add('off');
+      }
+      card.classList.remove('run'); card.classList.add('done'); card.querySelector('.st2').textContent = 'завершено, тест-фікстури знищено';
+    }
+    await wait(600); if (!alive()) return;
+    document.getElementById('scopeWorkerStat').textContent = 'завершується: account, потім browser';
+    for (const w of ['account','browser']) {
+      await wait(400); if (!alive()) return;
+      const ch = document.querySelector('[data-w="' + w + '"]'); ch.classList.remove('on'); ch.classList.add('off');
+    }
+    document.getElementById('scopeWorkerStat').textContent = 'завершено';
+    live.textContent = 'Воркер завершився: воркер-фікстури знищено один раз.';
+  }
+  buildScope();
+  document.getElementById('scopePlay').addEventListener('click', playScope);
+  document.getElementById('scopeReset').addEventListener('click', () => { scopeRun++; buildScope(); });
+
+  /* ---------- tuple builder ---------- */
+  const B = id => document.getElementById(id);
+  const bInputs = ['bName','bOption','bScope','bAuto','bTimeoutOn','bTimeout','bBox','bTitle2'];
+  function q(s){ return "'" + s.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + "'"; }
+  function buildCode(){
+    let name = B('bName').value.trim();
+    const valid = /^[A-Za-z_][A-Za-z0-9_]*$/.test(name);
+    B('bNameErr').textContent = valid ? '' : 'Ім\'я має починатися з літери або підкреслення і містити лише літери, цифри та підкреслення.';
+    if (!valid) name = 'myFixture';
+    const isOpt = B('bOption').checked;
+    ['bScope','bAuto','bTimeoutOn','bBox','bTitle2'].forEach(id => B(id).disabled = isOpt);
+    B('bTimeout').disabled = isOpt || !B('bTimeoutOn').checked;
+    B('bOptHint').hidden = !isOpt;
+    const lines = ["import { test as base } from '@playwright/test';", ''];
+    if (isOpt) {
+      lines.push('export type MyOptions = {', '  ' + name + ': string;', '};', '');
+      lines.push('export const test = base.extend<MyOptions>({');
+      lines.push('  // Define an option and provide a default value.');
+      lines.push('  ' + name + ": ['default value', { option: true }],");
+      lines.push('});');
+    } else {
+      const worker = B('bScope').value === 'worker';
+      const auto = B('bAuto').checked;
+      const type = auto ? 'void' : 'string';
+      const opts = [];
+      if (worker) opts.push("scope: 'worker'");
+      if (auto) opts.push('auto: true');
+      if (B('bTimeoutOn').checked) opts.push('timeout: ' + (parseInt(B('bTimeout').value, 10) || 0));
+      if (B('bBox').value === 'true') opts.push('box: true');
+      if (B('bBox').value === 'self') opts.push("box: 'self'");
+      const title = B('bTitle2').value.trim();
+      if (title) opts.push('title: ' + q(title));
+      const generic = worker ? '<{}, { ' + name + ': ' + type + ' }>' : '<{ ' + name + ': ' + type + ' }>';
+      const info = worker ? 'workerInfo' : 'testInfo';
+      const useCall = auto ? 'await use();' : "await use('value');";
+      lines.push('export const test = base.extend' + generic + '({');
+      const body = [
+        '// Setup: runs before the ' + (worker ? 'first test in the worker' : 'test') + '.',
+        '// ' + info + ' is available as the third argument.',
+        useCall,
+        '// Teardown: runs ' + (worker ? 'when the worker shuts down' : 'after the test') + '.',
+      ];
+      if (opts.length) {
+        lines.push('  ' + name + ': [async ({}, use) => {');
+        body.forEach(l => lines.push('    ' + l));
+        lines.push('  }, { ' + opts.join(', ') + ' }],');
+      } else {
+        lines.push('  ' + name + ': async ({}, use) => {');
+        body.forEach(l => lines.push('    ' + l));
+        lines.push('  },');
+      }
+      lines.push('});');
+    }
+    lines.push("export { expect } from '@playwright/test';");
+    const out = B('bOut'); out.innerHTML = '';
+    out.appendChild(codeBox('my-test.ts', lines.join('\n')));
+    const desc = document.createElement('p'); desc.className = 'hint';
+    if (isOpt) desc.textContent = 'Option-фікстура: значення за замовчуванням можна перевизначити в use конфігу, у проєкті або через test.use().';
+    else {
+      const parts = [];
+      parts.push(B('bScope').value === 'worker' ? 'налаштовується раз на воркер і знищується при його завершенні' : 'налаштовується для кожного тесту, якому потрібна, і знищується після нього');
+      if (B('bAuto').checked) parts.push('запускається навіть тоді, коли тест її не називає');
+      if (B('bTimeoutOn').checked) parts.push('має окремий таймаут');
+      if (B('bBox').value === 'true') parts.push('схована з UI mode, Trace Viewer і репортів');
+      if (B('bBox').value === 'self') parts.push('схована лише сама, кроки всередині видно');
+      if (B('bTitle2').value.trim()) parts.push('у репортах показується під власною назвою');
+      desc.textContent = 'Ця фікстура ' + parts.join('; ') + '.';
+    }
+    out.appendChild(desc);
+  }
+  bInputs.forEach(id => { B(id).addEventListener('input', buildCode); B(id).addEventListener('change', buildCode); });
+  buildCode();
+
+  /* ---------- find the bug ---------- */
+  const BUGS = [
+    { t:'Фікстура, що «нічого не дає»', file:'my-test.ts',
+      code:"import { test as base } from '@playwright/test';\nimport { TodoPage } from './todo-page';\n\nexport const test = base.extend<{ todoPage: TodoPage }>({\n  todoPage: async ({ page }, use) => {\n    const todoPage = new TodoPage(page);\n    await todoPage.goto();\n    await todoPage.removeAll();\n  },\n});",
+      a:'Не викликано <code>await use(todoPage)</code>. Саме через <code>use()</code> значення потрапляє в тест, а сам виклик є межею між setup і teardown. Правильно: після <code>goto()</code> написати <code>await use(todoPage);</code>, а <code>removeAll()</code> залишити після нього як teardown.' },
+    { t:'Список людей як опція', file:'persons.spec.ts',
+      code:"const test = base.extend<{ persons: Person[] }>({\n  persons: [[], { option: true }],\n});\n\nconst actualPersons = [{ name: 'Alice' }, { name: 'Bob' }];\ntest.use({ persons: actualPersons });",
+      a:'Масив передано як значення опції напряму — документація прямо позначає це як неробочий варіант. Масив треба обгорнути ще в один масив і передати scope: <code>test.use({ persons: [actualPersons, { scope: \'test\' }] });</code>' },
+    { t:'Гарне ім\'я, але не для фікстури', file:'my-test.ts',
+      code:"export const test = base.extend<{ 'settings-page': SettingsPage }>({\n  'settings-page': async ({ page }, use) => {\n    await use(new SettingsPage(page));\n  },\n});",
+      a:'Ім\'я кастомної фікстури має починатися з літери або підкреслення й містити лише літери, цифри та підкреслення. Дефіс заборонений — назвіть фікстуру <code>settingsPage</code>.' },
+    { t:'Дані, які так і не з\'явились', file:'seed.spec.ts',
+      code:"const test = base.extend<{ seedTodos: void }>({\n  seedTodos: async ({ page }, use) => {\n    await page.goto('https://demo.playwright.dev/todomvc/');\n    await page.locator('input.new-todo').fill('item1');\n    await page.locator('input.new-todo').press('Enter');\n    await use();\n  },\n});\n\ntest('has seeded item', async ({ page }) => {\n  // Expects seedTodos to have run...\n  await expect(page.getByTestId('todo-item')).toHaveCount(1);\n});",
+      a:'Неавтоматичні фікстури ліниві: вони виконуються лише тоді, коли їх потребує тест або хук. Тест не називає <code>seedTodos</code>, тож її код не запуститься. Варіанти: додати <code>seedTodos</code> в аргументи тесту або оголосити її кортежем з <code>{ auto: true }</code>.' },
+    { t:'Акаунт на кожен тест', file:'my-test.ts',
+      code:"export const test = base.extend<{}, { account: Account }>({\n  account: async ({ browser }, use, workerInfo) => {\n    const username = 'user' + workerInfo.workerIndex;\n    // ... create the account ...\n    await use({ username, password: 'verysecure' });\n  },\n});",
+      a:'Тип оголошено в другому generic-параметрі, але сама фікстура записана не кортежем. Документація наголошує: для воркер-фікстури треба передати <code>{ scope: \'worker\' }</code>, щоб раннер налаштовував її раз на воркер. Правильно: <code>account: [async ({ browser }, use, workerInfo) =&gt; { ... }, { scope: \'worker\' }]</code>.' },
+  ];
+  const bugsEl = document.getElementById('bugs');
+  BUGS.forEach((b, i) => {
+    const d = document.createElement('div'); d.className = 'bug';
+    const h = document.createElement('h4'); h.textContent = (i + 1) + '. ' + b.t; d.appendChild(h);
+    d.appendChild(codeBox(b.file, b.code));
+    const btn = document.createElement('button'); btn.className = 'btn reveal'; btn.type = 'button';
+    btn.textContent = 'Показати відповідь'; btn.setAttribute('aria-expanded','false'); btn.setAttribute('aria-controls','bugA' + i);
+    const ans = document.createElement('div'); ans.className = 'answer'; ans.id = 'bugA' + i; ans.hidden = true; ans.innerHTML = '<strong>Чому це помилка.</strong> ' + b.a;
+    btn.addEventListener('click', () => {
+      const open = ans.hidden; ans.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open)); btn.textContent = open ? 'Сховати відповідь' : 'Показати відповідь';
+    });
+    d.append(btn, ans); bugsEl.appendChild(d);
+  });
+
+  /* ---------- quiz ---------- */
+  const QUIZ = [
+    { q:'Що станеться з неавтоматичною фікстурою, якої не використовує жоден тест чи хук?', o:['Вона налаштується перед першим тестом файлу','Вона ніколи не налаштується','Вона налаштується один раз на воркер','Раннер видасть помилку'], c:1, e:'Неавтоматичні фікстури ліниві — у прикладі з документації unusedFixture не налаштовується жодного разу.' },
+    { q:'Яка фікстура спільна для всіх тестів одного воркера?', o:['page','context','browser','request'], c:2, e:'browser спільний для тестів у воркері; context, page і request ізольовані для кожного тесту.' },
+    { q:'Де в коді фікстури межа між setup і teardown?', o:['Виклик await use(value)','Оператор return','Кінець першого await','Опція timeout'], c:0, e:'Setup — до await use(), teardown — після нього.' },
+    { q:'Фікстура A залежить від B. Який порядок?', o:['A setup → B setup, B teardown → A teardown','B setup → A setup, A teardown → B teardown','Порядок визначається оголошенням у extend()','Обидві налаштовуються паралельно'], c:1, e:'Залежність B завжди налаштовується раніше за A і знищується пізніше за A.' },
+    { q:'Як правильно передати масив як значення опції в test.use()?', o:['persons: actualPersons','persons: [...actualPersons]','persons: [actualPersons, { scope: \'test\' }]','persons: { value: actualPersons }'], c:2, e:'Масив треба обгорнути ще в один масив і передати scope.' },
+    { q:'Як повернути option-фікстуру до значення з конфігу для окремого describe?', o:['test.use({ baseURL: null })','test.use({ baseURL: undefined })','test.use({ baseURL: \'\' })','Видалити test.use з файлу неможливо'], c:1, e:'undefined скидає опцію до значення з конфігу; повне скидання до undefined робиться довгою формою фікстури.' },
+    { q:'Яка з автоматичних фікстур доступна хуку beforeAll у прикладі з документації?', o:['autoTestFixture','autoWorkerFixture','Обидві','Жодна'], c:1, e:'autoWorkerFixture налаштовується для beforeAll, а autoTestFixture — ні, бо це тест-фікстура.' },
+    { q:'Що робить box: \'self\'?', o:['Ховає фікстуру і всі кроки всередині неї','Ховає лише саму фікстуру, кроки всередині лишаються в репорті','Робить фікстуру автоматичною','Ізолює фікстуру в окремому воркері'], c:1, e:'box: true ховає фікстуру повністю, \'self\' — тільки її саму.' },
+    { q:'Який таймаут має воркер-фікстура за замовчуванням?', o:['Входить у таймаут першого тесту','Власний, рівний таймауту тесту за замовчуванням','Без обмеження часу','60 секунд завжди'], c:1, e:'Воркер-фікстури отримують окремий таймаут, рівний таймауту тесту; його можна змінити опцією timeout.' },
+    { q:'Що повертає фікстура mount?', o:['Page з відрендереною story','Locator кореневого елемента, в який відрендерилась story','ElementHandle компонента','Об\'єкт з props story'], c:1, e:'mount() повертає Locator кореня story, доповнений методами update(props) і unmount().' },
+  ];
+  const quizEl = document.getElementById('quiz');
+  let answered = 0, correct = 0;
+  function scoreText(){ document.getElementById('score').textContent = 'Бали: ' + correct + ' з ' + QUIZ.length + (answered === QUIZ.length ? ' — квіз завершено' : ''); }
+  function renderQuiz(){
+    quizEl.innerHTML = ''; answered = 0; correct = 0; scoreText();
+    QUIZ.forEach((item, i) => {
+      const wrap = document.createElement('div'); wrap.className = 'q';
+      const fs = document.createElement('fieldset');
+      const lg = document.createElement('legend'); lg.textContent = (i + 1) + '. ' + item.q; fs.appendChild(lg);
+      const fb = document.createElement('div'); fb.className = 'fb'; fb.hidden = true; fb.setAttribute('aria-live','polite');
+      item.o.forEach((opt, j) => {
+        const lab = document.createElement('label'); lab.className = 'opt';
+        const r = document.createElement('input'); r.type = 'radio'; r.name = 'q' + i; r.value = j;
+        const sp = document.createElement('span'); sp.textContent = opt;
+        lab.append(r, sp); fs.appendChild(lab);
+        r.addEventListener('change', () => {
+          fs.querySelectorAll('input').forEach(x => x.disabled = true);
+          const labs = fs.querySelectorAll('.opt');
+          labs[item.c].classList.add('right');
+          const ok = j === item.c;
+          if (!ok) lab.classList.add('wrong');
+          answered++; if (ok) correct++;
+          fb.hidden = false; fb.innerHTML = '';
+          const b = document.createElement('strong'); b.textContent = ok ? 'Правильно. ' : 'Не зовсім. ';
+          fb.append(b, document.createTextNode(item.e));
+          scoreText();
+        });
+      });
+      fs.appendChild(fb); wrap.appendChild(fs); quizEl.appendChild(wrap);
+    });
+  }
+  renderQuiz();
+  document.getElementById('quizReset').addEventListener('click', renderQuiz);
+
+  show(0);
+})();
+</script>
+</body>
+</html>
