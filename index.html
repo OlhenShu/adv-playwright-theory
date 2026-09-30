@@ -2,6 +2,14 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8">
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('pw-course-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Теоретичні матеріали курсу Playwright</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,11 +24,16 @@
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
-  :root{
+  :root:not([data-theme="light"]){
     --bg:#0A1426; --surface:#101E37; --surface-2:#17284A; --ink:#E6ECF6; --muted:#9CA9C2; --line:#24375C;
     --navy:#0E1D38; --navy-ink:#E6ECF6; --accent:#FF9A3C; --accent-ink:#FFB068; --accent-soft:#3A2814;
     color-scheme:dark;
   }
+}
+:root[data-theme="dark"]{
+  --bg:#0A1426; --surface:#101E37; --surface-2:#17284A; --ink:#E6ECF6; --muted:#9CA9C2; --line:#24375C;
+  --navy:#0E1D38; --navy-ink:#E6ECF6; --accent:#FF9A3C; --accent-ink:#FFB068; --accent-soft:#3A2814;
+  color-scheme:dark;
 }
 *,*::before,*::after{box-sizing:inherit}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased}
@@ -28,13 +41,17 @@ a{color:var(--accent-ink)}
 code{font-size:.9em;background:var(--surface-2);padding:.08em .35em;border-radius:4px}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
 .topbar{background:var(--navy);color:var(--navy-ink)}
-.topbar-in{max-width:860px;margin:0 auto;padding:16px 20px}
+.topbar-in{max-width:860px;margin:0 auto;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .topbar h1{margin:0;font-size:1.05rem;font-weight:700;letter-spacing:-.005em}
+.theme-switch{display:inline-flex;flex:0 0 auto;border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:2px;gap:2px}
+.theme-switch button{appearance:none;border:0;background:transparent;color:inherit;font:inherit;font-size:.75rem;padding:5px 10px;border-radius:999px;cursor:pointer}
+.theme-switch button[aria-pressed="true"]{background:var(--accent);color:#1B0E00;font-weight:600}
 .topbar small{display:block;margin-top:2px;opacity:.78;font-size:.82rem}
 main{max-width:860px;margin:0 auto;padding:40px 20px 80px}
 .lead{font-size:1.12rem;margin:0 0 18px}
 p{margin:0 0 16px}
 h2{font-size:1.25rem;margin:36px 0 12px;letter-spacing:-.01em}
+.cards{display:flex;flex-direction:column;gap:10px;margin:0 0 16px}
 .card{display:block;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;text-decoration:none;color:inherit}
 .card:hover{border-color:var(--accent)}
 .card strong{display:block;font-size:1.02rem}
@@ -45,20 +62,60 @@ h2{font-size:1.25rem;margin:36px 0 12px;letter-spacing:-.01em}
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <h1>Теоретичні матеріали курсу Playwright</h1>
-    <small>Playwright + TypeScript</small>
+    <div>
+      <h1>Теоретичні матеріали курсу Playwright</h1>
+      <small>Playwright + TypeScript</small>
+    </div>
+    <div class="theme-switch" role="group" aria-label="Тема оформлення">
+      <button type="button" data-theme-set="auto" aria-pressed="true">Авто</button>
+      <button type="button" data-theme-set="light" aria-pressed="false">Світла</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Темна</button>
+    </div>
   </div>
 </header>
 <main>
   <p class="lead">Це репозиторій теоретичних матеріалів курсу з Playwright. Тут зібрані конспекти тем: пояснення концепцій, приклади й довідкові нотатки, які доповнюють практичні завдання.</p>
-  <p>Структура репозиторія розбита по спринтах. Кожен спринт — окрема папка (<code>sprint-01</code>, <code>sprint-02</code> і далі), а всередині неї лежать HTML-конспекти відповідних тем. Новий матеріал додається в папку того спринту, до якого він належить.</p>
+  <p>Структура репозиторія розбита по темах. Кожна тема — окрема папка (<code>topic-01</code>, <code>topic-02</code> і далі), а всередині неї лежить HTML-конспект. Новий матеріал додається в папку тієї теми, до якої він належить.</p>
 
   <h2>Матеріали</h2>
-  <a class="card" href="sprint-07/playwright-fixtures.html">
-    <strong>Спринт 07. Фікстури в Playwright Test</strong>
-    <span>Вбудовані та кастомні фікстури: область життя, опції, воркери й проєкти.</span>
-  </a>
-  <p class="note">Інші спринти з’являться тут у міру того, як будуть готові конспекти.</p>
+  <div class="cards">
+    <a class="card" href="topic-01/typescript-for-playwright.html">
+      <strong>Тема 01. TypeScript для Playwright: основи</strong>
+      <span>Типи, tsconfig, generics, типи Playwright і типові помилки в тестах.</span>
+    </a>
+    <a class="card" href="topic-02/playwright-test-runner.html">
+      <strong>Тема 02. Playwright Test Runner</strong>
+      <span>Раннер і бібліотека, конфіг, запуск, браузери, паралелізм і анатомія тесту.</span>
+    </a>
+    <a class="card" href="topic-07/playwright-fixtures.html">
+      <strong>Тема 07. Фікстури в Playwright Test</strong>
+      <span>Вбудовані та кастомні фікстури: область життя, опції, воркери й проєкти.</span>
+    </a>
+  </div>
+  <p class="note">Інші теми з’являться тут у міру того, як будуть готові конспекти.</p>
 </main>
+<script>
+(function(){
+  var KEY = 'pw-course-theme';
+  var root = document.documentElement;
+  var buttons = document.querySelectorAll('[data-theme-set]');
+  function current(){
+    try { return localStorage.getItem(KEY) || 'auto'; } catch (e) { return 'auto'; }
+  }
+  function paint(v){
+    if (v === 'light' || v === 'dark') root.setAttribute('data-theme', v);
+    else root.removeAttribute('data-theme');
+    buttons.forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.themeSet === v)); });
+  }
+  paint(current());
+  buttons.forEach(function(b){
+    b.addEventListener('click', function(){
+      var v = b.dataset.themeSet;
+      try { localStorage.setItem(KEY, v); } catch (e) {}
+      paint(v);
+    });
+  });
+})();
+</script>
 </body>
 </html>

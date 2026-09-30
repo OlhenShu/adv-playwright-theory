@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('pw-course-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Playwright Test Runner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#15305A; --navy-2:#224A86; --orange:#E8781A; --orange-soft:#FDEBD8;
+  --paper:#F3F6FB; --surface:#FFFFFF; --ink:#18212F; --muted:#566278; --line:#D9E0EB;
+  --code-bg:#0F1D33; --code-ink:#E3E9F3; --code-line:#1C2E4C;
+  --ok:#1D8455; --ok-soft:#DDF3E8; --bad:#BF3A2F; --bad-soft:#F9E1DE;
+  --pw:#E8781A; --tsc:#3469CF; --tsc-soft:#E1EAFB;
+  --sans:"IBM Plex Sans", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --navy:#A9C3F0; --navy-2:#86A8E6; --orange:#F2923F; --orange-soft:#3A2814;
+    --paper:#0C1524; --surface:#132038; --ink:#E6ECF5; --muted:#9BA8BE; --line:#26365A;
+    --code-bg:#08111F; --code-ink:#E3E9F3; --code-line:#18294A;
+    --ok:#4CC08A; --ok-soft:#113626; --bad:#F07B70; --bad-soft:#3D1A17;
+    --tsc:#7FA6F2; --tsc-soft:#1A2B4D;
+  }
+}
+:root[data-theme="dark"]{
+  --navy:#A9C3F0; --navy-2:#86A8E6; --orange:#F2923F; --orange-soft:#3A2814;
+  --paper:#0C1524; --surface:#132038; --ink:#E6ECF5; --muted:#9BA8BE; --line:#26365A;
+  --code-bg:#08111F; --code-ink:#E3E9F3; --code-line:#18294A;
+  --ok:#4CC08A; --ok-soft:#113626; --bad:#F07B70; --bad-soft:#3D1A17;
+  --tsc:#7FA6F2; --tsc-soft:#1A2B4D;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%; scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans); font-size:17px; line-height:1.62; -webkit-text-size-adjust:100%}
+a{color:var(--navy-2)}
+a:hover{color:var(--orange)}
+:focus-visible{outline:3px solid var(--orange); outline-offset:2px; border-radius:4px}
+code{font-family:var(--mono); font-size:.86em; background:var(--tsc-soft); color:var(--ink); padding:.08em .35em; border-radius:4px}
+.layout{display:grid; grid-template-columns:292px minmax(0,1fr); min-height:100%}
+/* ---------- sidebar ---------- */
+.side{background:var(--navy); color:#fff; padding:28px 20px 24px; position:sticky; top:env(safe-area-inset-top,0px); height:100vh; overflow-y:auto}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .side{background:#0F1A2E}}
+:root[data-theme="dark"] .side{background:#0F1A2E}
+.brand{font-weight:700; font-size:1.28rem; line-height:1.2; margin:0 0 6px; letter-spacing:-.01em}
+.brand span{display:block; font-family:var(--mono); font-size:.72rem; font-weight:400; color:#F6B77B; margin-top:10px; line-height:1.5}
+.side-tools{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 16px; flex-wrap:wrap}
+.home{color:#F6B77B; font-size:.82rem; font-weight:600; text-decoration:none}
+.home:hover{color:#fff}
+.theme-switch{display:inline-flex; border:1px solid rgba(255,255,255,.3); border-radius:999px; padding:2px; gap:2px}
+.theme-switch button{appearance:none; border:0; background:transparent; color:#DCE5F4; font:inherit; font-size:.72rem; padding:4px 8px; border-radius:999px; cursor:pointer}
+.theme-switch button[aria-pressed="true"]{background:#E8781A; color:#1B0E00; font-weight:600}
+.progress{margin:22px 0 18px}
+.progress-bar{height:8px; background:rgba(255,255,255,.14); border-radius:8px; overflow:hidden}
+.progress-bar i{display:block; height:100%; width:0; background:#F2923F; transition:width .35s ease}
+.progress p{margin:8px 0 0; font-size:.84rem; color:#C9D6EC}
+.nav{list-style:none; margin:0; padding:0; counter-reset:n}
+.nav li{margin:2px 0}
+.nav button{all:unset; box-sizing:border-box; cursor:pointer; display:grid; grid-template-columns:28px 1fr 18px; gap:8px; align-items:start; width:100%; padding:9px 10px; border-radius:8px; color:#DCE5F4; font-size:.93rem; line-height:1.35}
+.nav button:hover{background:rgba(255,255,255,.07)}
+.nav button[aria-current="true"]{background:#fff; color:#15305A; font-weight:600}
+.nav .num{font-family:var(--mono); font-size:.8rem; opacity:.75; padding-top:1px}
+.nav .tick{font-size:.85rem; color:#F2923F; visibility:hidden}
+.nav li.done .tick{visibility:visible}
+.nav button[aria-current="true"] .tick{color:#E8781A}
+.side-foot{margin-top:22px; font-size:.78rem; color:#AFC0DC; line-height:1.5}
+.side-foot button{all:unset; cursor:pointer; text-decoration:underline; color:#F6B77B}
+/* ---------- main ---------- */
+main{padding:44px clamp(18px,5vw,64px) 80px}
+.chapter{max-width:800px}
+.chapter[hidden]{display:none}
+.kicker{font-family:var(--mono); font-size:.8rem; color:var(--orange); margin:0 0 6px}
+h2{font-size:clamp(1.7rem,3.2vw,2.3rem); line-height:1.15; margin:0 0 18px; color:var(--navy); letter-spacing:-.02em}
+h3{font-size:1.22rem; margin:38px 0 10px; color:var(--navy); line-height:1.3}
+h4{font-size:1.02rem; margin:24px 0 6px}
+p{margin:0 0 14px; max-width:72ch}
+.lead{font-size:1.1rem; color:var(--muted)}
+.docs{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 26px}
+.docs a{font-size:.85rem; text-decoration:none; border:1px solid var(--line); background:var(--surface); padding:5px 11px; border-radius:20px; color:var(--navy-2)}
+.docs a:hover{border-color:var(--orange); color:var(--orange)}
+/* code */
+figure.code{position:relative; margin:16px 0 22px; background:var(--code-bg); border-radius:10px; overflow:hidden; border:1px solid var(--code-line)}
+figure.code figcaption{font-family:var(--mono); font-size:.76rem; color:#9FB2D2; padding:8px 14px; border-bottom:1px solid var(--code-line); background:rgba(255,255,255,.03)}
+figure.code pre{margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:.84rem; line-height:1.6; color:var(--code-ink); tab-size:2}
+figure.code pre code{background:none; padding:0; color:inherit; font-size:inherit}
+.copy{position:absolute; top:6px; right:8px; font:500 .72rem var(--sans); color:#BFD0EA; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:6px; padding:3px 9px; cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+.t-com{color:#7D8FAD; font-style:italic}.t-str{color:#F6B77B}.t-key{color:#9CC5FF}.t-num{color:#F9D27A}
+.t-kw{color:#FF9D5C}.t-lit{color:#F9D27A}.t-type{color:#7FD6C2}.t-fn{color:#B6CCFF}
+/* callouts: problem -> why -> solution -> when */
+.fix{background:var(--surface); border:1px solid var(--line); border-left:5px solid var(--orange); border-radius:10px; padding:16px 20px 6px; margin:20px 0 24px}
+.fix h4{margin:0 0 10px; color:var(--orange)}
+.fix p{font-size:.96rem}
+.fix b{color:var(--navy)}
+.note{background:var(--tsc-soft); border-radius:10px; padding:14px 18px 2px; margin:18px 0 22px; font-size:.96rem}
+.note b{color:var(--navy)}
+/* widgets shared */
+.widget{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; margin:22px 0 28px}
+.widget h4{margin:0 0 4px; font-size:1.05rem; color:var(--navy)}
+.widget .hint{font-size:.9rem; color:var(--muted); margin:0 0 14px}
+.seg{display:inline-flex; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:3px; gap:2px; flex-wrap:wrap}
+.seg button{border:0; background:transparent; font:600 .9rem var(--sans); color:var(--muted); padding:7px 14px; border-radius:8px; cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--navy); color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#0C1524}}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#0C1524}
+/* js/ts toggle */
+.editor{margin-top:14px; background:var(--code-bg); border-radius:10px; overflow-x:auto; font-family:var(--mono); font-size:.83rem; line-height:1.65; color:var(--code-ink); padding:12px 0}
+.editor .ln{display:grid; grid-template-columns:38px 1fr; white-space:pre; padding-right:16px}
+.editor .ln > span:first-child{color:#51658A; text-align:right; padding-right:12px; user-select:none}
+.editor .err > span:last-child{text-decoration:underline wavy #FF6B5E; text-underline-offset:4px}
+.editor .msg{display:block; white-space:normal; margin:2px 16px 6px 50px; font-family:var(--sans); font-size:.8rem; color:#FFD2CC; background:rgba(255,107,94,.14); border-left:3px solid #FF6B5E; padding:4px 10px; border-radius:0 6px 6px 0}
+.editor-note{font-size:.92rem; margin:12px 0 0; color:var(--muted)}
+/* return type quiz */
+.rt-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px}
+.rt{border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--paper)}
+.rt .m{font-family:var(--mono); font-size:.88rem; font-weight:600; margin:0 0 10px; color:var(--navy)}
+.rt .opts{display:flex; flex-wrap:wrap; gap:6px}
+.rt .opts button{font:500 .78rem var(--mono); border:1px solid var(--line); background:var(--surface); color:var(--ink); padding:4px 8px; border-radius:6px; cursor:pointer}
+.rt .opts button.right{background:var(--ok-soft); border-color:var(--ok); color:var(--ok)}
+.rt .opts button.wrong{background:var(--bad-soft); border-color:var(--bad); color:var(--bad); text-decoration:line-through}
+.rt .fb{font-size:.84rem; margin:10px 0 0; line-height:1.5}
+.rt .fb[hidden]{display:none}
+.score{font-size:.9rem; margin:14px 0 0; color:var(--muted)}
+/* utility builder */
+.ub{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.2fr); gap:18px; margin-top:14px}
+.ub fieldset{border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin:0}
+.ub legend{font-size:.85rem; color:var(--muted); padding:0 6px}
+.ub label{display:flex; gap:8px; align-items:center; font-family:var(--mono); font-size:.85rem; padding:4px 0; cursor:pointer}
+.ub label.off{opacity:.45; cursor:default}
+.ub-out figure.code{margin:0}
+.ub-say{font-size:.9rem; margin:10px 0 0}
+/* tsconfig */
+.legend{display:flex; flex-wrap:wrap; gap:14px; font-size:.86rem; margin:0 0 12px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.legend i{width:12px; height:12px; border-radius:3px; display:inline-block}
+.tsc-wrap{display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); gap:16px; align-items:start}
+.json{background:var(--code-bg); color:var(--code-ink); font-family:var(--mono); font-size:.82rem; line-height:1.75; padding:14px 12px; border-radius:10px; overflow-x:auto; white-space:pre}
+.json button{all:unset; cursor:pointer; border-radius:4px; padding:0 3px; margin:0 -3px}
+.json button.pw{box-shadow:inset 0 -2px 0 var(--pw); color:#FFC48C}
+.json button.tsc{box-shadow:inset 0 -2px 0 var(--tsc); color:#A9C6FF}
+.json button:hover,.json button[aria-pressed="true"]{background:rgba(255,255,255,.12)}
+.json button:focus-visible{outline:2px solid var(--orange)}
+.explain{border:1px solid var(--line); border-radius:10px; padding:14px 16px; background:var(--paper); font-size:.93rem; min-height:160px}
+.explain .tag{display:inline-block; font-size:.74rem; font-weight:600; padding:2px 8px; border-radius:10px; margin-bottom:8px}
+.explain .tag.pw{background:var(--orange-soft); color:var(--orange)}
+.explain .tag.tsc{background:var(--tsc-soft); color:var(--tsc)}
+.explain h5{font-family:var(--mono); font-size:.92rem; margin:0 0 6px; color:var(--navy)}
+.explain p{margin:0 0 8px}
+/* find the bug */
+.bug{border:1px solid var(--line); border-radius:12px; margin:14px 0; overflow:hidden; background:var(--surface)}
+.bug-head{display:flex; justify-content:space-between; gap:10px; align-items:center; padding:10px 14px; border-bottom:1px solid var(--line)}
+.bug-head b{font-size:.95rem}
+.bug-head .st{font-size:.8rem; color:var(--muted)}
+.bug-head .st.ok{color:var(--ok); font-weight:600}
+.bug-code{background:var(--code-bg); padding:8px 0; overflow-x:auto}
+.bug-code button{all:unset; box-sizing:border-box; display:block; min-width:100%; width:max-content; white-space:pre; font-family:var(--mono); font-size:.82rem; line-height:1.7; color:var(--code-ink); padding:0 16px; cursor:pointer}
+.bug-code button:hover{background:rgba(255,255,255,.06)}
+.bug-code button.hit{background:rgba(76,192,138,.2); box-shadow:inset 3px 0 0 #4CC08A}
+.bug-code button.miss{background:rgba(255,107,94,.16); box-shadow:inset 3px 0 0 #FF6B5E}
+.bug-code button:focus-visible{outline:2px solid var(--orange); outline-offset:-2px}
+.bug-body{padding:12px 16px 4px; font-size:.93rem}
+.bug-body[hidden]{display:none}
+.bug-body figure.code{margin:8px 0 12px}
+.linkbtn{border:0; background:none; color:var(--navy-2); font:500 .82rem var(--sans); text-decoration:underline; cursor:pointer; padding:0}
+/* pager */
+.pager{display:flex; justify-content:space-between; gap:12px; margin-top:48px; padding-top:22px; border-top:1px solid var(--line); flex-wrap:wrap}
+.pager button{font:600 .95rem var(--sans); border:1px solid var(--line); background:var(--surface); color:var(--navy); padding:11px 18px; border-radius:10px; cursor:pointer}
+.pager button.primary{background:var(--orange); border-color:var(--orange); color:#fff}
+.pager button:disabled{visibility:hidden}
+.done-btn{font:500 .85rem var(--sans); border:0; background:none; color:var(--muted); text-decoration:underline; cursor:pointer}
+
+/* runner topic additions */
+.editor .mark > span:last-child{background:rgba(242,146,63,.10)}
+.editor .msg.tip{color:#FFE2C4; background:rgba(242,146,63,.14); border-left-color:#F2923F}
+.tree{background:var(--code-bg); border-radius:10px; padding:10px 6px; display:flex; flex-direction:column; gap:1px}
+.tree button{all:unset; box-sizing:border-box; cursor:pointer; font-family:var(--mono); font-size:.82rem; color:var(--code-ink); padding:5px 10px; border-radius:6px}
+.tree button.later{color:#8193B2; font-style:italic}
+.tree button.ext{margin-top:8px; border-top:1px dashed #2A3D60; border-radius:0; padding-top:9px}
+.tree button:hover,.tree button[aria-pressed="true"]{background:rgba(255,255,255,.1)}
+.tree button:focus-visible{outline:2px solid var(--orange)}
+.json button.run{box-shadow:inset 0 -2px 0 var(--pw); color:#FFC48C}
+.json button.use{box-shadow:inset 0 -2px 0 var(--tsc); color:#A9C6FF}
+.json button.proj{box-shadow:inset 0 -2px 0 var(--ok); color:#8FE0B7}
+.explain .tag.run{background:var(--orange-soft); color:var(--orange)}
+.explain .tag.use{background:var(--tsc-soft); color:var(--tsc)}
+.explain .tag.proj{background:var(--ok-soft); color:var(--ok)}
+.cli-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px 14px; margin-bottom:12px}
+.cli-grid label,.sim-controls label{display:flex; flex-direction:column; gap:4px; font-size:.82rem; color:var(--muted)}
+.cli-grid input,.cli-grid select,.sim-controls select{font:500 .9rem var(--sans); color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:7px 9px}
+.cli-flags{display:flex; flex-wrap:wrap; gap:6px 16px; margin-bottom:6px}
+.cli-flags label{font-family:var(--mono); font-size:.84rem; display:flex; gap:6px; align-items:center; cursor:pointer}
+.cli-explain p{font-size:.92rem; margin:0 0 6px}
+.sim-controls{display:flex; flex-wrap:wrap; gap:12px 18px; align-items:flex-end; margin-bottom:14px}
+.sim-controls label.chk{flex-direction:row; align-items:center; gap:6px; font-family:var(--mono); color:var(--ink); padding-bottom:8px; cursor:pointer}
+.sim-row{display:grid; grid-template-columns:78px 1fr; align-items:center; gap:8px; margin:6px 0}
+.sim-w{font-size:.78rem; color:var(--muted)}
+.sim-track{position:relative; height:34px; background:var(--paper); border:1px solid var(--line); border-radius:8px; overflow:hidden}
+.sim-blk{position:absolute; top:3px; bottom:3px; background:var(--c); color:#fff; font-size:.7rem; line-height:26px; padding:0 5px; border-radius:5px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; border-right:2px solid var(--surface); transition:left .35s ease,width .35s ease}
+.sim-blk.failed{background:repeating-linear-gradient(45deg,var(--bad),var(--bad) 6px,#9E2C22 6px,#9E2C22 12px)}
+.sim-blk.skipped{background:#8E99AB; text-align:center}
+.sim-blk.restart{background:transparent; color:var(--bad); text-align:center; font-weight:700; border:0}
+.sim-legend{display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; margin:10px 0 0; color:var(--muted)}
+.sim-legend span{display:inline-flex; align-items:center; gap:5px}
+.sim-legend i{width:11px; height:11px; border-radius:3px; display:inline-block}
+.sim-legend i.lg-fail{background:var(--bad)} .sim-legend i.lg-skip{background:#8E99AB}
+.sim-total{font-size:.9rem; margin:10px 0 0}
+.sim-say{font-size:.94rem; margin:8px 0 0}
+.hooks{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:14px}
+.hooks-src{background:var(--code-bg); color:var(--code-ink); font-family:var(--mono); font-size:.8rem; line-height:1.75; padding:10px 0; border-radius:10px; overflow-x:auto; white-space:pre}
+.hooks-src div{padding:0 12px}
+.hooks-src div.on{background:rgba(242,146,63,.22); box-shadow:inset 3px 0 0 #F2923F}
+.hooks-log{margin:0; padding:10px 14px 10px 34px; background:var(--paper); border:1px solid var(--line); border-radius:10px; font-size:.88rem}
+.hooks-log li{margin:0 0 6px}
+.hooks-log li.empty{list-style:none; margin-left:-20px; color:var(--muted)}
+#traceSeg button{font-family:var(--mono); font-size:.78rem}
+.runs{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:14px 0 10px}
+.run{border:1px solid var(--line); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:4px; background:var(--paper)}
+.run.fail{border-left:4px solid var(--bad)} .run.pass{border-left:4px solid var(--ok)}
+.run .res{font-size:.82rem; color:var(--muted)}
+.run .tr{font-size:.88rem; font-weight:600}
+.run .tr.kept{color:var(--ok)} .run .tr.dropped{color:var(--bad)} .run .tr.none{color:var(--muted); font-weight:500}
+@media (max-width:900px){.hooks,.runs{grid-template-columns:1fr}}
+
+/* final quiz */
+.qz-top{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px}
+.qz-count{font-family:var(--mono); font-size:.82rem; color:var(--orange)}
+.qz-bar{height:6px; background:var(--paper); border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-bottom:18px}
+.qz-bar i{display:block; height:100%; width:0; background:var(--orange); transition:width .3s ease}
+.qz-q{font-size:1.08rem; font-weight:600; margin:0 0 12px; color:var(--ink)}
+.qz-opts{display:grid; gap:8px; margin:14px 0}
+.qz-opts button{text-align:left; font:500 .95rem var(--sans); line-height:1.45; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:11px 14px; cursor:pointer}
+.qz-opts button:hover:not(:disabled){border-color:var(--navy-2)}
+.qz-opts button:disabled{cursor:default}
+.qz-opts button.right{background:var(--ok-soft); border-color:var(--ok); color:var(--ok)}
+.qz-opts button.wrong{background:var(--bad-soft); border-color:var(--bad); color:var(--bad)}
+.qz-opts code{background:transparent; padding:0}
+.qz-fb{border-left:4px solid var(--line); padding:4px 0 4px 14px; margin:6px 0 14px; font-size:.94rem}
+.qz-fb.ok{border-color:var(--ok)} .qz-fb.no{border-color:var(--bad)}
+.qz-fb[hidden]{display:none}
+.qz-actions{display:flex; gap:10px; flex-wrap:wrap}
+.qz-actions button{font:600 .92rem var(--sans); border:1px solid var(--line); background:var(--surface); color:var(--navy); padding:10px 16px; border-radius:10px; cursor:pointer}
+.qz-actions button.primary{background:var(--orange); border-color:var(--orange); color:#fff}
+.qz-result{font-size:2.4rem; font-weight:700; color:var(--navy); margin:0; letter-spacing:-.02em}
+.qz-review{list-style:none; padding:0; margin:16px 0}
+.qz-review li{border-top:1px solid var(--line); padding:10px 0; font-size:.93rem}
+.qz-review .linkbtn{margin-left:4px}
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .side{position:sticky; top:0; height:auto; z-index:5; padding:12px 14px 10px; padding-top:calc(12px + env(safe-area-inset-top,0px)); margin-top:calc(-1 * env(safe-area-inset-top,0px))}
+  .brand{font-size:1rem}.brand span{display:none}
+  .progress{margin:8px 0}
+  .nav{display:flex; overflow-x:auto; gap:4px; padding-bottom:2px}
+  .nav li{flex:0 0 auto}
+  .nav button{grid-template-columns:auto auto auto; white-space:nowrap; padding:6px 10px; font-size:.82rem}
+  .side-foot{display:none}
+  main{padding-top:28px}
+  .ub,.tsc-wrap{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="side" aria-label="Зміст">
+  <div class="side-tools">
+    <a class="home" href="../index.html">На головну</a>
+    <div class="theme-switch" role="group" aria-label="Тема оформлення">
+      <button type="button" data-theme-set="auto" aria-pressed="true">Авто</button>
+      <button type="button" data-theme-set="light" aria-pressed="false">Світла</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Темна</button>
+    </div>
+  </div>
+  <p class="brand">Playwright Test Runner<span>@playwright/test 1.63<br>TypeScript 7.0, strict</span></p>
+  <div class="progress" aria-live="polite">
+    <div class="progress-bar"><i id="progressFill"></i></div>
+    <p id="progressText">0 з 12 розділів пройдено</p>
+  </div>
+  <ol class="nav" id="nav"></ol>
+  <div class="side-foot">Прогрес зберігається лише у вашому браузері. <button type="button" id="resetProgress">Скинути прогрес</button></div>
+</aside>
+<main id="main">
+<!-- ================= 1 ================= -->
+<section class="chapter" id="s1" data-title="Раннер і бібліотека">
+<p class="kicker">Розділ 1 з 12</p>
+<h2>Раннер і бібліотека: що таке Playwright Test</h2>
+<p class="lead">Playwright існує у двох формах. Бібліотека <code>playwright</code> вміє керувати браузером. Пакет <code>@playwright/test</code> додає до неї повноцінний тестовий фреймворк: раннер, assertions, ізоляцію, паралельність і інструменти для налагодження.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/intro#introduction" target="_blank" rel="noopener">Документація → Installation</a>
+  <a href="https://playwright.dev/docs/library" target="_blank" rel="noopener">Документація → Library</a>
+  <a href="https://playwright.dev/docs/writing-tests" target="_blank" rel="noopener">Документація → Writing tests</a>
+</div>
+
+<p>Документація описує Playwright Test як end-to-end фреймворк для сучасних вебзастосунків, в який уже вбудовано test runner, assertions, ізоляцію, паралелізацію та інструменти. Він працює з Chromium, WebKit і Firefox на Windows, Linux і macOS, локально й у CI, у headless- або headed-режимі, з емуляцією мобільних Chrome для Android і Mobile Safari.</p>
+<p>Щоб відчути різницю, порівняйте той самий сценарій у двох формах. У бібліотеці ви самі запускаєте браузер, створюєте контекст і сторінку, закриваєте все у <code>finally</code> і пишете перевірки вручну. У раннері ці обов'язки бере на себе інфраструктура: ви оголошуєте, що вам потрібна <code>page</code>, і отримуєте готову сторінку в новому ізольованому контексті.</p>
+
+<div class="widget" id="libRunner">
+  <h4>Той самий сценарій: бібліотека проти раннера</h4>
+  <p class="hint">Перемкніть режим. Позначки біля рядків показують, яку роботу бере на себе раннер.</p>
+  <div class="seg" role="group" aria-label="Форма коду">
+    <button type="button" data-mode="lib" aria-pressed="true">Бібліотека playwright</button>
+    <button type="button" data-mode="test" aria-pressed="false">Раннер @playwright/test</button>
+  </div>
+  <div class="editor" id="libEditor" aria-live="polite"></div>
+  <p class="editor-note" id="libNote"></p>
+</div>
+
+<div class="fix">
+  <h4>Коли потрібна бібліотека, а коли раннер</h4>
+  <p><b>Проблема.</b> Новачки інколи пишуть тести як скрипти: вручну запускають <code>chromium.launch()</code> і перевіряють результат через <code>if</code>.</p>
+  <p><b>Чому це погано.</b> Такий скрипт не має ізоляції між тестами, звітів, повторів, паралельного запуску й assertions з автоочікуванням. Усе це доведеться будувати самому, і це буде гірше, ніж у раннері.</p>
+  <p><b>Рішення.</b> Для тестування беріть <code>@playwright/test</code> і вбудовані фікстури (<code>page</code>, <code>context</code>, <code>request</code>).</p>
+  <p><b>Коли бібліотека доречна.</b> Для автоматизації, що не є тестами: скрипт, який робить скриншоти, заповнює форму чи збирає дані.</p>
+</div>
+</section>
+
+<!-- ================= 2 ================= -->
+<section class="chapter" id="s2" data-title="Встановлення і структура" hidden>
+<p class="kicker">Розділ 2 з 12</p>
+<h2>Встановлення і структура проєкту</h2>
+<p class="lead">Одна команда створює проєкт з конфігом, прикладом тесту і завантаженими браузерами. Важливо розуміти, навіщо потрібен кожен файл і що з'явиться після першого запуску.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/intro" target="_blank" rel="noopener">Документація → Installation</a>
+  <a href="https://playwright.dev/docs/intro#system-requirements" target="_blank" rel="noopener">Документація → System requirements</a>
+  <a href="https://playwright.dev/docs/getting-started-vscode" target="_blank" rel="noopener">Документація → VS Code</a>
+</div>
+
+<h3>Системні вимоги</h3>
+<p>Станом на Playwright 1.63 документація вимагає Node.js останньої версії гілок 22.x, 24.x або 26.x. Операційні системи: Windows 11+, Windows Server 2019+ або WSL; macOS 14 (Sonoma) і новіші; Debian 12 і 13, Ubuntu 22.04, 24.04 і 26.04 (x86-64 або arm64). Перевірити, яка версія Node.js стоїть у вас, можна командою <code>node -v</code>.</p>
+
+<h3>Ініціалізація</h3>
+<p>Команда нижче або створює новий проєкт, або додає Playwright до наявного. Під час запуску вона ставить кілька питань: TypeScript чи JavaScript (за замовчуванням TypeScript), назва каталогу для тестів (за замовчуванням <code>tests</code>, а якщо такий уже є, то <code>e2e</code>), чи додавати GitHub Actions workflow і чи завантажувати браузери (за замовчуванням так). Повторний запуск команди наявних тестів не перезаписує.</p>
+<script type="text/x-code" data-lang="sh" data-file="Термінал">
+npm init playwright@latest
+</script>
+
+<div class="widget" id="treeWidget">
+  <h4>Що в проєкті і навіщо</h4>
+  <p class="hint">Натисніть на файл чи каталог, щоб побачити пояснення. Сірим позначено те, що з'являється лише після першого запуску тестів.</p>
+  <div class="tsc-wrap">
+    <div class="tree" id="tree"></div>
+    <div class="explain" id="treeExplain" aria-live="polite"><p>Оберіть елемент ліворуч.</p></div>
+  </div>
+</div>
+
+<h3>Перший запуск і звіт</h3>
+<p>За замовчуванням тести з шаблону запускаються без вікна браузера (headless) і паралельно у Chromium, Firefox і WebKit. Результат видно в терміналі, а HTML-звіт відкривається автоматично лише тоді, коли щось упало. Відкрити його вручну можна окремою командою.</p>
+<script type="text/x-code" data-lang="sh" data-file="Термінал">
+npx playwright test          # run all tests
+npx playwright show-report   # open the HTML report
+npx playwright test --ui     # open UI mode
+</script>
+
+<h3>Оновлення</h3>
+<p>Версія браузерів прив'язана до версії Playwright, тому після оновлення пакета браузери теж треба перевстановити. Прапорець <code>--with-deps</code> додатково ставить системні залежності браузерів.</p>
+<script type="text/x-code" data-lang="sh" data-file="Термінал">
+npm install -D @playwright/test@latest
+npx playwright install --with-deps
+npx playwright --version
+</script>
+<p>Для VS Code є офіційне розширення Playwright Test. Воно показує тести в боковій панелі, запускає й налагоджує окремі тести та вміє записувати нові через codegen.</p>
+</section>
+
+<!-- ================= 3 ================= -->
+<section class="chapter" id="s3" data-title="playwright.config.ts" hidden>
+<p class="kicker">Розділ 3 з 12</p>
+<h2>playwright.config.ts</h2>
+<p class="lead">Конфіг збирає в одному місці все, що стосується запуску: де шукати тести, скільки воркерів, скільки повторів, які звіти, у яких браузерах і з якими налаштуваннями сторінки.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-configuration" target="_blank" rel="noopener">Документація → Configuration</a>
+  <a href="https://playwright.dev/docs/test-use-options" target="_blank" rel="noopener">Документація → Configuration (use)</a>
+  <a href="https://playwright.dev/docs/api/class-testconfig" target="_blank" rel="noopener">Документація → TestConfig</a>
+  <a href="https://playwright.dev/docs/test-webserver" target="_blank" rel="noopener">Документація → Web server</a>
+</div>
+
+<p>Функція <code>defineConfig</code> нічого не змінює в значеннях: вона потрібна для типізації, тож редактор підказує назви опцій і лає за неіснуючі. У конфігу три рівні. Верхній рівень керує самим раннером: пошуком тестів, воркерами, повторами, звітами. Блок <code>use</code> задає параметри фікстур і браузера, тобто те, якою буде <code>page</code> в кожному тесті. Масив <code>projects</code> дозволяє запустити ті самі тести кілька разів з різними налаштуваннями, наприклад у трьох браузерах.</p>
+
+<div class="widget" id="cfgWidget">
+  <h4>Інтерактивний конфіг</h4>
+  <p class="hint">Натисніть на опцію, щоб побачити пояснення. Колір показує рівень конфігу.</p>
+  <div class="legend">
+    <span><i style="background:var(--pw)"></i>Раннер (верхній рівень)</span>
+    <span><i style="background:var(--tsc)"></i>use: фікстури і браузер</span>
+    <span><i style="background:var(--ok)"></i>projects</span>
+  </div>
+  <div class="tsc-wrap">
+    <div class="json" id="cfgCode"></div>
+    <div class="explain" id="cfgExplain" aria-live="polite"><p>Оберіть опцію ліворуч.</p></div>
+  </div>
+</div>
+
+<script type="text/x-code" data-file="playwright.config.ts">
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: 'html',
+  timeout: 30_000,
+  expect: { timeout: 5_000 },
+  use: {
+    baseURL: 'http://localhost:3000',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    launchOptions: { slowMo: 0 },
+  },
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+  ],
+  webServer: {
+    command: 'npm run start',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+  },
+});
+</script>
+
+<div class="fix">
+  <h4>Де живе slowMo</h4>
+  <p><b>Проблема.</b> У старих прикладах уповільнення задають через ручний <code>chromium.launch({ slowMo: 500 })</code> у тесті або пишуть <code>use: { slowMo: 500 }</code>.</p>
+  <p><b>Чому.</b> <code>slowMo</code> — це параметр запуску браузера, а не опція фікстури. Ручний <code>launch()</code> обходить фікстуру <code>browser</code> і всю ізоляцію раннера, а <code>use.slowMo</code> не існує, тож <code>tsc</code> на ньому впаде.</p>
+  <p><b>Рішення.</b> Параметри запуску браузера передаються через <code>use.launchOptions</code>: <code>launchOptions: { slowMo: 500 }</code>.</p>
+  <p><b>Коли.</b> Лише для демонстрації чи налагодження. У звичайних прогонах тримайте 0, бо уповільнення множиться на кожну дію.</p>
+</div>
+
+<p>Опції, задані в конфігу, можна перевизначити на рівні проєкту (<code>projects[].use</code>), файлу чи групи тестів (<code>test.use({ ... })</code>), а для одного запуску — прапорцями командного рядка, наприклад <code>--workers</code>, <code>--retries</code> чи <code>--timeout</code>.</p>
+<script type="text/x-code" data-file="tests/mobile.spec.ts">
+import { test, expect } from '@playwright/test';
+
+test.use({ viewport: { width: 390, height: 844 } }); // applies to every test in this file
+
+test('shows the burger menu on mobile', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Menu' })).toBeVisible();
+});
+</script>
+</section>
+
+<!-- ================= 4 ================= -->
+<section class="chapter" id="s4" data-title="Запуск і налагодження" hidden>
+<p class="kicker">Розділ 4 з 12</p>
+<h2>Запуск і налагодження</h2>
+<p class="lead">Команда <code>npx playwright test</code> має десятки прапорців. Найактуальніший список завжди дає <code>npx playwright test --help</code>, а на практиці щодня потрібні з десяток.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-cli" target="_blank" rel="noopener">Документація → Command line</a>
+  <a href="https://playwright.dev/docs/running-tests" target="_blank" rel="noopener">Документація → Running and debugging tests</a>
+  <a href="https://playwright.dev/docs/test-ui-mode" target="_blank" rel="noopener">Документація → UI Mode</a>
+  <a href="https://playwright.dev/docs/debug" target="_blank" rel="noopener">Документація → Debugging Tests</a>
+</div>
+
+<p>Позиційні аргументи після <code>test</code> — це фільтри файлів. Кожен трактується як регулярний вираз і порівнюється з абсолютним шляхом до файлу, тож <code>npx playwright test cart</code> запустить усі файли, у шляху яких є «cart». Суфікс <code>:42</code> звужує запуск до тесту на конкретному рядку. Прапорець <code>-g</code> (<code>--grep</code>) фільтрує вже за назвою тесту, а <code>-G</code> (<code>--grep-invert</code>) виключає тести за назвою.</p>
+
+<div class="widget" id="cliWidget">
+  <h4>Конструктор команди</h4>
+  <p class="hint">Налаштуйте запуск, і конструктор збере команду та пояснить кожну її частину.</p>
+  <div class="cli-grid">
+    <label>Файл або шаблон шляху<input type="text" id="cliFile" placeholder="tests/cart.spec.ts" autocomplete="off"></label>
+    <label>Рядок тесту<input type="number" id="cliLine" min="1" placeholder="42"></label>
+    <label>Назва або тег (--grep)<input type="text" id="cliGrep" placeholder="@smoke" autocomplete="off"></label>
+    <label>Проєкт<select id="cliProject"><option value="">усі проєкти</option><option>chromium</option><option>firefox</option><option>webkit</option></select></label>
+    <label>Воркери<select id="cliWorkers"><option value="">з конфігу</option><option>1</option><option>2</option><option>4</option><option>50%</option></select></label>
+    <label>Повтори<select id="cliRetries"><option value="">з конфігу</option><option>0</option><option>1</option><option>2</option></select></label>
+    <label>Repeat each<select id="cliRepeat"><option value="">1</option><option>3</option><option>10</option></select></label>
+    <label>Репортер<select id="cliReporter"><option value="">з конфігу</option><option>list</option><option>line</option><option>dot</option><option>html</option></select></label>
+    <label>Трейс<select id="cliTrace"><option value="">з конфігу</option><option>on</option><option>retain-on-failure</option><option>on-first-retry</option></select></label>
+  </div>
+  <div class="cli-flags">
+    <label><input type="checkbox" value="--headed"> --headed</label>
+    <label><input type="checkbox" value="--ui"> --ui</label>
+    <label><input type="checkbox" value="--debug"> --debug</label>
+    <label><input type="checkbox" value="--last-failed"> --last-failed</label>
+    <label><input type="checkbox" value="--only-changed"> --only-changed</label>
+    <label><input type="checkbox" value="--list"> --list</label>
+    <label><input type="checkbox" value="-x"> -x</label>
+  </div>
+  <div id="cliOut"></div>
+  <div id="cliExplain" class="cli-explain" aria-live="polite"></div>
+</div>
+
+<h3>Три режими налагодження</h3>
+<p>UI mode (<code>--ui</code>) — основне робоче середовище під час написання тестів. Це вікно зі списком тестів, режимом спостереження, покроковим переглядом дій і «подорожжю в часі» по DOM-знімках кожного кроку.</p>
+<p>Прапорець <code>--debug</code> відкриває Playwright Inspector і дозволяє йти по тесту крок за кроком. Довідка CLI уточнює, що це скорочення для змінної <code>PWDEBUG=1</code> разом з опціями <code>--timeout=0 --max-failures=1 --headed --workers=1</code>. Тобто тайм-аут вимикається, браузер видно, працює один воркер і прогін зупиняється на першому падінні. Для одного тесту зручно поєднати з номером рядка: <code>npx playwright test cart.spec.ts:42 --debug</code>.</p>
+<p>Розширення VS Code дає те саме прямо в редакторі: точки зупинки, запуск окремого тесту кліком і підсвічування локаторів.</p>
+
+<div class="note">
+  <p><b>Корисні прапорці для CI і рефакторингу.</b> <code>--last-failed</code> перезапускає лише тести, що впали минулого разу. <code>--only-changed</code> запускає тести з файлів, змінених відносно Git-ревізії (без аргументу — незакомічені зміни). <code>--repeat-each=10</code> ганяє кожен тест десять разів і допомагає ловити нестабільність. <code>--list</code> лише показує, які тести буде зібрано, нічого не запускаючи.</p>
+</div>
+</section>
+
+<!-- ================= 5 ================= -->
+<section class="chapter" id="s5" data-title="Браузери і projects" hidden>
+<p class="kicker">Розділ 5 з 12</p>
+<h2>Браузери і projects</h2>
+<p class="lead">Project — це іменований набір налаштувань, з яким раннер проганяє тести. Найчастіше projects відповідають браузерам, але так само можна розділити середовища, ролі користувачів чи десктоп і мобільну версію.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-projects" target="_blank" rel="noopener">Документація → Projects</a>
+  <a href="https://playwright.dev/docs/browsers" target="_blank" rel="noopener">Документація → Browsers</a>
+  <a href="https://playwright.dev/docs/emulation" target="_blank" rel="noopener">Документація → Emulation</a>
+</div>
+
+<p>Playwright завантажує власні збірки Chromium, Firefox і WebKit, сумісні з конкретною версією пакета. Об'єкт <code>devices</code> містить готові профілі пристроїв: розмір вікна, user agent, масштаб, підтримку дотиків і браузерний рушій. Коли ви пишете <code>{ ...devices['Desktop Safari'] }</code>, тести цього проєкту йдуть у WebKit із десктопними параметрами.</p>
+<p>Окрім збірок Playwright, можна запускати тести у встановлених «брендових» браузерах через опцію <code>channel</code>: <code>'chrome'</code> або <code>'msedge'</code>. Це корисно, коли треба перевірити саме той Chrome чи Edge, яким користуються клієнти.</p>
+<script type="text/x-code" data-file="playwright.config.ts (фрагмент)">
+projects: [
+  { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+  { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+  { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+  { name: 'Mobile Safari', use: { ...devices['iPhone 12'] } },
+  { name: 'Google Chrome', use: { ...devices['Desktop Chrome'], channel: 'chrome' } },
+],
+</script>
+<script type="text/x-code" data-lang="sh" data-file="Термінал">
+npx playwright test --project=chromium                   # one project
+npx playwright test --project=chromium --project=webkit  # several projects
+npx playwright install chrome                            # install a branded browser channel
+</script>
+
+<h3>Залежності між projects</h3>
+<p>Project може залежати від іншого через поле <code>dependencies</code>. Типовий приклад — setup-проєкт, який один раз логіниться і зберігає стан сесії, а основні проєкти стартують лише після нього. Документація радить цей підхід як сучасну альтернативу <code>globalSetup</code>: setup-кроки відображаються у звіті, мають трейси і можуть використовувати фікстури. Прапорець <code>--no-deps</code> дозволяє запустити проєкт без його залежностей.</p>
+<script type="text/x-code" data-file="playwright.config.ts (фрагмент)">
+projects: [
+  { name: 'setup', testMatch: /.*\.setup\.ts/ },
+  {
+    name: 'chromium',
+    use: { ...devices['Desktop Chrome'] },
+    dependencies: ['setup'],
+  },
+],
+</script>
+<p>Детально авторизацію й збереження сесії розберемо в окремій темі, тут важливо лише розуміти механіку: <code>dependencies</code> задає порядок запуску projects.</p>
+</section>
+
+<!-- ================= 6 ================= -->
+<section class="chapter" id="s6" data-title="Паралелізм і шардинг" hidden>
+<p class="kicker">Розділ 6 з 12</p>
+<h2>Паралелізм, воркери і шардинг</h2>
+<p class="lead">Раннер запускає тести в кількох воркерах — окремих процесах Node.js, у кожного свій браузер. Від того, як тести розподіляються між воркерами, залежать і швидкість прогону, і те, які тести можуть заважати один одному.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-parallel" target="_blank" rel="noopener">Документація → Parallelism</a>
+  <a href="https://playwright.dev/docs/test-sharding" target="_blank" rel="noopener">Документація → Sharding</a>
+  <a href="https://playwright.dev/docs/api/class-testconfig#test-config-workers" target="_blank" rel="noopener">Документація → workers</a>
+</div>
+
+<p>Кількість воркерів задає опція <code>workers</code> або прапорець <code>-j</code>/<code>--workers</code>. Значення може бути числом або відсотком логічних ядер процесора. За замовчуванням воркерів стільки, скільки половина логічних ядер. Шаблон <code>npm init playwright</code> ставить у CI <code>workers: 1</code>, щоб не перевантажувати слабкі CI-машини. Це рішення шаблону, а не обмеження раннера.</p>
+<p>Без додаткових налаштувань паралельно виконуються файли, а тести всередині одного файлу йдуть по черзі в тому самому воркері. Опція <code>fullyParallel: true</code> дозволяє розподіляти по воркерах кожен тест окремо. Для окремого файлу чи групи режим можна змінити через <code>test.describe.configure({ mode })</code>. Режим <code>'parallel'</code> запускає тести групи паралельно. Режим <code>'default'</code> повертає послідовне виконання, і це корисно, щоб перекрити <code>fullyParallel</code> з конфігу. Режим <code>'serial'</code> робить тести залежними: якщо один падає, наступні пропускаються, а повтор стартує з початку групи.</p>
+
+<div class="widget" id="simWidget">
+  <h4>Симулятор розподілу тестів</h4>
+  <p class="hint">Змінюйте налаштування і дивіться, як тести трьох файлів розкладаються по воркерах. Тривалості умовні, повтори вимкнено.</p>
+  <div class="sim-controls">
+    <label>Воркери
+      <select id="simWorkers"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
+    </label>
+    <label class="chk"><input type="checkbox" id="simFully"> fullyParallel: true</label>
+    <label>cart.spec.ts: describe.configure
+      <select id="simMode"><option value="">не задано</option><option value="default">mode: 'default'</option><option value="parallel">mode: 'parallel'</option><option value="serial">mode: 'serial'</option></select>
+    </label>
+    <label class="chk"><input type="checkbox" id="simFail"> Тест «remove item» падає</label>
+  </div>
+  <div class="sim" id="sim" aria-live="polite"></div>
+  <p class="sim-say" id="simSay"></p>
+</div>
+
+<div class="fix">
+  <h4>Чому serial — останній варіант</h4>
+  <p><b>Проблема.</b> Тести в одному файлі передають дані один одному через змінні: перший створює замовлення, другий його перевіряє.</p>
+  <p><b>Чому.</b> Такі тести ламаються з <code>fullyParallel</code>, бо можуть потрапити в різні воркери, а у воркерів немає спільної пам'яті. Режим <code>serial</code> маскує проблему, і документація прямо каже, що послідовний запуск не рекомендований: краще робити тести ізольованими.</p>
+  <p><b>Рішення.</b> Кожен тест сам готує потрібний стан: через API-запит, фікстуру чи <code>beforeEach</code>.</p>
+  <p><b>Коли serial виправданий.</b> Коли сценарій справді є одним довгим потоком, який неможливо розбити, і ви свідомо погоджуєтеся на повільніший і крихкіший запуск.</p>
+</div>
+
+<h3>Ізоляція і перезапуск воркера</h3>
+<p>Кожен тест отримує новий <code>BrowserContext</code>, тож cookies, localStorage і сесії між тестами не протікають навіть у межах одного воркера. Якщо тест падає, раннер перезапускає воркер-процес, щоб наступні тести стартували з чистого середовища. Для кожного воркера доступні <code>testInfo.workerIndex</code> і <code>testInfo.parallelIndex</code>: їх використовують, наприклад, щоб кожен воркер працював зі своїм тестовим користувачем.</p>
+
+<h3>Шардинг</h3>
+<p>Коли однієї машини замало, набір тестів ділять на шарди й запускають на кількох машинах CI одночасно. Прапорець <code>--shard=1/3</code> означає «виконати першу з трьох частин». Щоб отримати один спільний звіт, кожен шард пише звіт у форматі <code>blob</code>, а потім їх зливає команда <code>npx playwright merge-reports</code>.</p>
+<script type="text/x-code" data-lang="sh" data-file="Термінал: три шарди на трьох машинах">
+npx playwright test --shard=1/3 --reporter=blob
+npx playwright test --shard=2/3 --reporter=blob
+npx playwright test --shard=3/3 --reporter=blob
+npx playwright merge-reports --reporter=html ./all-blob-reports
+</script>
+</section>
+
+<!-- ================= 7 ================= -->
+<section class="chapter" id="s7" data-title="Анатомія тесту і хуки" hidden>
+<p class="kicker">Розділ 7 з 12</p>
+<h2>Анатомія тесту: фікстури, describe, step і хуки</h2>
+<p class="lead">Тест — це функція, яку раннер викликає з об'єктом фікстур. Ви деструктуруєте з нього лише те, що потрібно, і раннер створює саме ці ресурси, а після тесту прибирає їх.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/writing-tests" target="_blank" rel="noopener">Документація → Writing tests</a>
+  <a href="https://playwright.dev/docs/test-fixtures#built-in-fixtures" target="_blank" rel="noopener">Документація → Built-in fixtures</a>
+  <a href="https://playwright.dev/docs/api/class-test" target="_blank" rel="noopener">Документація → Test API</a>
+</div>
+
+<script type="text/x-code" data-file="tests/todo.spec.ts">
+import { test, expect } from '@playwright/test';
+
+test.describe('todo list', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/todos');
+  });
+
+  test('adds a new item', async ({ page }) => {
+    await test.step('type and submit the item', async () => {
+      await page.getByPlaceholder('What needs to be done?').fill('Buy milk');
+      await page.getByPlaceholder('What needs to be done?').press('Enter');
+    });
+
+    await test.step('item appears in the list', async () => {
+      await expect(page.getByRole('listitem')).toHaveText(['Buy milk']);
+    });
+  });
+});
+</script>
+<p>Функція тесту асинхронна, і кожна дія Playwright повертає <code>Promise</code>, тож перед кожною дією та web-first assertion стоїть <code>await</code>. <code>test.describe</code> групує тести: хуки й <code>test.use</code> всередині групи діють лише на неї, а назва групи стає частиною повної назви тесту у звіті. <code>test.step</code> ділить тест на іменовані кроки, які видно у звіті, UI mode і трейсі. Крок може повертати значення: <code>const id = await test.step('create', async () =&gt; ...)</code>.</p>
+
+<h3>Вбудовані фікстури та їхній scope</h3>
+<p>Фікстури бувають двох масштабів. Test-scoped фікстура створюється заново для кожного тесту. Worker-scoped створюється один раз на воркер і живе, доки живе процес. <code>page</code>, <code>context</code> і <code>request</code> — test-scoped: у кожного тесту свої. <code>browser</code> і <code>browserName</code> — worker-scoped: браузер один на воркер, а ізоляцію забезпечує новий контекст для кожного тесту. Перевірте себе.</p>
+<div class="widget" id="scopeWidget">
+  <h4>Test чи worker?</h4>
+  <p class="hint">Для кожної фікстури оберіть її scope.</p>
+  <div class="rt-grid" id="scopeGrid"></div>
+  <p class="score" id="scopeScore" aria-live="polite"></p>
+</div>
+
+<h3>Хуки</h3>
+<p><code>beforeEach</code> і <code>afterEach</code> виконуються навколо кожного тесту й мають доступ до тих самих фікстур, що й тест. <code>beforeAll</code> і <code>afterAll</code> виконуються один раз на воркер для файлу чи групи. Документація підкреслює дві речі. Хук <code>beforeAll</code> отримує лише worker-фікстури, тому <code>page</code> у ньому недоступна. А оскільки воркер перезапускається після падіння тесту, <code>beforeAll</code> у новому воркері виконається знову. Отже, «один раз на весь прогін» він не гарантує.</p>
+<div class="widget" id="hooksWidget">
+  <h4>Порядок виконання хуків</h4>
+  <p class="hint">Файл з одним describe, двома тестами і всіма чотирма хуками, один воркер. Проходьте по кроках.</p>
+  <div class="hooks">
+    <div class="hooks-src" id="hooksSrc"></div>
+    <ol class="hooks-log" id="hooksLog" aria-live="polite"></ol>
+  </div>
+  <div class="qz-actions" style="margin-top:12px">
+    <button type="button" class="primary" id="hooksNext">Наступний крок</button>
+    <button type="button" id="hooksAll">Показати все</button>
+    <button type="button" id="hooksReset">Спочатку</button>
+  </div>
+</div>
+</section>
+
+<!-- ================= 8 ================= -->
+<section class="chapter" id="s8" data-title="Анотації, теги, фільтрація" hidden>
+<p class="kicker">Розділ 8 з 12</p>
+<h2>Анотації, теги і фільтрація</h2>
+<p class="lead">Анотації змінюють, як раннер поводиться з тестом: пропустити, чекати падіння, дати більше часу. Теги нічого не змінюють у виконанні, але дозволяють вибирати групи тестів під час запуску.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-annotations" target="_blank" rel="noopener">Документація → Annotations</a>
+  <a href="https://playwright.dev/docs/test-annotations#tag-tests" target="_blank" rel="noopener">Документація → Tag tests</a>
+</div>
+
+<p><code>test.skip()</code> пропускає тест, часто за умовою. <code>test.fixme()</code> позначає тест, який треба полагодити: раннер одразу його перериває і не виконує. <code>test.fail()</code> каже, що тест має падати: Playwright запускає його і перевіряє, що він справді падає, а якщо тест раптом проходить, раннер про це повідомить. Це зручно для задокументованого відомого бага. <code>test.slow()</code> потроює тайм-аут тесту. <code>test.only()</code> запускає лише позначені тести і призначений тільки для локальної роботи. Щоб він не потрапив у CI, у конфігу є <code>forbidOnly</code>.</p>
+<script type="text/x-code" data-file="tests/annotations.spec.ts">
+import { test, expect } from '@playwright/test';
+
+test('downloads the invoice', async ({ page, browserName }) => {
+  test.skip(browserName === 'webkit', 'Download flow is covered separately on WebKit');
+  // ...
+});
+
+test('applies an expired coupon', async ({ page }) => {
+  test.fail(true, 'Known bug: expired coupons are still accepted');
+  await page.goto('/cart');
+  // ...
+});
+
+test.fixme('exports the report to PDF', async ({ page }) => {
+  // not run until fixed
+});
+
+test('imports a large catalog', async ({ page }) => {
+  test.slow(); // triple the default timeout
+  // ...
+});
+</script>
+
+<h3>Теги</h3>
+<p>Тег задається в деталях тесту через поле <code>tag</code> або прямо в назві. Кожен тег має починатися з <code>@</code>. Теги видно у звіті, а фільтрують за ними через <code>--grep</code> і <code>--grep-invert</code> або через опцію <code>grep</code> у конфігу чи проєкті.</p>
+<script type="text/x-code" data-file="tests/cart.spec.ts">
+import { test, expect } from '@playwright/test';
+
+test('adds an item to the cart', { tag: '@smoke' }, async ({ page }) => {
+  // ...
+});
+
+test('recalculates totals', { tag: ['@regression', '@cart'] }, async ({ page }) => {
+  // ...
+});
+
+test('keeps the cart after reload @regression', async ({ page }) => {
+  // tag inside the title also works
+});
+
+test('shows a promo banner', {
+  annotation: { type: 'issue', description: 'https://tracker.example.com/TASK-123' },
+}, async ({ page }) => {
+  // annotations are shown in the HTML report
+});
+</script>
+<script type="text/x-code" data-lang="sh" data-file="Термінал">
+npx playwright test --grep @smoke                   # only smoke tests
+npx playwright test --grep "@smoke|@cart"           # smoke OR cart (regular expression)
+npx playwright test --grep-invert @regression       # everything except regression
+</script>
+
+<div class="widget" id="annWidget">
+  <h4>Який статус побачить звіт?</h4>
+  <p class="hint">Для кожної ситуації оберіть підсумковий статус тесту.</p>
+  <div class="rt-grid" id="annGrid"></div>
+  <p class="score" id="annScore" aria-live="polite"></p>
+</div>
+</section>
+
+<!-- ================= 9 ================= -->
+<section class="chapter" id="s9" data-title="Assertions, тайм-аути, retries" hidden>
+<p class="kicker">Розділ 9 з 12</p>
+<h2>Assertions, тайм-аути і retries</h2>
+<p class="lead">Три механізми, від яких залежить стабільність тестів: assertions, що самі повторюють перевірку, тайм-аути, які обмежують очікування, і повтори, що відрізняють нестабільний тест від зламаного.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-assertions" target="_blank" rel="noopener">Документація → Assertions</a>
+  <a href="https://playwright.dev/docs/test-timeouts" target="_blank" rel="noopener">Документація → Timeouts</a>
+  <a href="https://playwright.dev/docs/test-retries" target="_blank" rel="noopener">Документація → Retries</a>
+</div>
+
+<h3>Auto-retrying проти non-retrying</h3>
+<p>Асинхронні matchers для <code>Locator</code>, <code>Page</code> і <code>APIResponse</code> — <code>toBeVisible</code>, <code>toHaveText</code>, <code>toHaveURL</code>, <code>toHaveCount</code> та інші — повторюють перевірку, доки умова не виконається або не мине <code>expect.timeout</code> (за замовчуванням 5 секунд). Перед ними обов'язково ставиться <code>await</code>. Звичайні matchers на кшталт <code>toBe</code>, <code>toEqual</code>, <code>toContain</code> чи <code>toBeTruthy</code> перевіряють значення один раз, у ту мить, коли їх викликано.</p>
+<div class="widget" id="retryWidget">
+  <h4>Повторює чи ні?</h4>
+  <p class="hint">Для кожного matcher оберіть, чи повторює він перевірку до тайм-ауту.</p>
+  <div class="rt-grid" id="retryGrid"></div>
+  <p class="score" id="retryScore" aria-live="polite"></p>
+</div>
+<script type="text/x-code" data-file="tests/assertions.spec.ts">
+import { test, expect } from '@playwright/test';
+
+test('checkout summary', async ({ page }) => {
+  await page.goto('/cart');
+
+  // Soft assertions record a failure but let the test continue
+  await expect.soft(page.getByTestId('items-count')).toHaveText('2');
+  await expect.soft(page.getByTestId('total')).toHaveText('$59.98');
+
+  // A custom message makes the report easier to read
+  await expect(page.getByRole('button', { name: 'Pay' }), 'Pay button should be enabled').toBeEnabled();
+
+  // Poll any async value until it matches
+  await expect.poll(async (): Promise<number> => {
+    const response = await page.request.get('/api/cart');
+    return response.status();
+  }, { timeout: 10_000 }).toBe(200);
+
+  // Retry a whole block; set the timeout explicitly
+  await expect(async (): Promise<void> => {
+    const response = await page.request.get('/api/orders/latest');
+    expect(response.status()).toBe(200);
+  }).toPass({ timeout: 15_000 });
+});
+</script>
+<p><code>expect.configure({ timeout: 10_000 })</code> створює окремий екземпляр <code>expect</code> зі своїми налаштуваннями, наприклад для повільної частини застосунку, не змінюючи глобальний тайм-аут.</p>
+
+<h3>Тайм-аути</h3>
+<p>Тайм-аутів кілька, і вони вкладені. Весь тест, разом із фікстурами і <code>beforeEach</code>/<code>afterEach</code>, обмежений тайм-аутом тесту: 30 секунд за замовчуванням. Кожен web-first assertion має свій тайм-аут 5 секунд. У дій (<code>click</code>, <code>fill</code>) і навігації (<code>goto</code>) власного тайм-ауту за замовчуванням немає: значення 0 означає «без ліміту», тож їх обмежує лише тайм-аут тесту. Загальний ліміт на весь прогін (<code>globalTimeout</code>) за замовчуванням вимкнений.</p>
+<div class="widget" id="toWidget">
+  <h4>Значення за замовчуванням</h4>
+  <p class="hint">Оберіть значення, яке діє, якщо в конфігу нічого не задано.</p>
+  <div class="rt-grid" id="toGrid"></div>
+  <p class="score" id="toScore" aria-live="polite"></p>
+</div>
+<div class="fix">
+  <h4>toPass не бере expect.timeout</h4>
+  <p><b>Проблема.</b> Здається, що <code>expect(...).toPass()</code> повторює блок 5 секунд, як і інші assertions.</p>
+  <p><b>Чому це не так.</b> За замовчуванням тайм-аут <code>toPass</code> дорівнює 0, і документація окремо наголошує, що він не враховує власний <code>expect.timeout</code>. Без явного значення блок повторюватиметься, доки не вичерпається тайм-аут усього тесту.</p>
+  <p><b>Рішення.</b> Завжди передавайте тайм-аут: <code>toPass({ timeout: 15_000 })</code>.</p>
+  <p><b>Коли.</b> У кожному <code>toPass</code>, де ви не хочете віддати йому весь бюджет тесту.</p>
+</div>
+
+<h3>Retries і flaky-тести</h3>
+<p>Опція <code>retries</code> (або прапорець <code>--retries</code>) дозволяє перезапустити тест, що впав. Шаблон ставить 2 повтори в CI і 0 локально. Тест, який спершу впав, а на повторі пройшов, отримує статус flaky. Він не валить прогін, але сигналізує про нестабільність, яку треба розслідувати. Прапорець <code>--fail-on-flaky-tests</code> робить прогін червоним, якщо знайдено хоч один flaky-тест. Повтори поєднуються з <code>trace: 'on-first-retry'</code>: трейс записується саме тоді, коли він найбільше потрібен.</p>
+</section>
+
+<!-- ================= 10 ================= -->
+<section class="chapter" id="s10" data-title="Звіти і трейси" hidden>
+<p class="kicker">Розділ 10 з 12</p>
+<h2>Звіти і трейси</h2>
+<p class="lead">Звіт відповідає на питання «що впало», а трейс — «чому». Раннер уміє одночасно писати кілька звітів і сам вирішує, для яких запусків зберігати трейси, скриншоти й відео.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-reporters" target="_blank" rel="noopener">Документація → Reporters</a>
+  <a href="https://playwright.dev/docs/trace-viewer" target="_blank" rel="noopener">Документація → Trace viewer</a>
+  <a href="https://playwright.dev/docs/test-use-options#recording-options" target="_blank" rel="noopener">Документація → Recording options</a>
+</div>
+
+<p>Якщо репортер не задано, раннер використовує <code>list</code>, а в CI — <code>dot</code>. Шаблон <code>npm init playwright</code> одразу ставить <code>'html'</code>. Вбудовані репортери в Playwright 1.63: <code>list</code>, <code>line</code> і <code>dot</code> для терміналу, <code>html</code> для інтерактивного звіту, <code>json</code> і <code>junit</code> для інтеграцій, <code>github</code> для анотацій у GitHub Actions, <code>blob</code> для злиття звітів шардів, <code>perfetto</code> і <code>null</code>. Кілька репортерів задаються масивом.</p>
+<script type="text/x-code" data-file="playwright.config.ts (фрагмент)">
+reporter: [
+  ['list'],
+  ['html', { open: 'never' }],
+  ['junit', { outputFile: 'results/junit.xml' }],
+],
+</script>
+
+<h3>Трейси, скриншоти, відео</h3>
+<p>Трейс — це запис прогону: кожна дія зі знімками DOM до й після, мережа, консоль і вихідний код. Його відкривають у Trace Viewer (<code>npx playwright show-trace path/to/trace.zip</code>) або прямо з HTML-звіту. За замовчуванням трейс вимкнено. Режим у <code>use.trace</code> вирішує дві речі: коли трейс записувати і коли зберігати.</p>
+
+<div class="widget" id="traceWidget">
+  <h4>Який трейс збережеться?</h4>
+  <p class="hint">Сценарій: <code>retries: 1</code>, перший запуск тесту падає, повтор проходить. Оберіть режим trace.</p>
+  <div class="seg" role="group" aria-label="Режим trace" id="traceSeg"></div>
+  <div class="runs" id="traceRuns" aria-live="polite"></div>
+  <p id="traceText" style="font-size:.94rem"></p>
+</div>
+<p>Для скриншотів (<code>use.screenshot</code>) доступні режими <code>'off'</code>, <code>'on'</code>, <code>'only-on-failure'</code> і <code>'on-first-failure'</code>. Для відео (<code>use.video</code>) логіка режимів подібна до трейсів, наприклад <code>'retain-on-failure'</code> чи <code>'on-first-retry'</code>. Усі артефакти потрапляють у <code>test-results/</code> і прикріплюються до тесту в HTML-звіті.</p>
+</section>
+
+<!-- ================= 11 ================= -->
+<section class="chapter" id="s11" data-title="Типові помилки" hidden>
+<p class="kicker">Розділ 11 з 12</p>
+<h2>Типові помилки</h2>
+<p class="lead">Помилки з цього списку не завжди червоні одразу. Частина з них робить тести повільними, частина — нестабільними, частина проявляється лише в CI.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/best-practices" target="_blank" rel="noopener">Документація → Best Practices</a>
+  <a href="https://playwright.dev/docs/test-parallel" target="_blank" rel="noopener">Документація → Parallelism</a>
+  <a href="https://playwright.dev/docs/test-timeouts" target="_blank" rel="noopener">Документація → Timeouts</a>
+</div>
+<p>Найчастіші помилки такі. Забутий <code>test.only</code>, коли в конфігу немає <code>forbidOnly</code>. Пропущений <code>await</code> перед web-first assertion. <code>page</code> у <code>beforeAll</code>. Тести, що передають дані через спільні змінні. Ручне читання стану замість auto-retrying matcher. <code>toPass</code> без тайм-ауту. Плутанина між тайм-аутом тесту і тайм-аутом assertion. І <code>slowMo</code> не в тому місці конфігу. Нижче кожна з них у вигляді коду: знайдіть проблемний рядок.</p>
+<div class="widget" id="bugWidget">
+  <h4>Знайди помилку</h4>
+  <p class="hint">У кожному фрагменті один проблемний рядок. Натисніть на нього, щоб перевірити себе.</p>
+  <div id="bugList"></div>
+  <p class="score" id="bugScore" aria-live="polite"></p>
+</div>
+</section>
+
+<!-- ================= 12 ================= -->
+<section class="chapter" id="s12" data-title="Шпаргалка" hidden>
+<p class="kicker">Розділ 12 з 12</p>
+<h2>Шпаргалка</h2>
+<p class="lead">Усе основне на одному екрані. Після шпаргалки — підсумковий квіз для самоперевірки.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-cli" target="_blank" rel="noopener">Документація → Command line</a>
+  <a href="https://playwright.dev/docs/test-configuration" target="_blank" rel="noopener">Документація → Configuration</a>
+  <a href="https://playwright.dev/docs/test-annotations" target="_blank" rel="noopener">Документація → Annotations</a>
+  <a href="https://playwright.dev/docs/test-timeouts" target="_blank" rel="noopener">Документація → Timeouts</a>
+</div>
+<script type="text/x-code" data-lang="sh" data-file="Команди">
+npm init playwright@latest                 # new project
+npx playwright test                        # run everything
+npx playwright test tests/cart.spec.ts:42  # one test by line
+npx playwright test -g @smoke              # filter by title or tag
+npx playwright test --project=chromium     # one project
+npx playwright test --headed --workers=1   # watch it run
+npx playwright test --ui                   # UI mode
+npx playwright test --debug                # Inspector
+npx playwright test --last-failed          # rerun failures
+npx playwright test --repeat-each=10       # hunt flakiness
+npx playwright test --shard=1/3            # one of three shards
+npx playwright show-report                 # open HTML report
+npx playwright show-trace trace.zip        # open a trace
+npx playwright codegen                     # record a test
+</script>
+<script type="text/x-code" data-file="Структура тесту">
+import { test, expect } from '@playwright/test';
+
+test.describe('group', () => {
+  test.beforeAll(async ({ browserName }) => { /* once per worker, worker fixtures only */ });
+  test.beforeEach(async ({ page }) => { await page.goto('/'); });
+  test.afterEach(async ({ page }) => { /* cleanup */ });
+  test.afterAll(async () => { /* once per worker */ });
+
+  test('title', { tag: '@smoke' }, async ({ page, context, request }) => {
+    await test.step('named step', async () => {
+      await expect(page.getByRole('heading')).toBeVisible();
+    });
+  });
+});
+
+// Annotations inside a test: test.skip(condition, 'reason'); test.fixme(); test.fail(); test.slow();
+// Per file or group: test.describe.configure({ mode: 'parallel' }); // or 'serial' | 'default'
+</script>
+<script type="text/x-code" data-file="Тайм-аути за замовчуванням">
+timeout: 30_000            // whole test, incl. beforeEach/afterEach and test fixtures
+expect: { timeout: 5_000 } // each auto-retrying assertion
+use: {
+  actionTimeout: 0,        // 0 = no own limit, bounded by the test timeout
+  navigationTimeout: 0,
+}
+globalTimeout: 0           // whole run, disabled by default
+// test.slow() triples the test timeout; toPass() defaults to 0 and ignores expect.timeout
+</script>
+<p>Три правила на пам'ять. Тести ізольовані: кожен готує свій стан і не залежить від порядку. Перевірки робляться через auto-retrying assertions з <code>await</code>, а не через ручне читання стану. Налаштування живуть у конфігу на правильному рівні: раннер нагорі, браузер і фікстури в <code>use</code>, варіанти запуску в <code>projects</code>.</p>
+</section>
+
+<!-- ================= QUIZ ================= -->
+<section class="chapter" id="quiz" data-title="Підсумковий квіз" data-num="✎" data-count="no" hidden>
+<p class="kicker">Самоперевірка</p>
+<h2>Підсумковий квіз</h2>
+<p class="lead">15 питань за всіма розділами. Після кожної відповіді побачите пояснення, а в кінці — список тем, які варто повторити.</p>
+<div class="widget" id="quizWidget" aria-live="polite"></div>
+</section>
+
+<nav class="pager" aria-label="Навігація між розділами">
+  <button type="button" id="prevBtn">Попередній розділ</button>
+  <button type="button" class="done-btn" id="doneBtn">Позначити як пройдений</button>
+  <button type="button" class="primary" id="nextBtn">Наступний розділ</button>
+</nav>
+</main>
+</div>
+<script>
+(function(){
+'use strict';
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const KW = new Set('import from export const let var async await function return if else throw new class extends implements interface type readonly private protected public abstract get set as in of typeof keyof void this super default try catch require'.split(' '));
+const LIT = new Set(['null','undefined','true','false']);
+const PRIM = new Set(['string','number','boolean','unknown','any','never','object']);
+
+function hl(src, lang){
+  if (lang === 'sh' || lang === 'yaml'){
+    return src.split('\n').map((l) => {
+      const i = l.indexOf('#');
+      if (i === -1) return esc(l);
+      return esc(l.slice(0,i)) + '<span class="t-com">' + esc(l.slice(i)) + '</span>';
+    }).join('\n');
+  }
+  const re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|('(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"|`(?:\\.|[^`\\])*`)|(\b\d[\d_]*(?:\.\d+)?\b)|([A-Za-z_$][\w$]*)/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(src))){
+    out += esc(src.slice(last, m.index));
+    last = re.lastIndex;
+    const t = m[0];
+    if (m[1]) out += '<span class="t-com">' + esc(t) + '</span>';
+    else if (m[2]){
+      const isKey = lang === 'json' && /^\s*:/.test(src.slice(last));
+      out += '<span class="' + (isKey ? 't-key' : 't-str') + '">' + esc(t) + '</span>';
+    }
+    else if (m[3]) out += '<span class="t-num">' + t + '</span>';
+    else if (KW.has(t)) out += '<span class="t-kw">' + t + '</span>';
+    else if (LIT.has(t)) out += '<span class="t-lit">' + t + '</span>';
+    else if (PRIM.has(t) || /^[A-Z]/.test(t)) out += '<span class="t-type">' + t + '</span>';
+    else if (src[last] === '(' || src[last] === '<') out += '<span class="t-fn">' + t + '</span>';
+    else out += esc(t);
+  }
+  return out + esc(src.slice(last));
+}
+function dedent(src){
+  const lines = src.replace(/^\n+/, '').replace(/\s+$/, '').split('\n');
+  const ind = Math.min(...lines.filter((l) => l.trim()).map((l) => l.match(/^ */)[0].length));
+  return lines.map((l) => l.slice(ind)).join('\n');
+}
+function codeFigure(src, lang, file){
+  const fig = document.createElement('figure');
+  fig.className = 'code';
+  fig.innerHTML = (file ? '<figcaption>' + esc(file) + '</figcaption>' : '') +
+    '<pre><code>' + hl(src, lang) + '</code></pre>' +
+    '<button type="button" class="copy">Копіювати</button>';
+  const btn = fig.querySelector('.copy');
+  btn.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(src); btn.textContent = 'Скопійовано'; }
+    catch (e) {
+      const r = document.createRange(); r.selectNodeContents(fig.querySelector('pre'));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      btn.textContent = 'Виділено: Ctrl+C';
+    }
+    setTimeout(() => { btn.textContent = 'Копіювати'; }, 1600);
+  });
+  return fig;
+}
+$$('script[type="text/x-code"]').forEach((s) => {
+  s.replaceWith(codeFigure(dedent(s.textContent), s.dataset.lang || 'ts', s.dataset.file || ''));
+});
+
+/* ---------- navigation + progress ---------- */
+const chapters = $$('.chapter');
+const nav = $('#nav');
+const KEY = 'pw-test-runner-progress';
+let done = new Set();
+try { const raw = localStorage.getItem(KEY); if (raw) done = new Set(JSON.parse(raw)); } catch (e) {}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify([...done])); } catch (e) {} }
+
+chapters.forEach((c, i) => {
+  const li = document.createElement('li');
+  li.innerHTML = '<button type="button" data-id="' + c.id + '"><span class="num">' + (i + 1) + '</span><span>' + esc(c.dataset.title) + '</span><span class="tick" aria-hidden="true">✓</span></button>';
+  nav.appendChild(li);
+});
+let current = 0;
+const counted = chapters.filter((c) => c.dataset.count !== 'no');
+function renderProgress(){
+  $$('#nav li').forEach((li, i) => li.classList.toggle('done', done.has(chapters[i].id)));
+  const n = counted.filter((c) => done.has(c.id)).length;
+  $('#progressFill').style.width = (n / counted.length * 100) + '%';
+  $('#progressText').textContent = n + ' з ' + counted.length + ' розділів пройдено';
+  $('#doneBtn').textContent = done.has(chapters[current].id) ? 'Розділ пройдено ✓' : 'Позначити як пройдений';
+}
+function show(i, focus){
+  current = Math.max(0, Math.min(chapters.length - 1, i));
+  chapters.forEach((c, k) => { c.hidden = k !== current; });
+  $$('#nav button').forEach((b, k) => b.setAttribute('aria-current', k === current ? 'true' : 'false'));
+  $('#prevBtn').disabled = current === 0;
+  $('#nextBtn').textContent = current === chapters.length - 1 ? 'Завершити' : (chapters[current + 1].id === 'quiz' ? 'До підсумкового квізу' : 'Наступний розділ');
+  $('#doneBtn').hidden = chapters[current].dataset.count === 'no';
+  const activeBtn = $$('#nav button')[current];
+  if (activeBtn && activeBtn.scrollIntoView && window.matchMedia('(max-width:900px)').matches) activeBtn.scrollIntoView({ inline: 'center', block: 'nearest' });
+  try { if (location.protocol !== 'about:' && history.replaceState) history.replaceState(null, '', '#' + chapters[current].id); } catch (e) { /* sandboxed preview: URL cannot change */ }
+  renderProgress();
+  if (focus) { window.scrollTo(0, 0); chapters[current].querySelector('h2').setAttribute('tabindex', '-1'); chapters[current].querySelector('h2').focus({ preventScroll: true }); }
+}
+nav.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  show(chapters.findIndex((c) => c.id === b.dataset.id), true);
+});
+$('#prevBtn').addEventListener('click', () => show(current - 1, true));
+$('#nextBtn').addEventListener('click', () => {
+  done.add(chapters[current].id); save();
+  if (current < chapters.length - 1) show(current + 1, true); else renderProgress();
+});
+$('#doneBtn').addEventListener('click', () => {
+  const id = chapters[current].id;
+  if (done.has(id)) done.delete(id); else done.add(id);
+  save(); renderProgress();
+});
+$('#resetProgress').addEventListener('click', () => { done.clear(); save(); renderProgress(); });
+window.__showChapter = (id) => show(chapters.findIndex((c) => c.id === id), true);
+let startHash = ''; try { startHash = location.hash; } catch (e) {}
+const startIdx = chapters.findIndex((c) => '#' + c.id === startHash);
+show(startIdx >= 0 ? startIdx : 0, false);
+
+/* ---------- generic card quiz ---------- */
+function cardQuiz(gridId, scoreId, items, opts, prefix){
+  const state = {};
+  const grid = $('#' + gridId);
+  function score(){
+    const answered = Object.keys(state).length;
+    const right = Object.values(state).filter(Boolean).length;
+    $('#' + scoreId).textContent = answered ? 'Правильно з першої спроби: ' + right + ' з ' + answered + ' (усього ' + items.length + ')' : '';
+  }
+  items.forEach((r, idx) => {
+    const card = document.createElement('div');
+    card.className = 'rt';
+    card.innerHTML = '<p class="m">' + (prefix || '') + r.m + '</p><div class="opts" role="group">' +
+      opts.map((o) => '<button type="button" data-o="' + esc(o) + '">' + esc(o) + '</button>').join('') + '</div><p class="fb" hidden></p>';
+    card.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b || card.dataset.solved) return;
+      const fb = card.querySelector('.fb');
+      const ok = b.dataset.o === r.a;
+      if (!(idx in state)) state[idx] = ok;
+      if (ok){
+        b.classList.add('right'); card.dataset.solved = '1';
+        fb.innerHTML = '<b>' + esc(r.a) + '.</b> ' + r.why + (r.link ? ' <a href="' + r.link + '" target="_blank" rel="noopener">Документація</a>' : '');
+      } else { b.classList.add('wrong'); fb.textContent = 'Ні, спробуйте інший варіант.'; }
+      fb.hidden = false; score();
+    });
+    grid.appendChild(card);
+  });
+}
+
+/* ---------- 1. library vs runner ---------- */
+const LIB = {
+  lib: {
+    lines: [
+      "import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';",
+      "",
+      "async function checkLogin(): Promise<void> {",
+      "  const browser: Browser = await chromium.launch();",
+      "  const context: BrowserContext = await browser.newContext();",
+      "  const page: Page = await context.newPage();",
+      "  try {",
+      "    await page.goto('http://localhost:3000/login');",
+      "    await page.getByLabel('Username').fill('admin@test.com');",
+      "    await page.getByLabel('Password').fill('secret');",
+      "    await page.getByRole('button', { name: 'Sign in' }).click();",
+      "    const heading: string = await page.getByRole('heading').innerText();",
+      "    if (heading !== 'Welcome') throw new Error(`Unexpected heading: ${heading}`);",
+      "  } finally {",
+      "    await browser.close();",
+      "  }",
+      "}",
+      "",
+      "checkLogin().catch((error: unknown) => {",
+      "  console.error(error);",
+      "  process.exitCode = 1;",
+      "});"
+    ],
+    notes: {
+      3: 'У раннері це фікстура browser: один браузер на воркер.',
+      4: 'У раннері кожен тест отримує новий context, тобто ізоляцію cookies і сховищ.',
+      5: 'У раннері це фікстура page.',
+      7: 'У раннері повну адресу замінює baseURL з конфігу.',
+      12: 'Перевірка одноразова і без повтору. У раннері це await expect(...).toHaveText() з автоповтором.',
+      14: 'У раннері фікстури прибираються автоматично, навіть якщо тест упав.',
+      18: 'Пошук тестів, паралельний запуск, повтори і звіти в скрипті доведеться писати самому.'
+    },
+    note: 'Скрипт працює, але вся інфраструктура на вас: життєвий цикл браузера, ізоляція, очікування, звіти.'
+  },
+  test: {
+    lines: [
+      "import { test, expect } from '@playwright/test';",
+      "",
+      "test('user signs in', async ({ page }) => {",
+      "  await page.goto('/login');",
+      "  await page.getByLabel('Username').fill('admin@test.com');",
+      "  await page.getByLabel('Password').fill('secret');",
+      "  await page.getByRole('button', { name: 'Sign in' }).click();",
+      "  await expect(page.getByRole('heading')).toHaveText('Welcome');",
+      "});"
+    ],
+    notes: {
+      2: 'Запитуємо фікстуру page: раннер створить контекст і сторінку, а після тесту прибере їх.',
+      3: 'Відносний шлях: адресу доповнює baseURL з конфігу.',
+      7: 'Web-first assertion повторює перевірку до expect.timeout (5 с за замовчуванням).'
+    },
+    note: 'Лишився тільки сценарій. Запуск у кількох браузерах, паралельність, повтори, трейси й звіт задаються конфігом, а не кодом тесту.'
+  }
+};
+function renderLib(mode){
+  const d = LIB[mode];
+  $('#libEditor').innerHTML = d.lines.map((l, i) => {
+    const n = d.notes[i];
+    return '<div class="ln' + (n ? ' mark' : '') + '"><span>' + (i + 1) + '</span><span>' + (hl(l, 'ts') || ' ') + '</span></div>' +
+      (n ? '<span class="msg tip">' + esc(n) + '</span>' : '');
+  }).join('');
+  $('#libNote').textContent = d.note;
+  $$('#libRunner .seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+}
+$$('#libRunner .seg button').forEach((b) => b.addEventListener('click', () => renderLib(b.dataset.mode)));
+renderLib('lib');
+
+/* ---------- 2. project tree ---------- */
+const TREE = [
+  { p:'playwright.config.ts', d:0, t:'Конфігурація раннера: де шукати тести, воркери, повтори, репортери, projects і параметри браузера. Детально в розділі 3.' },
+  { p:'package.json', d:0, t:'Залежності й скрипти. Для TypeScript-проєкту в devDependencies з\'являються @playwright/test і @types/node. Сюди зручно додати скрипти на кшталт "test": "playwright test".' },
+  { p:'package-lock.json', d:0, t:'Точні версії всіх пакетів. Комітиться в репозиторій, щоб у CI стояла та сама версія Playwright, що й локально. Для yarn чи pnpm це yarn.lock або pnpm-lock.yaml.' },
+  { p:'tests/', d:0, t:'Каталог тестів (testDir у конфігу). Назву можна змінити під час ініціалізації.' },
+  { p:'example.spec.ts', d:1, t:'Мінімальний приклад з двома тестами. Раннер за замовчуванням збирає файли, назви яких закінчуються на .spec чи .test з розширенням .ts або .js.' },
+  { p:'.github/workflows/playwright.yml', d:0, t:'Створюється, якщо під час ініціалізації погодитися на GitHub Actions. Запускає тести в CI і зберігає HTML-звіт як артефакт.' },
+  { p:'node_modules/', d:0, t:'Встановлені пакети. У репозиторій не комітиться.' },
+  { p:'test-results/', d:0, later:true, t:'З\'являється після запуску. Це outputDir: сюди пишуться трейси, скриншоти, відео й інші артефакти. Каталог очищається на початку кожного запуску. У репозиторій не комітиться.' },
+  { p:'playwright-report/', d:0, later:true, t:'З\'являється після запуску з репортером html. Відкривається командою npx playwright show-report. У репозиторій не комітиться.' },
+  { p:'Браузери', d:0, ext:true, t:'Бінарники браузерів лежать не в проєкті, а в спільному кеші на машині, тож кілька проєктів з однією версією Playwright використовують ті самі браузери. Ставляться командою npx playwright install.' }
+];
+(function renderTree(){
+  $('#tree').innerHTML = TREE.map((n, i) =>
+    '<button type="button" data-i="' + i + '" class="' + (n.later ? 'later' : '') + (n.ext ? ' ext' : '') + '" style="padding-left:' + (10 + n.d * 22) + 'px">' +
+    (n.p.endsWith('/') ? '📁 ' : n.ext ? '🌐 ' : '📄 ') + esc(n.p) + '</button>').join('');
+  $('#tree').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const n = TREE[Number(b.dataset.i)];
+    $$('#tree button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    $('#treeExplain').innerHTML = '<h5>' + esc(n.p) + '</h5><p>' + esc(n.t) + '</p>';
+  });
+})();
+
+/* ---------- 3. interactive config ---------- */
+const CFG = [
+  { k:'testDir', v:"'./tests'", kind:'run', t:'Каталог, у якому раннер шукає тестові файли. Шлях рахується відносно файлу конфігу.' },
+  { k:'fullyParallel', v:'true', kind:'run', t:'Дозволяє розподіляти по воркерах кожен тест окремо, а не лише файли. Детально в розділі 6.' },
+  { k:'forbidOnly', v:'!!process.env.CI', kind:'run', t:'Якщо в коді лишився test.only, прогін падає. Умова з CI вмикає захист лише там, а локально test.only можна використовувати.' },
+  { k:'retries', v:'process.env.CI ? 2 : 0', kind:'run', t:'Скільки разів перезапускати тест, що впав. Тест, який пройшов лише на повторі, отримує статус flaky.' },
+  { k:'workers', v:'process.env.CI ? 1 : undefined', kind:'run', t:'Кількість воркерів. undefined означає значення за замовчуванням: половину логічних ядер процесора. Можна вказати число або відсоток, наприклад \'50%\'.' },
+  { k:'reporter', v:"'html'", kind:'run', t:'Який звіт писати. Без цієї опції раннер бере list (у CI — dot). Кілька репортерів задаються масивом.' },
+  { k:'timeout', v:'30_000', kind:'run', t:'Тайм-аут одного тесту в мілісекундах, разом з фікстурами і хуками beforeEach/afterEach. 30 секунд — значення за замовчуванням.' },
+  { k:'expect', v:'{ timeout: 5_000 }', kind:'run', t:'Налаштування assertions. timeout — скільки кожен auto-retrying matcher повторює перевірку. 5 секунд — значення за замовчуванням.' },
+  { k:'baseURL', v:"'http://localhost:3000'", kind:'use', t:'Базова адреса. page.goto(\'/login\') і запити фікстури request з відносним шляхом доповнюються нею.' },
+  { k:'trace', v:"'on-first-retry'", kind:'use', t:'Коли записувати трейс. on-first-retry записує лише перший повтор тесту, що впав, тож працює тільки при retries більше за 0. Детально в розділі 10.' },
+  { k:'screenshot', v:"'only-on-failure'", kind:'use', t:'Робити скриншот після кожного тесту, що впав. Інші режими: off, on, on-first-failure.' },
+  { k:'launchOptions', v:'{ slowMo: 0 }', kind:'use', t:'Параметри запуску браузера. Саме тут живе slowMo — уповільнення кожної дії в мілісекундах. Корисно лише для демонстрації.' },
+  { k:'projects', v:null, kind:'proj', t:'Іменовані набори налаштувань. Кожен тест запуститься в кожному проєкті, тобто тут тричі: у Chromium, Firefox і WebKit. devices містить готові профілі пристроїв.' },
+  { k:'webServer', v:null, kind:'run', t:'Раннер сам запускає застосунок перед тестами і чекає, доки url почне відповідати. reuseExistingServer дозволяє локально підхопити вже запущений сервер.' }
+];
+(function renderCfg(){
+  const B = (o) => '<button type="button" class="' + o.kind + '" data-k="' + o.k + '">' + o.k + '</button>';
+  const f = (k) => CFG.find((o) => o.k === k);
+  const v = (o) => '<span class="t-str">' + esc(o.v) + '</span>';
+  let h = '<span class="t-kw">export default</span> defineConfig({\n';
+  ['testDir','fullyParallel','forbidOnly','retries','workers','reporter','timeout','expect'].forEach((k) => { h += '  ' + B(f(k)) + ': ' + v(f(k)) + ',\n'; });
+  h += '  <span class="t-key">use</span>: {\n';
+  ['baseURL','trace','screenshot','launchOptions'].forEach((k) => { h += '    ' + B(f(k)) + ': ' + v(f(k)) + ',\n'; });
+  h += '  },\n  ' + B(f('projects')) + ': [\n' +
+    "    { name: <span class=\"t-str\">'chromium'</span>, use: { ...devices[<span class=\"t-str\">'Desktop Chrome'</span>] } },\n" +
+    "    { name: <span class=\"t-str\">'firefox'</span>, use: { ...devices[<span class=\"t-str\">'Desktop Firefox'</span>] } },\n" +
+    "    { name: <span class=\"t-str\">'webkit'</span>, use: { ...devices[<span class=\"t-str\">'Desktop Safari'</span>] } },\n  ],\n" +
+    '  ' + B(f('webServer')) + ': {\n    command: <span class="t-str">\'npm run start\'</span>,\n    url: <span class="t-str">\'http://localhost:3000\'</span>,\n    reuseExistingServer: <span class="t-str">!process.env.CI</span>,\n  },\n});';
+  $('#cfgCode').innerHTML = h;
+  const LABEL = { run:'Раннер', use:'use: фікстури і браузер', proj:'projects' };
+  $('#cfgCode').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const o = f(b.dataset.k);
+    $$('#cfgCode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    $('#cfgExplain').innerHTML = '<span class="tag ' + o.kind + '">' + LABEL[o.kind] + '</span><h5>' + o.k + '</h5><p>' + esc(o.t) + '</p>';
+  });
+})();
+
+/* ---------- 4. CLI builder ---------- */
+function renderCli(){
+  const parts = ['npx playwright test'];
+  const ex = [];
+  const file = $('#cliFile').value.trim(), line = $('#cliLine').value.trim();
+  if (file){
+    parts.push(file + (line ? ':' + line : ''));
+    ex.push('<b>' + esc(file) + (line ? ':' + esc(line) : '') + '</b>: фільтр файлів, регулярний вираз по абсолютному шляху' + (line ? ', звужений до тесту на рядку ' + esc(line) : '') + '.');
+  } else if (line) ex.push('Номер рядка працює лише разом з файлом.');
+  const grep = $('#cliGrep').value.trim();
+  if (grep){ parts.push('-g "' + grep + '"'); ex.push('<b>-g</b>: лише тести, назва яких (разом з тегами) відповідає регулярному виразу «' + esc(grep) + '».'); }
+  const pr = $('#cliProject').value;
+  if (pr){ parts.push('--project=' + pr); ex.push('<b>--project</b>: лише тести проєкту ' + pr + '.'); }
+  const w = $('#cliWorkers').value;
+  if (w){ parts.push('--workers=' + w); ex.push('<b>--workers</b>: ' + (w === '1' ? 'один воркер, тобто без паралельності' : w + ' воркерів') + ' для цього запуску.'); }
+  const rt = $('#cliRetries').value;
+  if (rt){ parts.push('--retries=' + rt); ex.push('<b>--retries</b>: максимум ' + rt + ' повторів для тесту, що впав.'); }
+  const rep = $('#cliRepeat').value;
+  if (rep){ parts.push('--repeat-each=' + rep); ex.push('<b>--repeat-each</b>: кожен тест виконається ' + rep + ' разів. Зручно, щоб виловити нестабільність.'); }
+  const r = $('#cliReporter').value;
+  if (r){ parts.push('--reporter=' + r); ex.push('<b>--reporter</b>: замінює репортери з конфігу на ' + r + '.'); }
+  const tr = $('#cliTrace').value;
+  if (tr){ parts.push('--trace=' + tr); ex.push('<b>--trace</b>: примусовий режим трейсу ' + tr + ' незалежно від конфігу.'); }
+  const FLAG = {
+    '--headed':'<b>--headed</b>: видно вікно браузера (за замовчуванням headless).',
+    '--ui':'<b>--ui</b>: відкриває UI mode. Решту запуску ви керуєте вже з інтерфейсу.',
+    '--debug':'<b>--debug</b>: Playwright Inspector. Це скорочення для PWDEBUG=1 разом з --timeout=0 --max-failures=1 --headed --workers=1.',
+    '--last-failed':'<b>--last-failed</b>: лише тести, що впали в попередньому запуску.',
+    '--only-changed':'<b>--only-changed</b>: лише файли, змінені відносно Git (без аргументу — незакомічені зміни).',
+    '--list':'<b>--list</b>: зібрати й показати список тестів, нічого не запускаючи.',
+    '-x':'<b>-x</b>: зупинити прогін після першого падіння.'
+  };
+  const flags = $$('#cliWidget .cli-flags input:checked').map((i) => i.value);
+  flags.forEach((f) => { parts.push(f); ex.push(FLAG[f]); });
+  if (flags.includes('--debug') && w && w !== '1') ex.push('Увага: --debug сам вмикає --workers=1.');
+  if (flags.includes('--ui') && flags.includes('--debug')) ex.push('Увага: --ui і --debug — два різні режими налагодження. Оберіть один.');
+  const out = $('#cliOut'); out.innerHTML = '';
+  out.appendChild(codeFigure(parts.join(' '), 'sh', 'Команда'));
+  $('#cliExplain').innerHTML = ex.length ? ex.map((x) => '<p>' + x + '</p>').join('') : '<p>Без параметрів: усі тести в усіх проєктах з налаштуваннями з конфігу.</p>';
+}
+$$('#cliWidget input, #cliWidget select').forEach((el) => el.addEventListener('input', renderCli));
+$$('#cliWidget input[type="checkbox"]').forEach((el) => el.addEventListener('change', renderCli));
+renderCli();
+
+/* ---------- 6. parallelism simulator ---------- */
+const FILES = [
+  { f:'auth.spec.ts', c:'#3469CF', tests:[['login',3],['logout',2],['reset password',3]] },
+  { f:'cart.spec.ts', c:'#E8781A', tests:[['add item',4],['remove item',3],['totals',2],['checkout',5]] },
+  { f:'search.spec.ts', c:'#1D8455', tests:[['query',3],['filters',4]] }
+];
+function simulate(){
+  const W = Number($('#simWorkers').value), fully = $('#simFully').checked, mode = $('#simMode').value, fail = $('#simFail').checked;
+  const jobs = [];
+  FILES.forEach((file) => {
+    let m = fully ? 'parallel' : 'default';
+    if (file.f === 'cart.spec.ts' && mode) m = mode;
+    const ts = file.tests.map(([t, d]) => ({ file: file.f, color: file.c, title: t, dur: d }));
+    if (m === 'parallel') ts.forEach((t) => jobs.push({ kind:'single', tests:[t] }));
+    else jobs.push({ kind:m, tests:ts });
+  });
+  const free = new Array(W).fill(0), rows = Array.from({ length: W }, () => []);
+  jobs.forEach((job) => {
+    let wi = 0; for (let i = 1; i < W; i++) if (free[i] < free[wi]) wi = i;
+    let t = free[wi], failedSerial = false;
+    job.tests.forEach((ts) => {
+      const isFail = fail && ts.title === 'remove item';
+      if (failedSerial){ rows[wi].push({ ...ts, start:t, dur:0.6, status:'skipped' }); t += 0.6; return; }
+      rows[wi].push({ ...ts, start:t, status: isFail ? 'failed' : 'passed' });
+      t += ts.dur;
+      if (isFail){
+        if (job.kind === 'serial') failedSerial = true;
+        rows[wi].push({ restart:true, start:t, dur:0.8 }); t += 0.8;
+      }
+    });
+    free[wi] = t;
+  });
+  const total = Math.max(...free);
+  const scale = 100 / Math.max(total, 1);
+  $('#sim').innerHTML = rows.map((r, i) =>
+    '<div class="sim-row"><span class="sim-w">Воркер ' + (i + 1) + '</span><div class="sim-track">' +
+    r.map((b) => b.restart
+      ? '<span class="sim-blk restart" style="left:' + b.start * scale + '%;width:' + b.dur * scale + '%" title="Перезапуск воркера після падіння">↻</span>'
+      : '<span class="sim-blk ' + b.status + '" style="left:' + b.start * scale + '%;width:' + b.dur * scale + '%;--c:' + b.color + '" title="' + esc(b.file + ' › ' + b.title + ' (' + b.status + ')') + '">' + esc(b.status === 'skipped' ? '⤼' : b.title) + '</span>').join('') +
+    '</div></div>').join('') +
+    '<div class="sim-legend">' + FILES.map((f) => '<span><i style="background:' + f.c + '"></i>' + f.f + '</span>').join('') +
+    '<span><i class="lg-fail"></i>упав</span><span><i class="lg-skip"></i>пропущено</span></div>' +
+    '<p class="sim-total">Загальний час прогону: <b>' + total.toFixed(1) + ' с</b> (сума всіх тестів: ' + FILES.reduce((a, f) => a + f.tests.reduce((x, t) => x + t[1], 0), 0) + ' с)</p>';
+  let say;
+  const cartMode = mode || (fully ? 'parallel' : 'default');
+  if (cartMode === 'serial' && fail) say = 'Режим serial: після падіння «remove item» тести «totals» і «checkout» пропущено. З повторами група перезапустилася б з першого тесту.';
+  else if (fail) say = 'Після падіння раннер перезапускає воркер (↻), і решта тестів продовжує виконуватися в новому процесі.';
+  else if (fully && mode === 'default') say = 'fullyParallel увімкнено, але mode: \'default\' повертає cart.spec.ts до послідовного виконання в одному воркері. Інші файли розподіляються по тестах.';
+  else if (fully || mode === 'parallel') say = 'Тести розподіляються окремо, тому воркери завантажені рівніше і прогін коротший.';
+  else say = 'Без fullyParallel паралельно йдуть лише файли. Найдовший файл визначає, наскільки довгим буде прогін.';
+  if (W === 1) say = 'Один воркер: усе виконується по черзі, паралельності немає. ' + (fail ? say : '');
+  $('#simSay').textContent = say;
+}
+['simWorkers','simFully','simMode','simFail'].forEach((id) => $('#' + id).addEventListener('change', simulate));
+simulate();
+
+/* ---------- 7. fixture scopes + hooks ---------- */
+const FX = 'https://playwright.dev/docs/test-fixtures#built-in-fixtures';
+cardQuiz('scopeGrid', 'scopeScore', [
+  { m:'page', a:'test', why:'Нова сторінка для кожного тесту.', link:FX },
+  { m:'context', a:'test', why:'Новий BrowserContext для кожного тесту — основа ізоляції.', link:FX },
+  { m:'request', a:'test', why:'Окремий APIRequestContext для кожного тесту.', link:FX },
+  { m:'browser', a:'worker', why:'Браузер запускається один раз на воркер і перевикористовується між тестами.', link:FX },
+  { m:'browserName', a:'worker', why:'Назва браузера поточного проєкту, спільна для всього воркера.', link:FX },
+  { m:'playwright', a:'worker', why:'Екземпляр бібліотеки Playwright для воркера.', link:FX }
+], ['test', 'worker']);
+
+const HOOK_SRC = [
+  "test.describe('cart', () => {",
+  "  test.beforeAll(async () => { /* ... */ });",
+  "  test.beforeEach(async ({ page }) => { /* ... */ });",
+  "  test.afterEach(async ({ page }) => { /* ... */ });",
+  "  test.afterAll(async () => { /* ... */ });",
+  "",
+  "  test('adds item', async ({ page }) => { /* ... */ });",
+  "  test('removes item', async ({ page }) => { /* ... */ });",
+  "});"
+];
+const HOOK_STEPS = [
+  [1, 'beforeAll: один раз для групи в цьому воркері. Доступні лише worker-фікстури.'],
+  [2, 'beforeEach перед «adds item». Отримує ту саму page, що й тест.'],
+  [6, 'Тест «adds item».'],
+  [3, 'afterEach після «adds item». Виконується, навіть якщо тест упав.'],
+  [2, 'beforeEach перед «removes item»: нова page, новий context.'],
+  [7, 'Тест «removes item».'],
+  [3, 'afterEach після «removes item».'],
+  [4, 'afterAll: один раз після всіх тестів групи в цьому воркері.']
+];
+let hookI = 0;
+function renderHooks(){
+  const cur = hookI > 0 ? HOOK_STEPS[hookI - 1][0] : -1;
+  $('#hooksSrc').innerHTML = HOOK_SRC.map((l, i) => '<div class="' + (i === cur ? 'on' : '') + '">' + (hl(l, 'ts') || ' ') + '</div>').join('');
+  $('#hooksLog').innerHTML = HOOK_STEPS.slice(0, hookI).map((s) => '<li>' + esc(s[1]) + '</li>').join('') ||
+    '<li class="empty">Натисніть «Наступний крок».</li>';
+  $('#hooksNext').disabled = hookI >= HOOK_STEPS.length;
+}
+$('#hooksNext').addEventListener('click', () => { hookI = Math.min(HOOK_STEPS.length, hookI + 1); renderHooks(); });
+$('#hooksAll').addEventListener('click', () => { hookI = HOOK_STEPS.length; renderHooks(); });
+$('#hooksReset').addEventListener('click', () => { hookI = 0; renderHooks(); });
+renderHooks();
+
+/* ---------- 8. annotations ---------- */
+const AN = 'https://playwright.dev/docs/test-annotations';
+cardQuiz('annGrid', 'annScore', [
+  { m:'test.skip(true, \'…\') у тесті', a:'skipped', why:'Тест пропущено за умовою.', link:AN },
+  { m:'test.fixme(\'…\', …)', a:'skipped', why:'Тест не виконується, поки його не полагодять.', link:AN },
+  { m:'test.fail(), і тест справді падає', a:'passed', why:'Очікуване падіння: саме цього й чекали, тож статус успішний.', link:AN },
+  { m:'test.fail(), а тест проходить', a:'failed', why:'Раннер перевіряє, що тест падає. Якщо він пройшов, це сигнал, що баг, імовірно, виправлено і анотацію треба прибрати.', link:AN },
+  { m:'Упав, а на першому повторі пройшов', a:'flaky', why:'Пройшов лише з повтором — нестабільний тест.', link:'https://playwright.dev/docs/test-retries' },
+  { m:'retries: 2, падає на всіх спробах', a:'failed', why:'Жодна зі спроб не пройшла.', link:'https://playwright.dev/docs/test-retries' },
+  { m:'test.slow(), тест триває 50 с, timeout за замовчуванням', a:'passed', why:'test.slow() потроює тайм-аут: 30 с × 3 = 90 с, тож 50 с вкладаються.', link:AN }
+], ['passed', 'failed', 'skipped', 'flaky']);
+
+/* ---------- 9. retrying + timeouts ---------- */
+const AS = 'https://playwright.dev/docs/test-assertions';
+cardQuiz('retryGrid', 'retryScore', [
+  { m:'await expect(locator).toBeVisible()', a:'повторює', why:'Web-first matcher для Locator.', link:AS },
+  { m:'await expect(locator).toHaveText(\'…\')', a:'повторює', why:'Web-first matcher для Locator.', link:AS },
+  { m:'await expect(page).toHaveURL(/…/)', a:'повторює', why:'Web-first matcher для Page.', link:AS },
+  { m:'await expect(locator).toHaveCount(3)', a:'повторює', why:'Web-first matcher для Locator.', link:AS },
+  { m:'expect(title).toBe(\'Shop\')', a:'одноразово', why:'Generic matcher: порівнює значення один раз.', link:AS },
+  { m:'expect(items).toEqual([…])', a:'одноразово', why:'Generic matcher.', link:AS },
+  { m:'expect(text).toContain(\'Saved\')', a:'одноразово', why:'Generic matcher для рядка чи масиву.', link:AS },
+  { m:'expect(await btn.isVisible()).toBeTruthy()', a:'одноразово', why:'Значення прочитано один раз, і generic matcher його не перечитує. Правильно: await expect(btn).toBeVisible().', link:AS }
+], ['повторює', 'одноразово']);
+
+const TO = 'https://playwright.dev/docs/test-timeouts';
+cardQuiz('toGrid', 'toScore', [
+  { m:'timeout (тест)', a:'30 000 мс', why:'Тайм-аут тесту разом з фікстурами і хуками beforeEach/afterEach.', link:TO },
+  { m:'expect.timeout', a:'5 000 мс', why:'Скільки кожен auto-retrying matcher повторює перевірку.', link:TO },
+  { m:'use.actionTimeout', a:'0 (без ліміту)', why:'Власного ліміту немає: дію обмежує тайм-аут тесту.', link:TO },
+  { m:'use.navigationTimeout', a:'0 (без ліміту)', why:'Так само: навігацію обмежує тайм-аут тесту.', link:TO },
+  { m:'globalTimeout', a:'0 (без ліміту)', why:'Ліміт на весь прогін за замовчуванням вимкнений.', link:TO },
+  { m:'toPass()', a:'0 (без ліміту)', why:'Не бере expect.timeout: без явного значення блок повторюється до вичерпання тайм-ауту тесту.', link:AS },
+  { m:'тест з test.slow()', a:'90 000 мс', why:'test.slow() потроює тайм-аут тесту.', link:AN }
+], ['30 000 мс', '5 000 мс', '0 (без ліміту)', '90 000 мс']);
+
+/* ---------- 10. trace modes ---------- */
+const TRACE = {
+  'off': { r:[0,0], k:[0,0], t:'Трейс не записується взагалі. Це значення за замовчуванням.' },
+  'on': { r:[1,1], k:[1,1], t:'Записується і зберігається для кожного запуску. Найповніше, але найдорожче за часом і місцем, тож для CI зазвичай надмірно.' },
+  'on-first-retry': { r:[0,1], k:[0,1], t:'Записується лише перший повтор. Режим із шаблону init. Без retries трейсів не буде зовсім.' },
+  'on-all-retries': { r:[0,1], k:[0,1], t:'Записується кожен повтор. Тут повтор один, тож результат як у on-first-retry.' },
+  'retain-on-failure': { r:[1,1], k:[1,0], t:'Записується кожен запуск, а зберігається лише невдалий. Трейс невдалого запуску лишається, навіть якщо повтор пройшов.' },
+  'retain-on-first-failure': { r:[1,0], k:[1,0], t:'Записується лише перший запуск (не повтори) і зберігається, тільки якщо він упав.' },
+  'retain-on-failure-and-retries': { r:[1,1], k:[1,1], t:'Записується кожен запуск і зберігається для кожного, що впав або був повтором.' }
+};
+$('#traceSeg').innerHTML = Object.keys(TRACE).map((m) => '<button type="button" data-m="' + m + '" aria-pressed="false">' + m + '</button>').join('');
+function renderTrace(m){
+  const d = TRACE[m];
+  const runs = [['Запуск 1', 'впав', 'fail'], ['Повтор 1', 'пройшов', 'pass']];
+  $('#traceRuns').innerHTML = runs.map((r, i) => {
+    const st = d.k[i] ? ['kept', '📦 трейс збережено'] : d.r[i] ? ['dropped', '🗑 записано, але видалено'] : ['none', '— не записується'];
+    return '<div class="run ' + r[2] + '"><b>' + r[0] + '</b><span class="res">' + r[1] + '</span><span class="tr ' + st[0] + '">' + st[1] + '</span></div>';
+  }).join('');
+  $('#traceText').textContent = d.t;
+  $$('#traceSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+}
+$('#traceSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) renderTrace(b.dataset.m); });
+renderTrace('on-first-retry');
+
+/* ---------- 11. find the bug ---------- */
+const BUGS = [
+  { title:'Забутий test.only', lang:'ts', bug:0,
+    lines:["test.only('adds an item', async ({ page }) => {", "  await page.goto('/cart');", "  await expect(page.getByRole('listitem')).toHaveCount(1);", "});"],
+    why:'З <code>test.only</code> раннер виконає лише цей тест, а решту мовчки проігнорує. Якщо в конфігу немає <code>forbidOnly</code>, у CI прогін буде зеленим, хоча майже нічого не перевірено.',
+    fix:"test('adds an item', async ({ page }) => { /* ... */ });\n\n// playwright.config.ts\nforbidOnly: !!process.env.CI," },
+  { title:'Перевірка після збереження', lang:'ts', bug:2,
+    lines:["test('shows the saved toast', async ({ page }) => {", "  await page.getByRole('button', { name: 'Save' }).click();", "  expect(page.getByRole('status')).toHaveText('Saved');", "});"],
+    why:'Без <code>await</code> web-first assertion не чекає результату: тест може завершитися раніше, ніж перевірка відпрацює.',
+    fix:"  await expect(page.getByRole('status')).toHaveText('Saved');" },
+  { title:'Підготовка даних', lang:'ts', bug:0,
+    lines:["test.beforeAll(async ({ page }) => {", "  await page.goto('/admin/seed');", "});"],
+    why:'<code>page</code> — test-scoped фікстура, а <code>beforeAll</code> отримує лише worker-фікстури. Раннер повідомить про помилку.',
+    fix:"test.beforeEach(async ({ request }) => {\n  await request.post('/api/seed');\n});" },
+  { title:'Спільний стан між тестами', lang:'ts', bug:1,
+    lines:["test.describe.configure({ mode: 'parallel' });", "let orderId: string;", "", "test('creates an order', async ({ page }) => {", "  orderId = await createOrder(page);", "});", "", "test('shows the order', async ({ page }) => {", "  await page.goto(`/orders/${orderId}`);", "});"],
+    why:'Тести передають дані через змінну модуля. У паралельному режимі вони опиняються в різних воркерах, і в другому тесті <code>orderId</code> буде <code>undefined</code>.',
+    fix:"test('shows the order', async ({ page, request }) => {\n  const orderId: string = await createOrderViaApi(request);\n  await page.goto(`/orders/${orderId}`);\n});" },
+  { title:'Перевірка видимості', lang:'ts', bug:1,
+    lines:["await page.getByRole('button', { name: 'Load more' }).click();", "const visible: boolean = await page.getByRole('listitem').last().isVisible();", "expect(visible).toBe(true);"],
+    why:'<code>isVisible()</code> читає стан один раз і не чекає. Якщо список ще підвантажується, тест упаде випадково.',
+    fix:"await page.getByRole('button', { name: 'Load more' }).click();\nawait expect(page.getByRole('listitem').last()).toBeVisible();" },
+  { title:'Повтор блоку', lang:'ts', bug:3,
+    lines:["await expect(async (): Promise<void> => {", "  const response = await page.request.get('/api/report');", "  expect(response.status()).toBe(200);", "}).toPass();"],
+    why:'<code>toPass()</code> без тайм-ауту має значення 0 і не бере <code>expect.timeout</code>, тож повторюватиметься до кінця тайм-ауту тесту.',
+    fix:"}).toPass({ timeout: 15_000 });" },
+  { title:'Тайм-аут для повільних перевірок', lang:'ts', bug:2,
+    lines:["export default defineConfig({", "  // wait up to 10 s for slow assertions", "  timeout: 10_000,", "});"],
+    why:'<code>timeout</code> верхнього рівня — це тайм-аут усього тесту, а не assertion. Тут його зменшено з 30 до 10 секунд, і повільні тести почнуть падати.',
+    fix:"export default defineConfig({\n  expect: { timeout: 10_000 },\n});" },
+  { title:'Уповільнення для демо', lang:'ts', bug:2,
+    lines:["use: {", "  baseURL: 'http://localhost:3000',", "  slowMo: 500,", "},"],
+    why:'Опції <code>slowMo</code> у <code>use</code> немає, це параметр запуску браузера. <code>tsc</code> повідомить про невідому властивість.',
+    fix:"use: {\n  baseURL: 'http://localhost:3000',\n  launchOptions: { slowMo: 500 },\n}," }
+];
+
+const solved = new Set();
+function bugScore(){ $('#bugScore').textContent = 'Знайдено: ' + solved.size + ' з ' + BUGS.length; }
+BUGS.forEach((b, i) => {
+  const box = document.createElement('div');
+  box.className = 'bug';
+  box.innerHTML = '<div class="bug-head"><b>' + (i + 1) + '. ' + esc(b.title) + '</b><span class="st">Натисніть на рядок</span></div>' +
+    '<div class="bug-code" role="group" aria-label="Рядки коду">' +
+    b.lines.map((l, k) => '<button type="button" data-k="' + k + '">' + (hl(l, b.lang) || ' ') + '</button>').join('') +
+    '</div><div class="bug-body" hidden></div>' +
+    '<div style="padding:0 16px 12px"><button type="button" class="linkbtn reveal">Показати відповідь</button></div>';
+  const body = box.querySelector('.bug-body');
+  function reveal(found){
+    box.querySelectorAll('.bug-code button')[b.bug].classList.add('hit');
+    body.innerHTML = '<p>' + b.why + '</p>';
+    body.appendChild(codeFigure(b.fix, b.lang, 'Виправлення'));
+    body.hidden = false;
+    const st = box.querySelector('.st');
+    st.textContent = found ? 'Знайдено' : 'Відповідь показано'; st.classList.toggle('ok', found);
+    box.querySelector('.reveal').parentElement.hidden = true;
+    box.dataset.done = '1';
+  }
+  box.querySelector('.bug-code').addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if (!btn || box.dataset.done) return;
+    const k = Number(btn.dataset.k);
+    if (k === b.bug){ solved.add(i); reveal(true); bugScore(); }
+    else { btn.classList.add('miss'); box.querySelector('.st').textContent = 'Цей рядок коректний, шукайте далі'; }
+  });
+  box.querySelector('.reveal').addEventListener('click', () => reveal(false));
+  $('#bugList').appendChild(box);
+});
+bugScore();
+
+/* ---------- final quiz ---------- */
+const QUIZ = [
+  { sec:'s1', q:'Що дає <code>@playwright/test</code> понад бібліотеку <code>playwright</code>?',
+    opts:['Лише підтримку TypeScript', 'Раннер, assertions з автоповтором, ізоляцію тестів, паралельність і звіти', 'Можливість керувати браузером', 'Доступ до Firefox і WebKit'],
+    a:1, why:'Керувати всіма трьома браузерами вміє й бібліотека. Раннер додає інфраструктуру тестування: фікстури, ізоляцію, паралельність, assertions, повтори, звіти.', link:'https://playwright.dev/docs/intro#introduction' },
+  { sec:'s2', q:'Які версії Node.js підтримує Playwright 1.63 за документацією?',
+    opts:['Будь-яку від 16.x', 'Лише 20.x', 'Останні 22.x, 24.x або 26.x', 'Лише парні LTS старші за 18'],
+    a:2, why:'У розділі System requirements вказано: Node.js latest 22.x, 24.x або 26.x.', link:'https://playwright.dev/docs/intro#system-requirements' },
+  { sec:'s2', q:'Як правильно оновити Playwright у проєкті?',
+    opts:['<code>npm update</code>, браузери оновляться самі', '<code>npm install -D @playwright/test@latest</code>, потім <code>npx playwright install --with-deps</code>', 'Повторно запустити <code>npm init playwright@latest</code>', 'Видалити node_modules'],
+    a:1, why:'Версія браузерів прив\'язана до версії пакета, тож після оновлення пакета браузери треба перевстановити.', link:'https://playwright.dev/docs/intro#updating-playwright' },
+  { sec:'s3', q:'Де правильно задати <code>slowMo</code> для всіх тестів?',
+    opts:['<code>use: { slowMo: 500 }</code>', 'На верхньому рівні конфігу', '<code>use: { launchOptions: { slowMo: 500 } }</code>', 'Лише через <code>chromium.launch()</code> у кожному тесті'],
+    a:2, why:'slowMo — параметр запуску браузера, тому він живе в use.launchOptions.', link:'https://playwright.dev/docs/test-use-options' },
+  { sec:'s3', q:'Що робить <code>forbidOnly: !!process.env.CI</code>?',
+    opts:['Забороняє test.skip у CI', 'Валить прогін у CI, якщо в коді лишився test.only', 'Запускає в CI лише тести з test.only', 'Вимикає паралельність у CI'],
+    a:1, why:'Захищає від ситуації, коли забутий test.only тихо відключає решту тестів у CI.', link:'https://playwright.dev/docs/api/class-testconfig#test-config-forbid-only' },
+  { sec:'s4', q:'Що вмикає прапорець <code>--debug</code>?',
+    opts:['Лише детальне логування', 'Playwright Inspector разом з --timeout=0 --max-failures=1 --headed --workers=1', 'UI mode', 'Запис трейсу для кожного тесту'],
+    a:1, why:'Довідка CLI описує --debug як скорочення для PWDEBUG=1 і цих чотирьох опцій.', link:'https://playwright.dev/docs/test-cli' },
+  { sec:'s4', q:'Що запустить <code>npx playwright test cart</code>?',
+    opts:['Тести з назвою «cart»', 'Файли, у шляху яких є «cart»', 'Проєкт з назвою cart', 'Тести з тегом @cart'],
+    a:1, why:'Позиційні аргументи — регулярні вирази, які порівнюються з абсолютним шляхом файлу. За назвою тесту фільтрує -g.', link:'https://playwright.dev/docs/test-cli' },
+  { sec:'s6', q:'Як розподіляються тести без <code>fullyParallel</code>?',
+    opts:['Усі тести йдуть в одному воркері', 'Кожен тест окремо по воркерах', 'Файли паралельно, а тести одного файлу по черзі в одному воркері', 'Випадково'],
+    a:2, why:'За замовчуванням одиниця паралельності — файл. fullyParallel робить нею окремий тест.', link:'https://playwright.dev/docs/test-parallel' },
+  { sec:'s6', q:'Що відбувається в режимі <code>mode: \'serial\'</code>, якщо другий тест групи впав?',
+    opts:['Решта тестів групи продовжує виконуватися', 'Наступні тести групи пропускаються', 'Увесь прогін зупиняється', 'Тест автоматично повторюється тричі'],
+    a:1, why:'У serial-режимі тести залежні: після падіння наступні пропускаються, а повтор стартує з початку групи.', link:'https://playwright.dev/docs/test-parallel' },
+  { sec:'s7', q:'Яке твердження про <code>beforeAll</code> правильне?',
+    opts:['Виконується один раз на весь прогін і має доступ до page', 'Виконується один раз на воркер, отримує лише worker-фікстури і повторюється після перезапуску воркера', 'Виконується перед кожним тестом', 'Не може бути асинхронним'],
+    a:1, why:'Після падіння тесту воркер перезапускається, і beforeAll у новому воркері виконується знову.', link:'https://playwright.dev/docs/api/class-test#test-before-all' },
+  { sec:'s8', q:'Тест позначено <code>test.fail()</code>, але він пройшов. Який підсумок?',
+    opts:['passed', 'skipped', 'failed', 'flaky'],
+    a:2, why:'test.fail() очікує падіння. Якщо тест пройшов, раннер вважає це помилкою: баг, імовірно, виправлено.', link:'https://playwright.dev/docs/test-annotations' },
+  { sec:'s9', q:'Скільки за замовчуванням чекає <code>page.click()</code>, якщо в конфігу нічого не задано?',
+    opts:['5 секунд', '30 секунд окремо від тесту', 'Власного ліміту немає (0), дію обмежує тайм-аут тесту', '10 секунд'],
+    a:2, why:'actionTimeout за замовчуванням 0, тобто без власного ліміту. 5 секунд — це тайм-аут expect.', link:'https://playwright.dev/docs/test-timeouts' },
+  { sec:'s9', q:'Скільки повторюється <code>await expect(async () =&gt; {…}).toPass()</code> без параметрів?',
+    opts:['5 секунд, як і інші assertions', '30 секунд', 'Тайм-аут 0: до вичерпання тайм-ауту тесту', 'Рівно три спроби'],
+    a:2, why:'Тайм-аут toPass за замовчуванням 0, і він не бере expect.timeout. Задавайте значення явно.', link:'https://playwright.dev/docs/test-assertions' },
+  { sec:'s9', q:'Який тест отримує статус flaky?',
+    opts:['Той, що падає на кожній спробі', 'Той, що впав, а на повторі пройшов', 'Позначений test.fixme()', 'Той, що триває понад 30 секунд'],
+    a:1, why:'Flaky означає, що тест пройшов лише з повтором. Прапорець --fail-on-flaky-tests робить такий прогін червоним.', link:'https://playwright.dev/docs/test-retries' },
+  { sec:'s10', q:'Конфіг: <code>trace: \'on-first-retry\'</code>, <code>retries: 0</code>. Тест упав. Чи буде трейс?',
+    opts:['Так, трейс першого запуску', 'Ні: повторів немає, а записується лише перший повтор', 'Так, але без скриншотів', 'Лише в UI mode'],
+    a:1, why:'Цей режим записує тільки перший повтор. Без retries трейсів не буде. Для такого випадку підходить retain-on-failure.', link:'https://playwright.dev/docs/test-use-options#recording-options' }
+];
+
+const QKEY = 'pw-test-runner-quiz-best';
+const qz = $('#quizWidget');
+let order = [], qi = 0, qScore = 0, missed = [];
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function sectionTitle(id){ const c = $('#' + id); return c ? c.dataset.title : ''; }
+function sectionNum(id){ return chapters.findIndex((c) => c.id === id) + 1; }
+function startQuiz(){ order = QUIZ.map((q) => ({ q, perm: shuffle(q.opts.map((_, i) => i)) })); qi = 0; qScore = 0; missed = []; renderQ(); }
+function renderQ(){
+  const { q, perm } = order[qi];
+  qz.innerHTML =
+    '<div class="qz-top"><span class="qz-count">Питання ' + (qi + 1) + ' з ' + order.length + '</span><span class="qz-count">Правильно: ' + qScore + '</span></div>' +
+    '<div class="qz-bar"><i style="width:' + (qi / order.length * 100) + '%"></i></div>' +
+    '<p class="qz-q">' + q.q + '</p>' +
+    '<div class="qz-opts" role="group" aria-label="Варіанти відповіді">' + perm.map((i) => '<button type="button" data-i="' + i + '">' + q.opts[i] + '</button>').join('') + '</div>' +
+    '<div class="qz-fb" hidden></div>' +
+    '<div class="qz-actions"><button type="button" class="primary qz-next" hidden>' + (qi === order.length - 1 ? 'Показати результат' : 'Наступне питання') + '</button></div>';
+  qz.querySelector('.qz-opts').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const pickedI = Number(b.dataset.i), ok = pickedI === q.a;
+    $$('.qz-opts button', qz).forEach((x) => { x.disabled = true; if (Number(x.dataset.i) === q.a) x.classList.add('right'); });
+    if (!ok) { b.classList.add('wrong'); missed.push(q); } else qScore++;
+    const fb = qz.querySelector('.qz-fb');
+    fb.className = 'qz-fb ' + (ok ? 'ok' : 'no');
+    fb.innerHTML = '<p><b>' + (ok ? 'Правильно.' : 'Не зовсім.') + '</b> ' + q.why + '</p><p><a href="' + q.link + '" target="_blank" rel="noopener">Документація →</a></p>';
+    fb.hidden = false;
+    const nx = qz.querySelector('.qz-next'); nx.hidden = false; nx.focus();
+  });
+  qz.querySelector('.qz-next').addEventListener('click', () => { qi++; if (qi < order.length) renderQ(); else renderResult(); });
+}
+function renderResult(){
+  let best = 0;
+  try { best = Number(localStorage.getItem(QKEY)) || 0; if (qScore > best) { best = qScore; localStorage.setItem(QKEY, String(best)); } } catch (e) { best = Math.max(best, qScore); }
+  done.add('quiz'); save(); renderProgress();
+  const pct = Math.round(qScore / order.length * 100);
+  const verdict = pct >= 85 ? 'Матеріал засвоєно. Можна переходити до наступної теми курсу.'
+    : pct >= 60 ? 'Основа є, але кілька тем варто повторити за списком нижче.'
+    : 'Варто повернутися до розділів зі списку нижче і пройти квіз ще раз.';
+  const secs = [...new Set(missed.map((q) => q.sec))];
+  qz.innerHTML =
+    '<p class="qz-count">Результат</p><p class="qz-result">' + qScore + ' з ' + order.length + '</p>' +
+    '<p>' + verdict + ' Найкращий результат: ' + best + ' з ' + order.length + '.</p>' +
+    (missed.length ? '<h4 style="margin-top:18px">Помилки</h4><ul class="qz-review">' +
+      missed.map((q) => '<li>' + q.q + '<br><span style="color:var(--muted)">Правильна відповідь: ' + q.opts[q.a] + '</span></li>').join('') + '</ul>' +
+      '<p>Повторити розділи: ' + secs.map((id) => '<button type="button" class="linkbtn" data-go="' + id + '">' + sectionNum(id) + '. ' + esc(sectionTitle(id)) + '</button>').join(', ') + '</p>' : '') +
+    '<div class="qz-actions"><button type="button" class="primary qz-restart">Пройти ще раз</button></div>';
+  qz.querySelector('.qz-restart').addEventListener('click', startQuiz);
+  $$('[data-go]', qz).forEach((b) => b.addEventListener('click', () => window.__showChapter(b.dataset.go)));
+}
+startQuiz();
+})();
+</script>
+<script>
+(function(){
+  var KEY = 'pw-course-theme';
+  var root = document.documentElement;
+  var buttons = document.querySelectorAll('[data-theme-set]');
+  function current(){
+    try { return localStorage.getItem(KEY) || 'auto'; } catch (e) { return 'auto'; }
+  }
+  function paint(v){
+    if (v === 'light' || v === 'dark') root.setAttribute('data-theme', v);
+    else root.removeAttribute('data-theme');
+    buttons.forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.themeSet === v)); });
+  }
+  paint(current());
+  buttons.forEach(function(b){
+    b.addEventListener('click', function(){
+      var v = b.dataset.themeSet;
+      try { localStorage.setItem(KEY, v); } catch (e) {}
+      paint(v);
+    });
+  });
+})();
+</script>
+</body>
+</html>

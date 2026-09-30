@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('pw-course-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TypeScript для Playwright: основи</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#15305A; --navy-2:#224A86; --orange:#E8781A; --orange-soft:#FDEBD8;
+  --paper:#F3F6FB; --surface:#FFFFFF; --ink:#18212F; --muted:#566278; --line:#D9E0EB;
+  --code-bg:#0F1D33; --code-ink:#E3E9F3; --code-line:#1C2E4C;
+  --ok:#1D8455; --ok-soft:#DDF3E8; --bad:#BF3A2F; --bad-soft:#F9E1DE;
+  --pw:#E8781A; --tsc:#3469CF; --tsc-soft:#E1EAFB;
+  --sans:"IBM Plex Sans", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --navy:#A9C3F0; --navy-2:#86A8E6; --orange:#F2923F; --orange-soft:#3A2814;
+    --paper:#0C1524; --surface:#132038; --ink:#E6ECF5; --muted:#9BA8BE; --line:#26365A;
+    --code-bg:#08111F; --code-ink:#E3E9F3; --code-line:#18294A;
+    --ok:#4CC08A; --ok-soft:#113626; --bad:#F07B70; --bad-soft:#3D1A17;
+    --tsc:#7FA6F2; --tsc-soft:#1A2B4D;
+  }
+}
+:root[data-theme="dark"]{
+  --navy:#A9C3F0; --navy-2:#86A8E6; --orange:#F2923F; --orange-soft:#3A2814;
+  --paper:#0C1524; --surface:#132038; --ink:#E6ECF5; --muted:#9BA8BE; --line:#26365A;
+  --code-bg:#08111F; --code-ink:#E3E9F3; --code-line:#18294A;
+  --ok:#4CC08A; --ok-soft:#113626; --bad:#F07B70; --bad-soft:#3D1A17;
+  --tsc:#7FA6F2; --tsc-soft:#1A2B4D;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%; scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans); font-size:17px; line-height:1.62; -webkit-text-size-adjust:100%}
+a{color:var(--navy-2)}
+a:hover{color:var(--orange)}
+:focus-visible{outline:3px solid var(--orange); outline-offset:2px; border-radius:4px}
+code{font-family:var(--mono); font-size:.86em; background:var(--tsc-soft); color:var(--ink); padding:.08em .35em; border-radius:4px}
+.layout{display:grid; grid-template-columns:292px minmax(0,1fr); min-height:100%}
+/* ---------- sidebar ---------- */
+.side{background:var(--navy); color:#fff; padding:28px 20px 24px; position:sticky; top:env(safe-area-inset-top,0px); height:100vh; overflow-y:auto}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .side{background:#0F1A2E}}
+:root[data-theme="dark"] .side{background:#0F1A2E}
+.brand{font-weight:700; font-size:1.28rem; line-height:1.2; margin:0 0 6px; letter-spacing:-.01em}
+.brand span{display:block; font-family:var(--mono); font-size:.72rem; font-weight:400; color:#F6B77B; margin-top:10px; line-height:1.5}
+.side-tools{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 16px; flex-wrap:wrap}
+.home{color:#F6B77B; font-size:.82rem; font-weight:600; text-decoration:none}
+.home:hover{color:#fff}
+.theme-switch{display:inline-flex; border:1px solid rgba(255,255,255,.3); border-radius:999px; padding:2px; gap:2px}
+.theme-switch button{appearance:none; border:0; background:transparent; color:#DCE5F4; font:inherit; font-size:.72rem; padding:4px 8px; border-radius:999px; cursor:pointer}
+.theme-switch button[aria-pressed="true"]{background:#E8781A; color:#1B0E00; font-weight:600}
+.progress{margin:22px 0 18px}
+.progress-bar{height:8px; background:rgba(255,255,255,.14); border-radius:8px; overflow:hidden}
+.progress-bar i{display:block; height:100%; width:0; background:#F2923F; transition:width .35s ease}
+.progress p{margin:8px 0 0; font-size:.84rem; color:#C9D6EC}
+.nav{list-style:none; margin:0; padding:0; counter-reset:n}
+.nav li{margin:2px 0}
+.nav button{all:unset; box-sizing:border-box; cursor:pointer; display:grid; grid-template-columns:28px 1fr 18px; gap:8px; align-items:start; width:100%; padding:9px 10px; border-radius:8px; color:#DCE5F4; font-size:.93rem; line-height:1.35}
+.nav button:hover{background:rgba(255,255,255,.07)}
+.nav button[aria-current="true"]{background:#fff; color:#15305A; font-weight:600}
+.nav .num{font-family:var(--mono); font-size:.8rem; opacity:.75; padding-top:1px}
+.nav .tick{font-size:.85rem; color:#F2923F; visibility:hidden}
+.nav li.done .tick{visibility:visible}
+.nav button[aria-current="true"] .tick{color:#E8781A}
+.side-foot{margin-top:22px; font-size:.78rem; color:#AFC0DC; line-height:1.5}
+.side-foot button{all:unset; cursor:pointer; text-decoration:underline; color:#F6B77B}
+/* ---------- main ---------- */
+main{padding:44px clamp(18px,5vw,64px) 80px}
+.chapter{max-width:800px}
+.chapter[hidden]{display:none}
+.kicker{font-family:var(--mono); font-size:.8rem; color:var(--orange); margin:0 0 6px}
+h2{font-size:clamp(1.7rem,3.2vw,2.3rem); line-height:1.15; margin:0 0 18px; color:var(--navy); letter-spacing:-.02em}
+h3{font-size:1.22rem; margin:38px 0 10px; color:var(--navy); line-height:1.3}
+h4{font-size:1.02rem; margin:24px 0 6px}
+p{margin:0 0 14px; max-width:72ch}
+.lead{font-size:1.1rem; color:var(--muted)}
+.docs{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 26px}
+.docs a{font-size:.85rem; text-decoration:none; border:1px solid var(--line); background:var(--surface); padding:5px 11px; border-radius:20px; color:var(--navy-2)}
+.docs a:hover{border-color:var(--orange); color:var(--orange)}
+/* code */
+figure.code{position:relative; margin:16px 0 22px; background:var(--code-bg); border-radius:10px; overflow:hidden; border:1px solid var(--code-line)}
+figure.code figcaption{font-family:var(--mono); font-size:.76rem; color:#9FB2D2; padding:8px 14px; border-bottom:1px solid var(--code-line); background:rgba(255,255,255,.03)}
+figure.code pre{margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:.84rem; line-height:1.6; color:var(--code-ink); tab-size:2}
+figure.code pre code{background:none; padding:0; color:inherit; font-size:inherit}
+.copy{position:absolute; top:6px; right:8px; font:500 .72rem var(--sans); color:#BFD0EA; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:6px; padding:3px 9px; cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+.t-com{color:#7D8FAD; font-style:italic}.t-str{color:#F6B77B}.t-key{color:#9CC5FF}.t-num{color:#F9D27A}
+.t-kw{color:#FF9D5C}.t-lit{color:#F9D27A}.t-type{color:#7FD6C2}.t-fn{color:#B6CCFF}
+/* callouts: problem -> why -> solution -> when */
+.fix{background:var(--surface); border:1px solid var(--line); border-left:5px solid var(--orange); border-radius:10px; padding:16px 20px 6px; margin:20px 0 24px}
+.fix h4{margin:0 0 10px; color:var(--orange)}
+.fix p{font-size:.96rem}
+.fix b{color:var(--navy)}
+.note{background:var(--tsc-soft); border-radius:10px; padding:14px 18px 2px; margin:18px 0 22px; font-size:.96rem}
+.note b{color:var(--navy)}
+/* widgets shared */
+.widget{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; margin:22px 0 28px}
+.widget h4{margin:0 0 4px; font-size:1.05rem; color:var(--navy)}
+.widget .hint{font-size:.9rem; color:var(--muted); margin:0 0 14px}
+.seg{display:inline-flex; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:3px; gap:2px; flex-wrap:wrap}
+.seg button{border:0; background:transparent; font:600 .9rem var(--sans); color:var(--muted); padding:7px 14px; border-radius:8px; cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--navy); color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#0C1524}}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#0C1524}
+/* js/ts toggle */
+.editor{margin-top:14px; background:var(--code-bg); border-radius:10px; overflow-x:auto; font-family:var(--mono); font-size:.83rem; line-height:1.65; color:var(--code-ink); padding:12px 0}
+.editor .ln{display:grid; grid-template-columns:38px 1fr; white-space:pre; padding-right:16px}
+.editor .ln > span:first-child{color:#51658A; text-align:right; padding-right:12px; user-select:none}
+.editor .err > span:last-child{text-decoration:underline wavy #FF6B5E; text-underline-offset:4px}
+.editor .msg{display:block; white-space:normal; margin:2px 16px 6px 50px; font-family:var(--sans); font-size:.8rem; color:#FFD2CC; background:rgba(255,107,94,.14); border-left:3px solid #FF6B5E; padding:4px 10px; border-radius:0 6px 6px 0}
+.editor-note{font-size:.92rem; margin:12px 0 0; color:var(--muted)}
+/* return type quiz */
+.rt-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px}
+.rt{border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--paper)}
+.rt .m{font-family:var(--mono); font-size:.88rem; font-weight:600; margin:0 0 10px; color:var(--navy)}
+.rt .opts{display:flex; flex-wrap:wrap; gap:6px}
+.rt .opts button{font:500 .78rem var(--mono); border:1px solid var(--line); background:var(--surface); color:var(--ink); padding:4px 8px; border-radius:6px; cursor:pointer}
+.rt .opts button.right{background:var(--ok-soft); border-color:var(--ok); color:var(--ok)}
+.rt .opts button.wrong{background:var(--bad-soft); border-color:var(--bad); color:var(--bad); text-decoration:line-through}
+.rt .fb{font-size:.84rem; margin:10px 0 0; line-height:1.5}
+.rt .fb[hidden]{display:none}
+.score{font-size:.9rem; margin:14px 0 0; color:var(--muted)}
+/* utility builder */
+.ub{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.2fr); gap:18px; margin-top:14px}
+.ub fieldset{border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin:0}
+.ub legend{font-size:.85rem; color:var(--muted); padding:0 6px}
+.ub label{display:flex; gap:8px; align-items:center; font-family:var(--mono); font-size:.85rem; padding:4px 0; cursor:pointer}
+.ub label.off{opacity:.45; cursor:default}
+.ub-out figure.code{margin:0}
+.ub-say{font-size:.9rem; margin:10px 0 0}
+/* tsconfig */
+.legend{display:flex; flex-wrap:wrap; gap:14px; font-size:.86rem; margin:0 0 12px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.legend i{width:12px; height:12px; border-radius:3px; display:inline-block}
+.tsc-wrap{display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); gap:16px; align-items:start}
+.json{background:var(--code-bg); color:var(--code-ink); font-family:var(--mono); font-size:.82rem; line-height:1.75; padding:14px 12px; border-radius:10px; overflow-x:auto; white-space:pre}
+.json button{all:unset; cursor:pointer; border-radius:4px; padding:0 3px; margin:0 -3px}
+.json button.pw{box-shadow:inset 0 -2px 0 var(--pw); color:#FFC48C}
+.json button.tsc{box-shadow:inset 0 -2px 0 var(--tsc); color:#A9C6FF}
+.json button:hover,.json button[aria-pressed="true"]{background:rgba(255,255,255,.12)}
+.json button:focus-visible{outline:2px solid var(--orange)}
+.explain{border:1px solid var(--line); border-radius:10px; padding:14px 16px; background:var(--paper); font-size:.93rem; min-height:160px}
+.explain .tag{display:inline-block; font-size:.74rem; font-weight:600; padding:2px 8px; border-radius:10px; margin-bottom:8px}
+.explain .tag.pw{background:var(--orange-soft); color:var(--orange)}
+.explain .tag.tsc{background:var(--tsc-soft); color:var(--tsc)}
+.explain h5{font-family:var(--mono); font-size:.92rem; margin:0 0 6px; color:var(--navy)}
+.explain p{margin:0 0 8px}
+/* find the bug */
+.bug{border:1px solid var(--line); border-radius:12px; margin:14px 0; overflow:hidden; background:var(--surface)}
+.bug-head{display:flex; justify-content:space-between; gap:10px; align-items:center; padding:10px 14px; border-bottom:1px solid var(--line)}
+.bug-head b{font-size:.95rem}
+.bug-head .st{font-size:.8rem; color:var(--muted)}
+.bug-head .st.ok{color:var(--ok); font-weight:600}
+.bug-code{background:var(--code-bg); padding:8px 0; overflow-x:auto}
+.bug-code button{all:unset; box-sizing:border-box; display:block; min-width:100%; width:max-content; white-space:pre; font-family:var(--mono); font-size:.82rem; line-height:1.7; color:var(--code-ink); padding:0 16px; cursor:pointer}
+.bug-code button:hover{background:rgba(255,255,255,.06)}
+.bug-code button.hit{background:rgba(76,192,138,.2); box-shadow:inset 3px 0 0 #4CC08A}
+.bug-code button.miss{background:rgba(255,107,94,.16); box-shadow:inset 3px 0 0 #FF6B5E}
+.bug-code button:focus-visible{outline:2px solid var(--orange); outline-offset:-2px}
+.bug-body{padding:12px 16px 4px; font-size:.93rem}
+.bug-body[hidden]{display:none}
+.bug-body figure.code{margin:8px 0 12px}
+.linkbtn{border:0; background:none; color:var(--navy-2); font:500 .82rem var(--sans); text-decoration:underline; cursor:pointer; padding:0}
+/* pager */
+.pager{display:flex; justify-content:space-between; gap:12px; margin-top:48px; padding-top:22px; border-top:1px solid var(--line); flex-wrap:wrap}
+.pager button{font:600 .95rem var(--sans); border:1px solid var(--line); background:var(--surface); color:var(--navy); padding:11px 18px; border-radius:10px; cursor:pointer}
+.pager button.primary{background:var(--orange); border-color:var(--orange); color:#fff}
+.pager button:disabled{visibility:hidden}
+.done-btn{font:500 .85rem var(--sans); border:0; background:none; color:var(--muted); text-decoration:underline; cursor:pointer}
+/* final quiz */
+.qz-top{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px}
+.qz-count{font-family:var(--mono); font-size:.82rem; color:var(--orange)}
+.qz-bar{height:6px; background:var(--paper); border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-bottom:18px}
+.qz-bar i{display:block; height:100%; width:0; background:var(--orange); transition:width .3s ease}
+.qz-q{font-size:1.08rem; font-weight:600; margin:0 0 12px; color:var(--ink)}
+.qz-opts{display:grid; gap:8px; margin:14px 0}
+.qz-opts button{text-align:left; font:500 .95rem var(--sans); line-height:1.45; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:11px 14px; cursor:pointer}
+.qz-opts button:hover:not(:disabled){border-color:var(--navy-2)}
+.qz-opts button:disabled{cursor:default}
+.qz-opts button.right{background:var(--ok-soft); border-color:var(--ok); color:var(--ok)}
+.qz-opts button.wrong{background:var(--bad-soft); border-color:var(--bad); color:var(--bad)}
+.qz-opts code{background:transparent; padding:0}
+.qz-fb{border-left:4px solid var(--line); padding:4px 0 4px 14px; margin:6px 0 14px; font-size:.94rem}
+.qz-fb.ok{border-color:var(--ok)} .qz-fb.no{border-color:var(--bad)}
+.qz-fb[hidden]{display:none}
+.qz-actions{display:flex; gap:10px; flex-wrap:wrap}
+.qz-actions button{font:600 .92rem var(--sans); border:1px solid var(--line); background:var(--surface); color:var(--navy); padding:10px 16px; border-radius:10px; cursor:pointer}
+.qz-actions button.primary{background:var(--orange); border-color:var(--orange); color:#fff}
+.qz-result{font-size:2.4rem; font-weight:700; color:var(--navy); margin:0; letter-spacing:-.02em}
+.qz-review{list-style:none; padding:0; margin:16px 0}
+.qz-review li{border-top:1px solid var(--line); padding:10px 0; font-size:.93rem}
+.qz-review .linkbtn{margin-left:4px}
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .side{position:sticky; top:0; height:auto; z-index:5; padding:12px 14px 10px; padding-top:calc(12px + env(safe-area-inset-top,0px)); margin-top:calc(-1 * env(safe-area-inset-top,0px))}
+  .brand{font-size:1rem}.brand span{display:none}
+  .progress{margin:8px 0}
+  .nav{display:flex; overflow-x:auto; gap:4px; padding-bottom:2px}
+  .nav li{flex:0 0 auto}
+  .nav button{grid-template-columns:auto auto auto; white-space:nowrap; padding:6px 10px; font-size:.82rem}
+  .side-foot{display:none}
+  main{padding-top:28px}
+  .ub,.tsc-wrap{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="side" aria-label="Зміст">
+  <div class="side-tools">
+    <a class="home" href="../index.html">На головну</a>
+    <div class="theme-switch" role="group" aria-label="Тема оформлення">
+      <button type="button" data-theme-set="auto" aria-pressed="true">Авто</button>
+      <button type="button" data-theme-set="light" aria-pressed="false">Світла</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Темна</button>
+    </div>
+  </div>
+  <p class="brand">TypeScript для Playwright: основи<span>@playwright/test 1.63<br>TypeScript 7.0, strict</span></p>
+  <div class="progress" aria-live="polite">
+    <div class="progress-bar"><i id="progressFill"></i></div>
+    <p id="progressText">0 з 10 розділів пройдено</p>
+  </div>
+  <ol class="nav" id="nav"></ol>
+  <div class="side-foot">Прогрес зберігається лише у вашому браузері. <button type="button" id="resetProgress">Скинути прогрес</button></div>
+</aside>
+<main id="main">
+
+<!-- ================= 1 ================= -->
+<section class="chapter" id="s1" data-title="Навіщо TypeScript у Playwright">
+<p class="kicker">Розділ 1 з 10</p>
+<h2>Навіщо TypeScript у Playwright</h2>
+<p class="lead">Playwright підтримує TypeScript «з коробки»: ви пишете тести у файлах .ts, а раннер сам читає їх, трансформує в JavaScript і запускає. Жодного окремого кроку збирання не потрібно.</p>
+<div class="docs"><a href="https://playwright.dev/docs/test-typescript#introduction" target="_blank" rel="noopener">Документація → TypeScript у Playwright</a></div>
+
+<p>Типи дають чотири речі, які особливо відчутні у великому тестовому наборі. Перша — автодоповнення: редактор знає всі методи <code>page</code>, <code>Locator</code> і <code>expect</code> та їхні параметри, тож не треба тримати API в голові. Друга — помилки до запуску: друкарська помилка в назві методу чи пропущений аргумент підсвічуються одразу, а не через хвилину прогону. Третя — самодокументування: сигнатура <code>login(page: Page, username: string, password: string): Promise&lt;void&gt;</code> розповідає про функцію більше, ніж коментар. Четверта — безпечний рефакторинг: коли ви перейменовуєте поле в інтерфейсі тестових даних, компілятор покаже кожне місце, яке треба оновити.</p>
+
+<div class="widget" id="jsts">
+  <h4>Той самий тест: JavaScript проти TypeScript</h4>
+  <p class="hint">Перемкніть мову й подивіться, які помилки редактор і <code>tsc</code> знаходять ще до запуску.</p>
+  <div class="seg" role="group" aria-label="Мова прикладу">
+    <button type="button" data-lang="js" aria-pressed="false">JavaScript</button>
+    <button type="button" data-lang="ts" aria-pressed="true">TypeScript</button>
+  </div>
+  <div class="editor" id="jstsEditor" aria-live="polite"></div>
+  <p class="editor-note" id="jstsNote"></p>
+</div>
+
+<div class="fix">
+  <h4>Хто насправді ловить помилки типів</h4>
+  <p><b>Проблема.</b> Поширене уявлення: «раз тести на TypeScript, то Playwright не дасть запустити код із помилкою типу».</p>
+  <p><b>Чому це не так.</b> Документація прямо каже, що Playwright не перевіряє типи і запускає тести навіть за наявності некритичних помилок компіляції TypeScript. Раннер лише трансформує код. Помилки з прикладу вище показують мовний сервіс TypeScript у редакторі та компілятор <code>tsc</code>.</p>
+  <p><b>Рішення.</b> Запускайте компілятор окремо, у режимі лише перевірки: <code>npx tsc -p tsconfig.json --noEmit</code>. Локально зручно тримати його в режимі спостереження з прапорцем <code>-w</code>, а в CI ставити окремим кроком перед тестами.</p>
+  <p><b>Коли.</b> Завжди, коли проєкт на TypeScript. Без цього кроку помилка типу може тихо дожити до падіння тесту під час виконання.</p>
+</div>
+
+<script type="text/x-code" data-lang="sh" data-file="Термінал: локальна перевірка типів у watch-режимі">
+npx tsc -p tsconfig.json --noEmit -w
+</script>
+<script type="text/x-code" data-lang="yaml" data-file=".github/workflows/tests.yml (фрагмент, як у документації)">
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # ...
+      - name: Run type checks
+        run: npx tsc -p tsconfig.json --noEmit
+      - name: Run Playwright tests
+        run: npx playwright test
+</script>
+</section>
+
+<!-- ================= 2 ================= -->
+<section class="chapter" id="s2" data-title="tsconfig.json для Playwright-проєкту" hidden>
+<p class="kicker">Розділ 2 з 10</p>
+<h2>tsconfig.json для Playwright-проєкту</h2>
+<p class="lead">Головне, що треба зрозуміти про tsconfig у Playwright: його читають двоє різних «клієнтів», і кожен бере з файлу своє.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-typescript#tsconfigjson" target="_blank" rel="noopener">Документація → tsconfig у Playwright</a>
+  <a href="https://www.typescriptlang.org/tsconfig/" target="_blank" rel="noopener">Документація → TSConfig Reference</a>
+  <a href="https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html" target="_blank" rel="noopener">Документація → TypeScript 6.0 release notes</a>
+</div>
+
+<p>Перший клієнт — сам Playwright. Він для кожного файлу, який завантажує, шукає найближчий <code>tsconfig.json</code>, піднімаючись угору по дереву каталогів, і з усіх <code>compilerOptions</code> підтримує лише п'ять опцій: <code>allowJs</code>, <code>baseUrl</code>, <code>paths</code>, <code>references</code> і <code>extends</code>. Другий клієнт — компілятор <code>tsc</code> і мовний сервіс у редакторі. Для них важливі всі інші опції: <code>strict</code>, <code>target</code>, <code>module</code> тощо. Тобто рядок <code>"strict": true</code> ніяк не змінює поведінку раннера, він лише визначає, наскільки суворо <code>tsc</code> і IDE перевірятимуть ваш код.</p>
+
+<p>Звідси ще одна зручність із документації: можна покласти окремий <code>tests/tsconfig.json</code>, і Playwright підхопить його для тестів автоматично. Можна також явно передати файл прапорцем <code>npx playwright test --tsconfig=tsconfig.test.json</code> або опцією <code>tsconfig</code> у <code>playwright.config.ts</code>. В останньому випадку цей tsconfig не застосовується до завантаження самого конфігу та файлів, які він імпортує.</p>
+
+<div class="widget" id="tsconfigWidget">
+  <h4>Інтерактивний tsconfig</h4>
+  <p class="hint">Натисніть на будь-яку опцію, щоб побачити пояснення. Колір показує, хто її читає.</p>
+  <div class="legend">
+    <span><i style="background:var(--pw)"></i>Читає Playwright (і tsc)</span>
+    <span><i style="background:var(--tsc)"></i>Лише tsc та IDE</span>
+  </div>
+  <div class="tsc-wrap">
+    <div class="json" id="tsconfigJson"></div>
+    <div class="explain" id="tsconfigExplain" aria-live="polite"><p>Оберіть опцію ліворуч.</p></div>
+  </div>
+</div>
+
+<script type="text/x-code" data-lang="json" data-file="tsconfig.json — мінімальний варіант під TypeScript 7.0">
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "@pages/*": ["./pages/*"],
+      "@fixtures/*": ["./fixtures/*"],
+      "@data/*": ["./test-data/*"]
+    }
+  },
+  "include": ["tests", "pages", "fixtures", "test-data", "playwright.config.ts"]
+}
+</script>
+
+<h3>Чому саме module і moduleResolution</h3>
+<p>У TypeScript 6.0 значення <code>moduleResolution: "node"</code> (воно ж <code>"node10"</code>) оголошене застарілим, а TypeScript 7.0 успадкував нові значення за замовчуванням із версії 6.0 і перетворив усі її deprecations на помилки. Release notes TypeScript 6.0 пояснюють, що відтепер <code>moduleResolution: "bundler"</code> можна поєднувати з <code>module: "commonjs"</code>, і саме ця комбінація часто є найзручнішим шляхом міграції з <code>node10</code>.</p>
+<p>Для Playwright-проєкту вона логічна. Якщо в <code>package.json</code> немає <code>"type": "module"</code>, а файли мають розширення <code>.ts</code>, а не <code>.mts</code>, проєкт працює як CommonJS, тому <code>module: "commonjs"</code> описує для <code>tsc</code> ту саму модель модулів. Резолюція <code>bundler</code> розуміє поле <code>exports</code> у <code>package.json</code> залежностей, не вимагає розширень у відносних імпортах і підтримує <code>paths</code>. Якщо ваш проєкт має <code>"type": "module"</code>, звірте вибір з гайдом TypeScript <a href="https://www.typescriptlang.org/docs/handbook/modules/guides/choosing-compiler-options.html" target="_blank" rel="noopener">Choosing Compiler Options</a>.</p>
+
+<h3>Що змінилося відносно старих конфігів</h3>
+<p>Опцію <code>esModuleInterop</code> більше не треба прописувати. У TypeScript 6.0 значення <code>false</code> для неї стало застарілим, тож поведінка з <code>true</code> тепер фактично стандартна. До імпорту модулів Playwright ця опція ніколи не мала стосунку: імпорти з <code>@playwright/test</code> працюють через іменовані експорти.</p>
+<p><code>target</code> не потрібен для підтримки <code>async</code>/<code>await</code>. Він визначає, у який синтаксис <code>tsc</code> перетворив би код, і які вбудовані API (набір <code>lib</code> за замовчуванням) вважаються доступними. Із <code>noEmit</code> лишається тільки друге значення. На виконання тестів <code>target</code> не впливає, бо код трансформує Playwright.</p>
+<p><code>outDir</code> і <code>rootDir</code> прибрано: з <code>noEmit: true</code> компілятор нічого не записує на диск, тож каталог для результату не потрібен. Окрема історія — ручна компіляція тестів, описана в документації Playwright для випадків, коли раннер не може трансформувати дуже нові можливості TypeScript. Там <code>outDir</code> знову знадобиться.</p>
+<p><code>types: ["node"]</code> з'явився через іншу зміну TypeScript 6.0: тепер масив <code>types</code> за замовчуванням порожній, і типи з <code>@types/*</code> не підтягуються автоматично. Release notes прямо радять більшості проєктів задати <code>"types": ["node"]</code>. Без цього <code>tsc</code> не знатиме, що таке <code>process.env</code> чи <code>Buffer</code>. Пакет <code>@types/node</code> має бути в <code>devDependencies</code>.</p>
+<p><code>strict</code> у TypeScript 6.0 став <code>true</code> за замовчуванням. Ми все одно пишемо його явно, щоб намір був видно з конфігу.</p>
+
+<h3>Path aliases</h3>
+<p>Playwright підтримує <code>paths</code> з tsconfig без жодних додаткових пакетів чи реєстраторів у <code>playwright.config.ts</code>. Шляхи в <code>paths</code> вказуються відносно розташування самого tsconfig. <code>baseUrl</code> для цього не потрібен: у TypeScript 6.0 він застарів і більше не вважається коренем для пошуку модулів, а в TypeScript 7.0 дає помилку. Той, хто використовував <code>baseUrl</code> як префікс, просто переносить префікс у кожен запис <code>paths</code>, як у прикладі вище.</p>
+<script type="text/x-code" data-file="tests/login.spec.ts">
+// Without an alias: the path depends on how deep the file is
+import { LoginPage } from '../../../pages/LoginPage';
+
+// With an alias from "paths": same import from any folder
+import { LoginPage } from '@pages/LoginPage';
+</script>
+</section>
+
+<!-- ================= 3 ================= -->
+<section class="chapter" id="s3" data-title="Базові типи" hidden>
+<p class="kicker">Розділ 3 з 10</p>
+<h2>Базові типи</h2>
+<p class="lead">Невеликий набір типів покриває більшість того, що трапляється в тестах: примітиви, масиви, кортежі, union і literal types, опційні та nullable-значення.</p>
+<div class="docs">
+  <a href="https://www.typescriptlang.org/docs/handbook/2/everyday-types.html" target="_blank" rel="noopener">Документація → Everyday Types</a>
+  <a href="https://www.typescriptlang.org/docs/handbook/2/narrowing.html" target="_blank" rel="noopener">Документація → Narrowing</a>
+</div>
+
+<h3>Примітиви, масиви, кортежі</h3>
+<p>Три примітиви, з якими ви працюватимете постійно, — <code>string</code>, <code>number</code> і <code>boolean</code>. Масив записується як <code>string[]</code> або в generic-формі <code>Array&lt;string&gt;</code>, обидва записи рівнозначні. Кортеж — це масив фіксованої довжини, де тип кожної позиції відомий.</p>
+<script type="text/x-code">
+const testName: string = 'Login test';
+const timeoutMs: number = 30_000;
+const isHeadless: boolean = true;
+
+const browsers: string[] = ['chromium', 'firefox', 'webkit'];
+const retryDelays: Array<number> = [100, 500, 1_000];
+
+// Tuple: fixed length, known type at every position
+const credentials: [string, string] = ['admin@test.com', 'secret'];
+const [email, password] = credentials; // email: string, password: string
+</script>
+
+<h3>Union і literal types</h3>
+<p>Union type каже, що значення може бути одним із кількох типів. Коли учасники union — конкретні рядки чи числа, це literal types: змінна приймає лише перелічені значення. Для тестів це ідеально описує назви браузерів, HTTP-методи чи статуси.</p>
+<script type="text/x-code">
+type BrowserName = 'chromium' | 'firefox' | 'webkit';
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
+type TestStatus = 'passed' | 'failed' | 'skipped' | 'timedOut';
+
+function describeBrowser(name: BrowserName): string {
+  return `Running on ${name}`;
+}
+
+function formatResult(status: TestStatus, title: string): string {
+  return `[${status.toUpperCase()}] ${title}`;
+}
+
+describeBrowser('chromium'); // OK
+describeBrowser('safari');   // Error: Argument of type '"safari"' is not assignable to parameter of type 'BrowserName'
+</script>
+
+<h3>Optional і nullable</h3>
+<p>Знак питання після назви параметра чи поля робить його опційним, і тоді його тип фактично <code>T | undefined</code>. Nullable-значення оголошується явно через union з <code>null</code>. Під <code>strict</code> (точніше, під <code>strictNullChecks</code>, який <code>strict</code> вмикає) TypeScript не дасть використати таке значення як звичайний рядок, доки ви не перевірите його на <code>null</code> чи <code>undefined</code>. Це та сама механіка, через яку <code>textContent()</code> вимагає обробки <code>null</code> (розділ 6).</p>
+<script type="text/x-code">
+function buildGreeting(name: string, nickname?: string): string {
+  // nickname: string | undefined
+  return nickname ? `Hi, ${nickname}` : `Hi, ${name}`;
+}
+
+let currentUser: string | null = null;
+currentUser = 'John'; // OK
+currentUser = null;   // OK
+
+function userLabel(user: string | null): string {
+  return user ?? 'anonymous'; // narrow the null away before returning string
+}
+</script>
+
+<h3>unknown проти any</h3>
+<p><code>any</code> вимикає перевірку типів для значення: з ним можна робити що завгодно, і компілятор мовчатиме навіть тоді, коли код гарантовано впаде. <code>unknown</code> теж приймає будь-яке значення, але не дозволяє нічого з ним робити, доки ви не звузите тип перевірками. Цей процес handbook називає narrowing: <code>typeof</code>, перевірка на <code>null</code>, оператор <code>in</code>. Після кожної перевірки TypeScript уточнює тип у відповідній гілці коду.</p>
+<script type="text/x-code">
+// Avoid: any switches type checking off
+function badReadToken(body: any): string {
+  return body.data.token; // compiles, may crash at runtime
+}
+
+// Prefer: unknown + narrowing
+function readToken(body: unknown): string {
+  if (
+    typeof body === 'object' &&
+    body !== null &&
+    'token' in body &&
+    typeof body.token === 'string'
+  ) {
+    return body.token; // body.token is narrowed to string here
+  }
+  throw new Error('Response body has no string "token" field');
+}
+</script>
+</section>
+
+<!-- ================= 4 ================= -->
+<section class="chapter" id="s4" data-title="Interface і type alias" hidden>
+<p class="kicker">Розділ 4 з 10</p>
+<h2>Interface і type alias</h2>
+<p class="lead">Обидва способи описують форму об'єкта, і в більшості випадків вони взаємозамінні. Різниця проявляється на краях: у розширенні, у злитті оголошень і в тому, що ще можна виразити.</p>
+<div class="docs">
+  <a href="https://www.typescriptlang.org/docs/handbook/2/everyday-types.html#differences-between-type-aliases-and-interfaces" target="_blank" rel="noopener">Документація → Type aliases vs interfaces</a>
+  <a href="https://www.typescriptlang.org/docs/handbook/2/objects.html" target="_blank" rel="noopener">Документація → Object Types</a>
+</div>
+
+<div class="widget" id="ifaceWidget">
+  <h4>Одна модель, два записи</h4>
+  <p class="hint">Перемкніть, щоб порівняти ту саму модель користувача, описану через interface і через type.</p>
+  <div class="seg" role="group" aria-label="Спосіб опису">
+    <button type="button" data-mode="interface" aria-pressed="true">Interface</button>
+    <button type="button" data-mode="type" aria-pressed="false">Type</button>
+  </div>
+  <div id="ifaceCode" style="margin-top:14px"></div>
+  <p id="ifaceText" style="font-size:.95rem; margin:0"></p>
+</div>
+
+<h3>Як обирати</h3>
+<p>Interface описує форму об'єкта і розширюється через <code>extends</code>. Його можна «відкрити» повторно: два оголошення interface з однаковою назвою зливаються в одне (declaration merging). Type alias — це ім'я для будь-якого типу, не лише об'єктного. Через нього можна назвати union (<code>'admin' | 'user'</code>), кортеж, примітив чи результат utility type. Об'єктні типи комбінуються через перетин <code>&amp;</code>. Після створення type alias не можна доповнити новими полями.</p>
+<p>Handbook пропонує просту евристику: здебільшого вибір — справа смаку, тож використовуйте <code>interface</code>, доки не знадобляться можливості, які є лише в <code>type</code>. На практиці в тестовому проєкті це виглядає так. Форма тестових даних і контракти класів описуються через interface. Набори допустимих значень, кортежі та похідні типи на кшталт <code>Omit&lt;User, 'password'&gt;</code> описуються через type.</p>
+
+<h3>Типізовані тестові дані</h3>
+<p>Коли дані для тестів описані інтерфейсами, помилка в назві поля чи тип значення ловиться ще в редакторі, а вкладені структури (сценарій = користувач + товар) читаються як специфікація.</p>
+<script type="text/x-code" data-file="test-data/types.ts">
+export type Role = 'admin' | 'user' | 'guest';
+
+export interface LoginData {
+  username: string;
+  password: string;
+  expectedPath?: string;
+}
+
+export interface ProductData {
+  name: string;
+  price: number;
+  quantity: number;
+  sku?: string;
+}
+
+export interface CheckoutData {
+  user: LoginData;
+  product: ProductData;
+  couponCode?: string;
+}
+</script>
+<script type="text/x-code" data-file="test-data/checkout.data.ts">
+import type { CheckoutData } from './types';
+
+export const checkoutScenario: CheckoutData = {
+  user: {
+    username: 'buyer@test.com',
+    password: 'pass123',
+    expectedPath: '/dashboard',
+  },
+  product: {
+    name: 'Wireless Mouse',
+    price: 29.99,
+    quantity: 2,
+  },
+};
+</script>
+<p>Зверніть увагу на <code>import type</code>: такий імпорт гарантовано зникає після трансформації, бо з файлу беруться лише типи.</p>
+</section>
+
+<!-- ================= 5 ================= -->
+<section class="chapter" id="s5" data-title="Generics" hidden>
+<p class="kicker">Розділ 5 з 10</p>
+<h2>Generics</h2>
+<p class="lead">Generic — це тип-параметр: функція чи інтерфейс пишеться один раз, а конкретний тип підставляється під час використання. Так код лишається універсальним і не втрачає типобезпеки.</p>
+<div class="docs">
+  <a href="https://www.typescriptlang.org/docs/handbook/2/generics.html" target="_blank" rel="noopener">Документація → Generics</a>
+  <a href="https://playwright.dev/docs/api/class-locator" target="_blank" rel="noopener">Документація → Locator</a>
+  <a href="https://playwright.dev/docs/api/class-apirequestcontext" target="_blank" rel="noopener">Документація → APIRequestContext</a>
+</div>
+
+<h3>Generic-функції</h3>
+<p>Функція нижче працює з масивом будь-якого типу й повертає елемент того самого типу. TypeScript сам виводить <code>T</code> з аргументу. Тип повернення чесно містить <code>undefined</code>, бо масив може бути порожнім.</p>
+<script type="text/x-code">
+function getFirst<T>(items: T[]): T | undefined {
+  return items[0];
+}
+
+const firstBrowser = getFirst(['chromium', 'firefox']); // string | undefined
+const firstTimeout = getFirst([30_000, 60_000]);         // number | undefined
+</script>
+
+<h3>Generic-інтерфейси</h3>
+<p>Типовий випадок — «обгортка» відповіді API, у якій змінюється лише корисне навантаження. Інтерфейс <code>ApiResponse&lt;T&gt;</code> описує форму JSON-тіла, яке повертає ваш бекенд. Не плутайте його з класом <code>APIResponse</code> з Playwright: той описує саму HTTP-відповідь (статус, заголовки, методи <code>json()</code> і <code>text()</code>), а наш інтерфейс — лише вміст тіла.</p>
+<script type="text/x-code" data-file="api/types.ts">
+export interface ApiResponse<T> {
+  data: T;
+  status: number;
+  message: string;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export type UserResponse = ApiResponse<UserProfile>;
+export type UserListResponse = ApiResponse<UserProfile[]>;
+</script>
+<p>Отримувати такі дані в тесті правильно через фікстуру <code>request</code> (<code>APIRequestContext</code>), а не через глобальний <code>fetch</code>: <code>request</code> бере <code>baseURL</code> і <code>extraHTTPHeaders</code> з конфігу, тож відносний шлях працює. Generic-хелпер нижче приймає тип тіла як параметр.</p>
+<script type="text/x-code" data-file="api/getJson.ts">
+import { expect, type APIRequestContext, type APIResponse } from '@playwright/test';
+
+export async function getJson<T>(request: APIRequestContext, path: string): Promise<T> {
+  const response: APIResponse = await request.get(path);
+  await expect(response).toBeOK();
+  return await response.json() as T; // type assertion, not a runtime check
+}
+
+// Usage inside a test: const body = await getJson<UserResponse>(request, '/api/users/42');
+</script>
+<div class="note">
+  <p><b>Важливо про <code>as T</code>.</b> Це твердження типу (type assertion), а не перевірка. Компілятор повірить вам на слово, але під час виконання ніхто не перевірить, що бекенд справді повернув таку форму. Якщо поле прийде іншого типу, помилка вилізе далі в тесті. Для критичних полів додайте явні перевірки через <code>expect</code>.</p>
+</div>
+
+<h3>Generic-хелпер на Locator</h3>
+<p>Хелпер приймає вже готовий <code>Locator</code>, а не рядок-селектор. Так він не залежить від того, як саме знайдено елемент: через <code>getByRole</code>, <code>getByTestId</code> чи інший спосіб. Очікування відбувається через web-first assertion, а функція перетворення визначає тип результату.</p>
+<script type="text/x-code" data-file="helpers/readValue.ts">
+import { expect, type Locator } from '@playwright/test';
+
+export async function readValue<T>(locator: Locator, parse: (raw: string) => T): Promise<T> {
+  await expect(locator).toBeVisible();
+  const raw: string = await locator.innerText();
+  return parse(raw);
+}
+
+// const price: number = await readValue(page.getByTestId('cart-total'), (raw) => Number.parseFloat(raw.replace('$', '')));
+// const label: string = await readValue(page.getByRole('status'), (raw) => raw.trim());
+</script>
+<p>Такий хелпер доречний, коли значення потрібне для подальших обчислень, наприклад щоб порівняти суму з ціною товару, помноженою на кількість. Якщо ж треба просто перевірити текст, хелпер зайвий: одразу пишіть <code>await expect(locator).toHaveText('$59.98')</code>.</p>
+</section>
+
+<!-- ================= 6 ================= -->
+<section class="chapter" id="s6" data-title="Типізація Page, Locator та інших" hidden>
+<p class="kicker">Розділ 6 з 10</p>
+<h2>Типізація Page, Locator та інших об'єктів Playwright</h2>
+<p class="lead">Playwright експортує типи для всіх своїх об'єктів. Анотуючи ними параметри й поля, ви отримуєте автодоповнення і перевірку для кожного виклику.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/api/class-page" target="_blank" rel="noopener">Документація → Page</a>
+  <a href="https://playwright.dev/docs/api/class-locator" target="_blank" rel="noopener">Документація → Locator</a>
+  <a href="https://playwright.dev/docs/locators" target="_blank" rel="noopener">Документація → Locators</a>
+  <a href="https://playwright.dev/docs/best-practices" target="_blank" rel="noopener">Документація → Best Practices</a>
+  <a href="https://playwright.dev/docs/api/class-browsercontext" target="_blank" rel="noopener">Документація → BrowserContext</a>
+  <a href="https://playwright.dev/docs/api/class-route" target="_blank" rel="noopener">Документація → Route</a>
+  <a href="https://playwright.dev/docs/api/class-response" target="_blank" rel="noopener">Документація → Response</a>
+  <a href="https://playwright.dev/docs/api/class-apiresponse" target="_blank" rel="noopener">Документація → APIResponse</a>
+</div>
+
+<script type="text/x-code" data-file="Основні типи, які імпортують найчастіше">
+import {
+  test,
+  expect,
+  type Page,               // a single tab
+  type Locator,            // a lazy, re-resolving way to find elements
+  type BrowserContext,     // an isolated session: cookies, storage, routes
+  type Browser,            // a browser instance
+  type Response,           // a network response seen by the page
+  type Request,            // a network request seen by the page
+  type APIRequestContext,  // the `request` fixture for API calls
+  type APIResponse,        // the result of request.get() / request.post()
+} from '@playwright/test';
+</script>
+
+<h3>Page і навігація</h3>
+<p><code>page.goto()</code> вже чекає, доки сторінка досягне стану <code>load</code> (значення <code>waitUntil</code> за замовчуванням). Тому одразу після нього <code>page.waitForURL()</code> на ту саму адресу нічого не додає. <code>waitForURL</code> потрібен після дії, яка сама спричиняє навігацію: клік на кнопку входу, сабміт форми. Для перевірки адреси в тесті ще зручніше використати assertion <code>expect(page).toHaveURL()</code>.</p>
+<script type="text/x-code">
+import { expect, type Page } from '@playwright/test';
+
+async function openDashboard(page: Page): Promise<void> {
+  await page.goto('/dashboard'); // already waits for the "load" event
+}
+
+async function submitLogin(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Sign in' }).click(); // this click triggers navigation
+  await page.waitForURL('**/dashboard');
+}
+
+async function captureFullPage(page: Page): Promise<Buffer> {
+  return await page.screenshot({ fullPage: true }); // Buffer comes from @types/node
+}
+</script>
+
+<h3>Locator як поле класу</h3>
+<p>Методи <code>page.fill(selector, …)</code>, <code>page.click(selector)</code> та інші page-методи з рядком-селектором у документації позначені як discouraged: замість них рекомендовано локатори. Best practices радять будувати локатори на атрибутах, які бачить користувач, і на явних контрактах. Найперше це <code>getByRole</code>, далі <code>getByLabel</code>, <code>getByPlaceholder</code>, <code>getByText</code>. <code>getByTestId</code> підходить, коли команда домовилася про тестові атрибути. CSS і XPath лишаються крайнім варіантом, бо прив'язані до верстки.</p>
+<script type="text/x-code" data-file="pages/LoginForm.ts">
+import type { Locator, Page } from '@playwright/test';
+
+export class LoginForm {
+  readonly page: Page;
+  readonly usernameInput: Locator;
+  readonly passwordInput: Locator;
+  readonly signInButton: Locator;
+  readonly errorAlert: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.usernameInput = page.getByLabel('Username');
+    this.passwordInput = page.getByLabel('Password');
+    this.signInButton = page.getByRole('button', { name: 'Sign in' });
+    this.errorAlert = page.getByRole('alert');
+  }
+
+  async signIn(username: string, password: string): Promise<void> {
+    await this.usernameInput.fill(username);
+    await this.passwordInput.fill(password);
+    await this.signInButton.click();
+  }
+}
+</script>
+
+<h3>Що повертають методи Locator</h3>
+<p>Кожен метод Locator, що читає стан, повертає <code>Promise</code> з конкретним типом. Найважливіша різниця — між <code>textContent()</code> і <code>innerText()</code>. Перший у сигнатурі має тип <code>null | string</code>, тож під <code>strict</code> TypeScript змусить обробити <code>null</code>. Другий завжди повертає <code>string</code>. Так само <code>getAttribute()</code> повертає <code>null</code>, якщо атрибута немає.</p>
+
+<div class="widget" id="rtWidget">
+  <h4>Що поверне метод?</h4>
+  <p class="hint">Для кожного методу оберіть тип, який потрапить у змінну після <code>await</code>.</p>
+  <div class="rt-grid" id="rtGrid"></div>
+  <p class="score" id="rtScore" aria-live="polite"></p>
+</div>
+
+<div class="fix">
+  <h4>Читати текст вручну чи перевіряти assertion</h4>
+  <p><b>Проблема.</b> Старий патерн: дочекатися елемента через <code>waitFor()</code>, прочитати <code>textContent()</code>, повернути рядок із Page Object і порівняти його в тесті через <code>toBe</code>.</p>
+  <p><b>Чому.</b> Прочитане значення — знімок у конкретну мить. Якщо текст оновлюється асинхронно, порівняння може спрацювати на проміжному стані, і тест стане нестабільним. Документація методів <code>textContent()</code> та <code>innerText()</code> прямо радить для перевірки тексту брати <code>expect(locator).toHaveText()</code>.</p>
+  <p><b>Рішення.</b> Web-first assertions (<code>toHaveText</code>, <code>toContainText</code>, <code>toBeVisible</code>, <code>toHaveCount</code>) самі повторюють перевірку, доки умова не виконається або не мине тайм-аут.</p>
+  <p><b>Коли читати значення.</b> Коли воно потрібне для логіки: розпарсити число, запам'ятати ідентифікатор, передати далі. Тоді й знадобиться знання про <code>string | null</code>.</p>
+</div>
+<script type="text/x-code">
+// Snapshot: can read an intermediate state
+const message: string = (await form.errorAlert.textContent()) ?? '';
+expect(message).toBe('Invalid credentials');
+
+// Web-first: retries until the text matches or the timeout expires
+await expect(form.errorAlert).toHaveText('Invalid credentials');
+</script>
+
+<h3>BrowserContext і перехоплення запитів</h3>
+<p>Обробник у <code>context.route()</code> може бути асинхронним, а методи <code>route.continue()</code>, <code>route.fulfill()</code> і <code>route.abort()</code> повертають <code>Promise</code>, тому їх треба чекати через <code>await</code>. Інакше обробник завершиться раніше, ніж Playwright отримає рішення щодо запиту, а помилку всередині ніхто не побачить.</p>
+<script type="text/x-code">
+import type { BrowserContext, Route } from '@playwright/test';
+
+async function addAuthHeader(context: BrowserContext, token: string): Promise<void> {
+  await context.route('**/api/**', async (route: Route) => {
+    const headers: Record<string, string> = {
+      ...route.request().headers(),
+      authorization: `Bearer ${token}`,
+    };
+    await route.continue({ headers });
+  });
+}
+
+async function saveSession(context: BrowserContext, path: string): Promise<void> {
+  await context.storageState({ path });
+}
+</script>
+<p>Якщо заголовок потрібен на всіх запитах контексту, а не лише на окремому шаблоні URL, простіше скористатися опцією <code>extraHTTPHeaders</code>. Її можна задати в <code>use</code> конфігу чи тесту або передати в <code>browser.newContext()</code>. Вона ж застосовується до запитів фікстури <code>request</code>.</p>
+<script type="text/x-code" data-file="tests/admin.spec.ts">
+import { test } from '@playwright/test';
+
+test.use({
+  extraHTTPHeaders: { authorization: `Bearer ${process.env.API_TOKEN ?? ''}` },
+});
+</script>
+
+<h3>Response і APIResponse — два різні типи</h3>
+<p>Їх легко сплутати, бо обидва мають <code>status()</code> і <code>json()</code>. <code>Response</code> — це відповідь, яку побачила сторінка в браузері. Її повертають <code>page.waitForResponse()</code> і <code>page.goto()</code>. <code>APIResponse</code> — результат прямого HTTP-запиту через <code>APIRequestContext</code>: <code>request.get()</code>, <code>request.post()</code> тощо. Для другого є web-first assertion <code>expect(response).toBeOK()</code>, що перевіряє статус у діапазоні 200–299.</p>
+<script type="text/x-code">
+import type { Page, Response } from '@playwright/test';
+
+async function signInAndGetToken(page: Page): Promise<string> {
+  // Start waiting BEFORE the action that sends the request
+  const responsePromise: Promise<Response> = page.waitForResponse('**/api/login');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  const response: Response = await responsePromise;
+  const body = await response.json() as { token: string };
+  return body.token;
+}
+</script>
+
+<h3>ElementHandle — discouraged</h3>
+<p><code>ElementHandle</code> (його повертають <code>page.$()</code> і <code>page.waitForSelector()</code>) у документації позначений як discouraged. Handle вказує на конкретний DOM-вузол: якщо фреймворк перемалює елемент, handle «протухне». <code>Locator</code> натомість шукає елемент заново під час кожної дії і має вбудоване автоочікування.</p>
+</section>
+
+<!-- ================= 7 ================= -->
+<section class="chapter" id="s7" data-title="Utility types" hidden>
+<p class="kicker">Розділ 7 з 10</p>
+<h2>Utility types</h2>
+<p class="lead">Utility types — це вбудовані generic-типи, що будують новий тип із наявного. У тестах вони рятують від дублювання: одна «повна» модель, а варіанти для створення, логування чи перевизначення конфігів виводяться з неї.</p>
+<div class="docs"><a href="https://www.typescriptlang.org/docs/handbook/utility-types.html" target="_blank" rel="noopener">Документація → Utility Types</a></div>
+
+<div class="widget" id="ubWidget">
+  <h4>Конструктор utility types</h4>
+  <p class="hint">Оберіть утиліту, а для Pick і Omit позначте поля. Праворуч з'явиться запис типу та його результат.</p>
+  <div class="seg" role="group" aria-label="Utility type">
+    <button type="button" data-u="Pick" aria-pressed="true">Pick</button>
+    <button type="button" data-u="Omit" aria-pressed="false">Omit</button>
+    <button type="button" data-u="Partial" aria-pressed="false">Partial</button>
+    <button type="button" data-u="Required" aria-pressed="false">Required</button>
+  </div>
+  <div class="ub">
+    <fieldset id="ubFields"><legend>Поля інтерфейсу FullUser</legend></fieldset>
+    <div class="ub-out"><div id="ubOut"></div><p class="ub-say" id="ubSay"></p></div>
+  </div>
+</div>
+
+<h3>Partial — перевизначення конфігурації</h3>
+<p><code>Partial&lt;T&gt;</code> робить усі поля опційними. Класичний випадок — функція, яка бере значення за замовчуванням і накладає на них лише ті поля, що передали.</p>
+<script type="text/x-code">
+interface RunSettings {
+  baseURL: string;
+  timeoutMs: number;
+  retries: number;
+  headless: boolean;
+}
+
+function createSettings(overrides: Partial<RunSettings>): RunSettings {
+  const defaults: RunSettings = {
+    baseURL: 'http://localhost:3000',
+    timeoutMs: 30_000,
+    retries: 0,
+    headless: true,
+  };
+  return { ...defaults, ...overrides };
+}
+
+const ciSettings: RunSettings = createSettings({ retries: 2 });
+</script>
+
+<h3>Required — усе обов'язкове</h3>
+<p><code>Required&lt;T&gt;</code> робить протилежне: прибирає опційність з усіх полів. Корисно, коли форма має опційні поля, а конкретний сценарій вимагає заповнити все.</p>
+<script type="text/x-code">
+interface ContactForm {
+  name?: string;
+  email?: string;
+  phone?: string;
+}
+
+type CompleteContactForm = Required<ContactForm>;
+// { name: string; email: string; phone: string }
+</script>
+
+<h3>Pick і Omit — підмножини полів</h3>
+<p><code>Pick&lt;T, K&gt;</code> лишає тільки перелічені ключі, <code>Omit&lt;T, K&gt;</code> — усі, крім перелічених. Типовий приклад — дані для запиту на створення сутності: у них немає <code>id</code>, бо його призначить сервер.</p>
+<script type="text/x-code">
+interface FullUser {
+  id: number;
+  email: string;
+  password: string;
+  role: 'admin' | 'user' | 'guest';
+  createdAt: string;
+}
+
+type PublicUser = Pick<FullUser, 'email' | 'role'>;
+type NewUserPayload = Omit<FullUser, 'id' | 'createdAt'>;
+type UserForLogs = Omit<FullUser, 'password'>;
+
+function describeAction(user: UserForLogs, action: string): string {
+  return `${user.email} performed: ${action}`;
+}
+</script>
+
+<h3>Record — словник з відомими ключами</h3>
+<p><code>Record&lt;K, V&gt;</code> описує об'єкт, де ключі мають тип <code>K</code>, а значення — тип <code>V</code>. Якщо як <code>K</code> взяти union літералів, TypeScript вимагатиме, щоб у словнику були всі ключі, і не пропустить зайвих. Це надійніше за <code>Record&lt;string, …&gt;</code>, де підійде будь-який рядок.</p>
+<script type="text/x-code">
+type AppRoute = 'home' | 'login' | 'dashboard';
+
+const routes: Record<AppRoute, string> = {
+  home: '/',
+  login: '/login',
+  dashboard: '/dashboard',
+}; // forget one key or add an extra one and tsc reports an error
+
+type UserKind = 'admin' | 'regular' | 'readonly';
+type Credentials = { username: string; password: string };
+
+const testUsers: Record<UserKind, Credentials> = {
+  admin: { username: 'admin@test.com', password: 'adminpass' },
+  regular: { username: 'user@test.com', password: 'userpass' },
+  readonly: { username: 'readonly@test.com', password: 'readpass' },
+};
+</script>
+</section>
+
+<!-- ================= 8 ================= -->
+<section class="chapter" id="s8" data-title="Реальні патерни" hidden>
+<p class="kicker">Розділ 8 з 10</p>
+<h2>Реальні патерни</h2>
+<p class="lead">Зберемо все разом: абстрактна базова сторінка, конкретні Page Objects на локаторах, типізовані фікстури і типізований API-тест.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/best-practices" target="_blank" rel="noopener">Документація → Best Practices</a>
+  <a href="https://playwright.dev/docs/api/class-page#page-wait-for-load-state" target="_blank" rel="noopener">Документація → waitForLoadState</a>
+  <a href="https://playwright.dev/docs/test-fixtures" target="_blank" rel="noopener">Документація → Fixtures</a>
+  <a href="https://playwright.dev/docs/api-testing" target="_blank" rel="noopener">Документація → API testing</a>
+</div>
+
+<h3>BasePage</h3>
+<p>Клас оголошено <code>abstract</code>: створити <code>new BasePage(page)</code> не можна, лише успадкуватися. Поле <code>page</code> має модифікатор <code>protected</code>, тож його бачать нащадки, але не тести. Абстрактний getter <code>url</code> змушує кожну сторінку оголосити свою адресу, і якщо забути, <code>tsc</code> повідомить про це.</p>
+<script type="text/x-code" data-file="pages/BasePage.ts">
+import type { Page } from '@playwright/test';
+
+export abstract class BasePage {
+  protected readonly page: Page;
+
+  constructor(page: Page) {
+    this.page = page;
+  }
+
+  abstract get url(): string;
+
+  async open(): Promise<void> {
+    await this.page.goto(this.url);
+  }
+}
+</script>
+
+<div class="fix">
+  <h4>Чому з BasePage прибрано waitForLoadState('networkidle')</h4>
+  <p><b>Проблема.</b> У багатьох шаблонах BasePage є метод на кшталт <code>waitForPageLoad()</code> з <code>page.waitForLoadState('networkidle')</code>.</p>
+  <p><b>Чому.</b> У документації стан <code>networkidle</code> позначено як discouraged: він чекає, доки мережа не затихне щонайменше на 500 мс, і його не слід використовувати для тестування. На сторінках з опитуванням сервера, аналітикою чи вебсокетами мережа може ніколи не затихнути, а на швидких сторінках тиша не гарантує, що потрібний елемент уже відмальовано.</p>
+  <p><b>Рішення.</b> Документація радить оцінювати готовність сторінки через web-first assertions. Перевіряйте те, що справді важливо для тесту, наприклад <code>await expect(dashboard.welcomeHeading).toBeVisible()</code>. Дії над локаторами й так мають автоочікування.</p>
+  <p><b>Коли.</b> Щоразу, коли хочеться «дочекатися завантаження», сформулюйте, яку саме видиму ознаку готовності ви чекаєте, і перевірте її assertion.</p>
+</div>
+
+<h3>LoginPage і DashboardPage</h3>
+<script type="text/x-code" data-file="pages/LoginPage.ts">
+import type { Locator, Page } from '@playwright/test';
+import { BasePage } from './BasePage';
+
+export interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+export class LoginPage extends BasePage {
+  readonly usernameInput: Locator;
+  readonly passwordInput: Locator;
+  readonly signInButton: Locator;
+  readonly errorAlert: Locator;
+
+  constructor(page: Page) {
+    super(page);
+    this.usernameInput = page.getByLabel('Username');
+    this.passwordInput = page.getByLabel('Password');
+    this.signInButton = page.getByRole('button', { name: 'Sign in' });
+    this.errorAlert = page.getByRole('alert');
+  }
+
+  get url(): string {
+    return '/login';
+  }
+
+  async login(credentials: LoginCredentials): Promise<void> {
+    await this.usernameInput.fill(credentials.username);
+    await this.passwordInput.fill(credentials.password);
+    await this.signInButton.click();
+  }
+}
+</script>
+<script type="text/x-code" data-file="pages/DashboardPage.ts">
+import type { Locator, Page } from '@playwright/test';
+import { BasePage } from './BasePage';
+
+export class DashboardPage extends BasePage {
+  readonly welcomeHeading: Locator;
+
+  constructor(page: Page) {
+    super(page);
+    this.welcomeHeading = page.getByRole('heading', { name: 'Welcome' });
+  }
+
+  get url(): string {
+    return '/dashboard';
+  }
+}
+</script>
+<p>Page Object тут повертає локатори, а не прочитані рядки. Перевірки лишаються в тесті й виконуються через web-first assertions.</p>
+
+<h3>Типізовані фікстури</h3>
+<p>Тут показано лише типізацію, детальна тема фікстур іде окремим матеріалом. Тип <code>Pages</code> передається в <code>base.extend&lt;Pages&gt;()</code>, і завдяки цьому в кожному тесті <code>loginPage</code> та <code>dashboardPage</code> мають точні типи. Кожна фікстура отримує параметр <code>use</code> і обов'язково викликає <code>await use(...)</code>, передаючи значення в тест.</p>
+<script type="text/x-code" data-file="fixtures/pages.ts">
+import { test as base } from '@playwright/test';
+import { LoginPage } from '@pages/LoginPage';
+import { DashboardPage } from '@pages/DashboardPage';
+
+type Pages = {
+  loginPage: LoginPage;
+  dashboardPage: DashboardPage;
+};
+
+export const test = base.extend<Pages>({
+  loginPage: async ({ page }, use) => {
+    await use(new LoginPage(page));
+  },
+  dashboardPage: async ({ page }, use) => {
+    await use(new DashboardPage(page));
+  },
+});
+
+export { expect } from '@playwright/test';
+</script>
+<script type="text/x-code" data-file="tests/login.spec.ts">
+import { test, expect } from '@fixtures/pages';
+
+test('user signs in with valid credentials', async ({ page, loginPage, dashboardPage }) => {
+  await loginPage.open();
+  await loginPage.login({ username: 'admin@test.com', password: 'password123' });
+
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(dashboardPage.welcomeHeading).toBeVisible();
+});
+
+test('user sees an error with a wrong password', async ({ loginPage }) => {
+  await loginPage.open();
+  await loginPage.login({ username: 'admin@test.com', password: 'wrong' });
+
+  await expect(loginPage.errorAlert).toHaveText('Invalid credentials');
+});
+</script>
+
+<h3>Типізований API-тест</h3>
+<p>Фікстура <code>request</code> має тип <code>APIRequestContext</code>, а її методи повертають <code>APIResponse</code>. Відносний шлях працює, якщо в конфігу задано <code>use.baseURL</code>. Статус перевіряємо через <code>toBeOK()</code>, а тіло типізуємо твердженням <code>as Todo</code>. Пам'ятайте, що твердження не перевіряє дані під час виконання.</p>
+<script type="text/x-code" data-file="tests/todos.api.spec.ts">
+import { test, expect, type APIResponse } from '@playwright/test';
+
+interface Todo {
+  id: number;
+  title: string;
+  completed: boolean;
+}
+
+type NewTodo = Omit<Todo, 'id'>;
+
+test('API: creates a todo', async ({ request }) => {
+  const payload: NewTodo = { title: 'Buy groceries', completed: false };
+
+  const response: APIResponse = await request.post('/api/todos', { data: payload });
+  await expect(response).toBeOK();
+  expect(response.status()).toBe(201);
+
+  const todo = await response.json() as Todo;
+  expect(todo.title).toBe(payload.title);
+  expect(typeof todo.id).toBe('number');
+});
+</script>
+</section>
+
+<!-- ================= 9 ================= -->
+<section class="chapter" id="s9" data-title="Типові помилки" hidden>
+<p class="kicker">Розділ 9 з 10</p>
+<h2>Типові помилки</h2>
+<p class="lead">Сім помилок, які найчастіше трапляються в Playwright-проєктах на TypeScript. Після них — тренажер, де потрібно самостійно знайти проблемний рядок.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/best-practices" target="_blank" rel="noopener">Документація → Best Practices</a>
+  <a href="https://playwright.dev/docs/test-typescript" target="_blank" rel="noopener">Документація → TypeScript у Playwright</a>
+  <a href="https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html" target="_blank" rel="noopener">Документація → TypeScript 6.0 release notes</a>
+</div>
+
+<h3>1. any замість типів</h3>
+<p><code>any</code> вимикає всю перевірку, і тоді TypeScript не допоможе ні з автодоповненням, ні з помилками. Якщо тип справді невідомий, беріть <code>unknown</code> і звужуйте його. Якщо відомий, опишіть інтерфейсом.</p>
+<script type="text/x-code">
+// Bad
+async function fillField(page: any, data: any) {
+  await page.fill(data.selector, data.value);
+}
+
+// Good
+interface FieldData {
+  label: string;
+  value: string;
+}
+
+async function fillField(page: Page, data: FieldData): Promise<void> {
+  await page.getByLabel(data.label).fill(data.value);
+}
+</script>
+
+<h3>2. Ігнорування null з textContent()</h3>
+<p><code>textContent()</code> має тип <code>string | null</code>, тож присвоєння в змінну типу <code>string</code> під <code>strict</code> не скомпілюється. Обробіть <code>null</code> через <code>??</code>, візьміть <code>innerText()</code>, який повертає <code>string</code>, або, якщо мета — перевірити текст, одразу пишіть <code>toHaveText()</code>.</p>
+<script type="text/x-code">
+const text: string = await locator.textContent();        // Error: 'string | null' is not assignable to 'string'
+const safe: string = (await locator.textContent()) ?? '';
+const inner: string = await locator.innerText();
+await expect(locator).toHaveText('Saved');                // best option when you only need to check
+</script>
+
+<h3>3. Відсутні return types в async-функціях</h3>
+<p>TypeScript виведе тип повернення сам, тож технічно це не помилка компіляції. Але без явного <code>Promise&lt;...&gt;</code> легко не помітити, що функція асинхронна, і забути <code>await</code> під час виклику. Явна сигнатура — це контракт: якщо реалізація почне повертати інше, компілятор вкаже на це в самій функції, а не десь у тесті.</p>
+<script type="text/x-code">
+// Unclear: looks synchronous, actually returns Promise<string>
+function getPageTitle(page: Page) {
+  return page.title();
+}
+
+// Clear contract
+async function getPageTitle(page: Page): Promise<string> {
+  return await page.title();
+}
+</script>
+
+<h3>4. ElementHandle замість Locator</h3>
+<p><code>page.$()</code> і <code>ElementHandle</code> — discouraged API. Handle прив'язаний до конкретного вузла DOM і не має автоочікування. Локатор щоразу знаходить елемент заново.</p>
+<script type="text/x-code">
+const handle = await page.$('.submit');                          // discouraged
+const submit: Locator = page.getByRole('button', { name: 'Submit' });
+await submit.click();
+</script>
+
+<h3>5. Вимкнений strict</h3>
+<p>Без <code>strict</code> (конкретно без <code>strictNullChecks</code>) <code>null</code> і <code>undefined</code> можна присвоїти будь-якому типу. Тоді <code>string | null</code> з <code>textContent()</code> перестає бути сигналом, і помилки переїжджають у час виконання. З TypeScript 6.0 <code>strict</code> увімкнено за замовчуванням, тож небезпека тепер у явному <code>"strict": false</code>.</p>
+<script type="text/x-code">
+// With "strict": false this compiles and fails at runtime when value is null
+function lengthOf(value: string): number {
+  return value.length;
+}
+
+// With strict on, model the null explicitly and handle it
+function safeLengthOf(value: string | null): number {
+  return value?.length ?? 0;
+}
+</script>
+
+<h3>6. Думати, що Playwright перевіряє типи</h3>
+<p>Раннер трансформує TypeScript у JavaScript і запускає тести навіть із некритичними помилками типів. Якщо <code>npx tsc --noEmit</code> ніде не запускається, червоні підкреслення в IDE — єдиний захист, і він не працює в CI. Додайте перевірку типів окремим кроком (розділ 1).</p>
+
+<h3>7. Deprecated-опції в tsconfig</h3>
+<p>Конфіги, скопійовані зі старих туторіалів, часто містять <code>"moduleResolution": "node"</code>, <code>"baseUrl": "."</code> або <code>"esModuleInterop": false</code>. У TypeScript 6.0 усе це застаріло, а в TypeScript 7.0 дає помилку. Прапорець <code>"ignoreDeprecations": "6.0"</code> працював лише в TypeScript 6.0, TypeScript 7.0 ці опції вже не підтримує. Актуальний варіант конфігу є в розділі 2.</p>
+
+<div class="widget" id="bugWidget">
+  <h4>Знайди помилку</h4>
+  <p class="hint">У кожному фрагменті один проблемний рядок. Натисніть на нього, щоб перевірити себе.</p>
+  <div id="bugList"></div>
+  <p class="score" id="bugScore" aria-live="polite"></p>
+</div>
+</section>
+
+<!-- ================= 10 ================= -->
+<section class="chapter" id="s10" data-title="Шпаргалка" hidden>
+<p class="kicker">Розділ 10 з 10</p>
+<h2>Шпаргалка</h2>
+<p class="lead">Усе основне на одному екрані. Кожен блок можна скопіювати. Після шпаргалки — підсумковий квіз для самоперевірки.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-typescript" target="_blank" rel="noopener">Документація → TypeScript у Playwright</a>
+  <a href="https://playwright.dev/docs/best-practices" target="_blank" rel="noopener">Документація → Best Practices</a>
+  <a href="https://playwright.dev/docs/test-assertions" target="_blank" rel="noopener">Документація → Assertions</a>
+  <a href="https://www.typescriptlang.org/docs/handbook/2/everyday-types.html" target="_blank" rel="noopener">Документація → Everyday Types</a>
+  <a href="https://www.typescriptlang.org/docs/handbook/utility-types.html" target="_blank" rel="noopener">Документація → Utility Types</a>
+</div>
+
+<script type="text/x-code" data-file="Типи TypeScript">
+let title: string = 'test';
+let count: number = 5;
+let flag: boolean = true;
+let tags: string[] = [];
+let pair: [string, number] = ['retries', 2];
+
+type Status = 'active' | 'inactive';        // union of literals
+let maybeName: string | null = null;        // nullable
+interface Settings { timeoutMs?: number }   // optional field
+
+function wrap<T>(value: T): T[] { return [value]; }   // generic
+
+type P = Partial<Settings>;                 // all optional
+type R = Required<Settings>;                // all required
+type K = Pick<FullUser, 'id' | 'email'>;    // subset of keys
+type O = Omit<FullUser, 'password'>;        // all keys except
+type M = Record<'admin' | 'user', string>;  // map with known keys
+</script>
+
+<script type="text/x-code" data-file="Типи Playwright і що повертають методи Locator">
+import { test, expect, type Page, type Locator, type BrowserContext,
+  type Response, type APIRequestContext, type APIResponse } from '@playwright/test';
+
+const text: string | null = await locator.textContent();
+const inner: string = await locator.innerText();
+const value: string = await locator.inputValue();
+const visible: boolean = await locator.isVisible();
+const total: number = await locator.count();
+const href: string | null = await locator.getAttribute('href');
+const all: string[] = await locator.allInnerTexts();
+
+// Check, do not read:
+await expect(locator).toHaveText('Saved');
+await expect(locator).toBeVisible();
+await expect(locator).toHaveCount(3);
+await expect(apiResponse).toBeOK();
+</script>
+
+<script type="text/x-code" data-file="Локатори за пріоритетом best practices">
+page.getByRole('button', { name: 'Sign in' });
+page.getByLabel('Password');
+page.getByPlaceholder('name@example.com');
+page.getByText('Welcome back');
+page.getByTestId('cart-total');
+</script>
+
+<script type="text/x-code" data-lang="json" data-file="tsconfig.json під TypeScript 7.0">
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "paths": { "@pages/*": ["./pages/*"] }
+  }
+}
+</script>
+
+<script type="text/x-code" data-lang="sh" data-file="Перевірка типів">
+npx tsc -p tsconfig.json --noEmit       # once, e.g. in CI
+npx tsc -p tsconfig.json --noEmit -w    # watch mode while coding
+</script>
+
+<p>Три правила, які варто винести з цього матеріалу. Типи перевіряє <code>tsc</code>, а не раннер. Тестовий код працює з локаторами та web-first assertions, а не з рядками-селекторами й ручним читанням тексту. <code>as T</code> лише каже компілятору, яким має бути значення, і нічого не перевіряє під час виконання.</p>
+</section>
+
+<!-- ================= QUIZ ================= -->
+<section class="chapter" id="quiz" data-title="Підсумковий квіз" data-num="✎" data-count="no" hidden>
+<p class="kicker">Самоперевірка</p>
+<h2>Підсумковий квіз</h2>
+<p class="lead">14 питань за всіма десятьма розділами. Після кожної відповіді побачите пояснення, а в кінці — список тем, які варто повторити.</p>
+<div class="widget" id="quizWidget" aria-live="polite"></div>
+</section>
+
+<nav class="pager" aria-label="Навігація між розділами">
+  <button type="button" id="prevBtn">Попередній розділ</button>
+  <button type="button" class="done-btn" id="doneBtn">Позначити як пройдений</button>
+  <button type="button" class="primary" id="nextBtn">Наступний розділ</button>
+</nav>
+</main>
+</div>
+<script>
+(function(){
+'use strict';
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const KW = new Set('import from export const let var async await function return if else throw new class extends implements interface type readonly private protected public abstract get set as in of typeof keyof void this super default try catch require'.split(' '));
+const LIT = new Set(['null','undefined','true','false']);
+const PRIM = new Set(['string','number','boolean','unknown','any','never','object']);
+
+function hl(src, lang){
+  if (lang === 'sh' || lang === 'yaml'){
+    return src.split('\n').map((l) => {
+      const i = l.indexOf('#');
+      if (i === -1) return esc(l);
+      return esc(l.slice(0,i)) + '<span class="t-com">' + esc(l.slice(i)) + '</span>';
+    }).join('\n');
+  }
+  const re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|('(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"|`(?:\\.|[^`\\])*`)|(\b\d[\d_]*(?:\.\d+)?\b)|([A-Za-z_$][\w$]*)/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(src))){
+    out += esc(src.slice(last, m.index));
+    last = re.lastIndex;
+    const t = m[0];
+    if (m[1]) out += '<span class="t-com">' + esc(t) + '</span>';
+    else if (m[2]){
+      const isKey = lang === 'json' && /^\s*:/.test(src.slice(last));
+      out += '<span class="' + (isKey ? 't-key' : 't-str') + '">' + esc(t) + '</span>';
+    }
+    else if (m[3]) out += '<span class="t-num">' + t + '</span>';
+    else if (KW.has(t)) out += '<span class="t-kw">' + t + '</span>';
+    else if (LIT.has(t)) out += '<span class="t-lit">' + t + '</span>';
+    else if (PRIM.has(t) || /^[A-Z]/.test(t)) out += '<span class="t-type">' + t + '</span>';
+    else if (src[last] === '(' || src[last] === '<') out += '<span class="t-fn">' + t + '</span>';
+    else out += esc(t);
+  }
+  return out + esc(src.slice(last));
+}
+function dedent(src){
+  const lines = src.replace(/^\n+/, '').replace(/\s+$/, '').split('\n');
+  const ind = Math.min(...lines.filter((l) => l.trim()).map((l) => l.match(/^ */)[0].length));
+  return lines.map((l) => l.slice(ind)).join('\n');
+}
+function codeFigure(src, lang, file){
+  const fig = document.createElement('figure');
+  fig.className = 'code';
+  fig.innerHTML = (file ? '<figcaption>' + esc(file) + '</figcaption>' : '') +
+    '<pre><code>' + hl(src, lang) + '</code></pre>' +
+    '<button type="button" class="copy">Копіювати</button>';
+  const btn = fig.querySelector('.copy');
+  btn.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(src); btn.textContent = 'Скопійовано'; }
+    catch (e) {
+      const r = document.createRange(); r.selectNodeContents(fig.querySelector('pre'));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      btn.textContent = 'Виділено: Ctrl+C';
+    }
+    setTimeout(() => { btn.textContent = 'Копіювати'; }, 1600);
+  });
+  return fig;
+}
+$$('script[type="text/x-code"]').forEach((s) => {
+  s.replaceWith(codeFigure(dedent(s.textContent), s.dataset.lang || 'ts', s.dataset.file || ''));
+});
+
+/* ---------- navigation + progress ---------- */
+const chapters = $$('.chapter');
+const nav = $('#nav');
+const KEY = 'ts-pw-basics-progress';
+let done = new Set();
+try { const raw = localStorage.getItem(KEY); if (raw) done = new Set(JSON.parse(raw)); } catch (e) {}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify([...done])); } catch (e) {} }
+
+chapters.forEach((c, i) => {
+  const li = document.createElement('li');
+  li.innerHTML = '<button type="button" data-id="' + c.id + '"><span class="num">' + (i + 1) + '</span><span>' + esc(c.dataset.title) + '</span><span class="tick" aria-hidden="true">✓</span></button>';
+  nav.appendChild(li);
+});
+let current = 0;
+const counted = chapters.filter((c) => c.dataset.count !== 'no');
+function renderProgress(){
+  $$('#nav li').forEach((li, i) => li.classList.toggle('done', done.has(chapters[i].id)));
+  const n = counted.filter((c) => done.has(c.id)).length;
+  $('#progressFill').style.width = (n / counted.length * 100) + '%';
+  $('#progressText').textContent = n + ' з ' + counted.length + ' розділів пройдено';
+  $('#doneBtn').textContent = done.has(chapters[current].id) ? 'Розділ пройдено ✓' : 'Позначити як пройдений';
+}
+function show(i, focus){
+  current = Math.max(0, Math.min(chapters.length - 1, i));
+  chapters.forEach((c, k) => { c.hidden = k !== current; });
+  $$('#nav button').forEach((b, k) => b.setAttribute('aria-current', k === current ? 'true' : 'false'));
+  $('#prevBtn').disabled = current === 0;
+  $('#nextBtn').textContent = current === chapters.length - 1 ? 'Завершити' : (chapters[current + 1].id === 'quiz' ? 'До підсумкового квізу' : 'Наступний розділ');
+  $('#doneBtn').hidden = chapters[current].dataset.count === 'no';
+  const activeBtn = $$('#nav button')[current];
+  if (activeBtn && activeBtn.scrollIntoView && window.matchMedia('(max-width:900px)').matches) activeBtn.scrollIntoView({ inline: 'center', block: 'nearest' });
+  if (history.replaceState) history.replaceState(null, '', '#' + chapters[current].id);
+  renderProgress();
+  if (focus) { window.scrollTo(0, 0); chapters[current].querySelector('h2').setAttribute('tabindex', '-1'); chapters[current].querySelector('h2').focus({ preventScroll: true }); }
+}
+nav.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  show(chapters.findIndex((c) => c.id === b.dataset.id), true);
+});
+$('#prevBtn').addEventListener('click', () => show(current - 1, true));
+$('#nextBtn').addEventListener('click', () => {
+  done.add(chapters[current].id); save();
+  if (current < chapters.length - 1) show(current + 1, true); else renderProgress();
+});
+$('#doneBtn').addEventListener('click', () => {
+  const id = chapters[current].id;
+  if (done.has(id)) done.delete(id); else done.add(id);
+  save(); renderProgress();
+});
+$('#resetProgress').addEventListener('click', () => { done.clear(); save(); renderProgress(); });
+window.__showChapter = (id) => show(chapters.findIndex((c) => c.id === id), true);
+const startIdx = chapters.findIndex((c) => '#' + c.id === location.hash);
+show(startIdx >= 0 ? startIdx : 0, false);
+
+/* ---------- 1. JS / TS toggle ---------- */
+const jsLines = [
+  "const { test } = require('@playwright/test');",
+  "",
+  "async function login(page, username, password) {",
+  "  await page.getByLabel('Username').fill(username);",
+  "  await page.getByLabel('Password').fill(password);",
+  "  await page.getByRole('button', { name: 'Sign in' }).click();",
+  "}",
+  "",
+  "test('user can sign in', async ({ page }) => {",
+  "  await page.goto('/login');",
+  "  await login(page, 'admin@test.com');",
+  "  await page.getByRole('link', { name: 'Profile' }).clik();",
+  "  const itemCount = await page.getByRole('listitem').count();",
+  "  console.log(itemCount.toUpperCase());",
+  "});"
+];
+const tsLines = jsLines.slice();
+tsLines[0] = "import { test, type Page } from '@playwright/test';";
+tsLines[2] = "async function login(page: Page, username: string, password: string): Promise<void> {";
+const tsErrors = {
+  10: "TS2554: Expected 3 arguments, but got 2. Пароль забули передати.",
+  11: "TS2551: Property 'clik' does not exist on type 'Locator'. Did you mean 'click'?",
+  13: "TS2339: Property 'toUpperCase' does not exist on type 'number'. count() повертає number."
+};
+function renderJsTs(lang){
+  const lines = lang === 'ts' ? tsLines : jsLines;
+  $('#jstsEditor').innerHTML = lines.map((l, i) => {
+    const err = lang === 'ts' && tsErrors[i];
+    return '<div class="ln' + (err ? ' err' : '') + '"><span>' + (i + 1) + '</span><span>' + (hl(l, 'ts') || ' ') + '</span></div>' +
+      (err ? '<span class="msg">' + esc(err) + '</span>' : '');
+  }).join('');
+  $('#jstsNote').innerHTML = lang === 'ts'
+    ? 'Три помилки видно в редакторі та у виводі <code>npx tsc --noEmit</code> ще до запуску. Сам <code>npx playwright test</code> типи не перевіряє.'
+    : 'Редактор не має інформації про типи й мовчить. Усі три проблеми проявляться лише під час виконання: <code>password</code> стане <code>undefined</code>, а <code>clik</code> і <code>toUpperCase</code> кинуть <code>TypeError</code>.';
+  $$('#jsts .seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+}
+$$('#jsts .seg button').forEach((b) => b.addEventListener('click', () => renderJsTs(b.dataset.lang)));
+renderJsTs('ts');
+
+/* ---------- 2. interactive tsconfig ---------- */
+const TSC = [
+  { k:'target', v:'"ES2022"', kind:'tsc', t:'Визначає, у який синтаксис tsc перетворив би код, і який набір вбудованих API (lib за замовчуванням) вважається доступним. З noEmit важливе лише друге. Для async/await ця опція не потрібна і на запуск тестів не впливає: код трансформує Playwright.' },
+  { k:'module', v:'"commonjs"', kind:'tsc', t:'Модель модулів для tsc. Без "type": "module" у package.json і з розширенням .ts проєкт працює як CommonJS, тож tsc перевіряє код у тій самій моделі. Синтаксис import/export у .ts-файлах при цьому пишеться як звичайно.' },
+  { k:'moduleResolution', v:'"bundler"', kind:'tsc', t:'Як tsc шукає імпортовані модулі. Значення "node"/"node10" застаріло в TypeScript 6.0 і не підтримується в 7.0. TS 6.0 дозволив поєднувати "bundler" з module "commonjs", і release notes називають цю комбінацію найзручнішим шляхом міграції. Вона розуміє поле exports у package.json і paths.' },
+  { k:'types', v:'["node"]', kind:'tsc', t:'З TypeScript 6.0 масив types за замовчуванням порожній, і пакети @types/* не підключаються автоматично. Без "node" tsc не знатиме про process.env чи Buffer. Потрібен пакет @types/node у devDependencies.' },
+  { k:'strict', v:'true', kind:'tsc', t:'Вмикає суворі перевірки, зокрема strictNullChecks. Саме тому textContent() вимагає обробки null. У TypeScript 6.0+ це значення за замовчуванням, але явний запис робить намір очевидним. На раннер не впливає.' },
+  { k:'noEmit', v:'true', kind:'tsc', t:'tsc лише перевіряє типи й нічого не записує на диск. Саме так документація Playwright радить запускати компілятор: npx tsc -p tsconfig.json --noEmit. Через це outDir і rootDir не потрібні.' },
+  { k:'skipLibCheck', v:'true', kind:'tsc', t:'Не перевіряти .d.ts-файли залежностей. Прискорює перевірку і прибирає шум від чужих типів. Ваш власний код перевіряється, як і раніше.' },
+  { k:'resolveJsonModule', v:'true', kind:'tsc', t:'Дозволяє імпортувати .json-файли з тестовими даними й отримувати для них виведені типи.' },
+  { k:'paths', v:null, kind:'pw', t:'Path aliases. Цю опцію Playwright читає сам, тому імпорти на кшталт @pages/LoginPage працюють під час запуску без додаткових пакетів. Шляхи вказуються відносно розташування tsconfig. baseUrl не потрібен: у TS 6.0 він застарів, у TS 7.0 дає помилку.' },
+  { k:'include', v:'["tests", "pages", "fixtures", "test-data", "playwright.config.ts"]', kind:'tsc', t:'Які файли перевіряє tsc. Playwright цю опцію не використовує: які файли запускати, він визначає за testDir і testMatch у конфігурації.' }
+];
+const PW_ONLY_NOTE = 'Повний перелік опцій, які підтримує Playwright: allowJs, baseUrl, paths, references і extends. Усе інше впливає лише на tsc та IDE.';
+function btn(o, label){ return '<button type="button" class="' + o.kind + '" data-k="' + o.k + '">' + label + '</button>'; }
+(function renderTsconfig(){
+  const q = (s) => '<span class="t-key">"' + s + '"</span>';
+  let h = '{\n  ' + q('compilerOptions') + ': {\n';
+  TSC.filter((o) => o.k !== 'include').forEach((o, i, arr) => {
+    if (o.k === 'paths'){
+      h += '    ' + btn(o, '"paths"') + ': {\n' +
+        '      <span class="t-str">"@pages/*"</span>: [<span class="t-str">"./pages/*"</span>],\n' +
+        '      <span class="t-str">"@fixtures/*"</span>: [<span class="t-str">"./fixtures/*"</span>],\n' +
+        '      <span class="t-str">"@data/*"</span>: [<span class="t-str">"./test-data/*"</span>]\n    }';
+    } else {
+      h += '    ' + btn(o, '"' + o.k + '"') + ': <span class="t-str">' + esc(o.v) + '</span>';
+    }
+    h += (i < arr.length - 1 ? ',' : '') + '\n';
+  });
+  const inc = TSC.find((o) => o.k === 'include');
+  h += '  },\n  ' + btn(inc, '"include"') + ': <span class="t-str">' + esc(inc.v) + '</span>\n}';
+  $('#tsconfigJson').innerHTML = h;
+  $('#tsconfigJson').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const o = TSC.find((x) => x.k === b.dataset.k);
+    $$('#tsconfigJson button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    $('#tsconfigExplain').innerHTML =
+      '<span class="tag ' + o.kind + '">' + (o.kind === 'pw' ? 'Читає Playwright' : 'Лише tsc та IDE') + '</span>' +
+      '<h5>' + o.k + '</h5><p>' + esc(o.t) + '</p>' +
+      '<p style="color:var(--muted); font-size:.86rem">' + PW_ONLY_NOTE + '</p>';
+  });
+  $$('#tsconfigJson button').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+})();
+
+/* ---------- 4. interface / type ---------- */
+const IFACE = {
+  interface: {
+    code: "type Role = 'admin' | 'user' | 'guest'; // a union needs `type`\n\ninterface User {\n  id: number;\n  email: string;\n  role: Role;\n  displayName?: string;\n}\n\ninterface AdminUser extends User {\n  permissions: string[];\n}\n\nconst admin: AdminUser = {\n  id: 1,\n  email: 'admin@test.com',\n  role: 'admin',\n  permissions: ['users:write'],\n};",
+    text: 'Розширення через <code>extends</code>. Interface можна оголосити повторно з тією ж назвою: оголошення зіллються в одне (declaration merging). Зверніть увагу: сам union <code>Role</code> через interface не описати, тому він оголошений як type.'
+  },
+  type: {
+    code: "type Role = 'admin' | 'user' | 'guest';\n\ntype User = {\n  id: number;\n  email: string;\n  role: Role;\n  displayName?: string;\n};\n\ntype AdminUser = User & {\n  permissions: string[];\n};\n\nconst admin: AdminUser = {\n  id: 1,\n  email: 'admin@test.com',\n  role: 'admin',\n  permissions: ['users:write'],\n};",
+    text: 'Розширення через перетин <code>&amp;</code>. Повторно оголосити <code>type User</code> не можна: буде помилка про дублікат ідентифікатора. Зате type вміє називати union, кортежі й похідні типи на кшталт <code>Omit&lt;User, \'email\'&gt;</code>. Для цієї моделі обидва записи дають однаковий результат.'
+  }
+};
+function renderIface(mode){
+  const box = $('#ifaceCode'); box.innerHTML = ''; box.appendChild(codeFigure(IFACE[mode].code, 'ts', mode === 'interface' ? 'user.types.ts: interface' : 'user.types.ts: type'));
+  $('#ifaceText').innerHTML = IFACE[mode].text;
+  $$('#ifaceWidget .seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+}
+$$('#ifaceWidget .seg button').forEach((b) => b.addEventListener('click', () => renderIface(b.dataset.mode)));
+renderIface('interface');
+
+/* ---------- 6. return types quiz ---------- */
+const OPTS = ['string', 'string | null', 'boolean', 'number', 'string[]'];
+const API = 'https://playwright.dev/docs/api/class-locator#';
+const RT = [
+  { m:'textContent()', a:'string | null', anchor:'locator-text-content', why:'У сигнатурі тип null | string, тож під strict null треба обробити. Для перевірки тексту документація радить toHaveText().' },
+  { m:'innerText()', a:'string', anchor:'locator-inner-text', why:'Завжди рядок. Для перевірки тексту так само краще toHaveText().' },
+  { m:'inputValue()', a:'string', anchor:'locator-input-value', why:'Значення поля input, textarea чи select. Для перевірки є toHaveValue().' },
+  { m:'isVisible()', a:'boolean', anchor:'locator-is-visible', why:'Миттєва перевірка без очікування. У тестах надійніше toBeVisible().' },
+  { m:'count()', a:'number', anchor:'locator-count', why:'Кількість елементів, що відповідають локатору, на цю мить. Для перевірки є toHaveCount().' },
+  { m:"getAttribute('href')", a:'string | null', anchor:'locator-get-attribute', why:'null, якщо атрибута немає. Для перевірки є toHaveAttribute().' },
+  { m:'isChecked()', a:'boolean', anchor:'locator-is-checked', why:'Стан чекбокса чи радіокнопки. Для перевірки є toBeChecked().' },
+  { m:'allInnerTexts()', a:'string[]', anchor:'locator-all-inner-texts', why:'Масив текстів усіх знайдених елементів. Для перевірки списку є toHaveText() з масивом.' }
+];
+const rtState = {};
+function rtScore(){
+  const answered = Object.keys(rtState).length;
+  const right = Object.values(rtState).filter(Boolean).length;
+  $('#rtScore').textContent = answered ? 'Правильно з першої спроби: ' + right + ' з ' + answered + ' (усього ' + RT.length + ')' : '';
+}
+RT.forEach((r, idx) => {
+  const card = document.createElement('div');
+  card.className = 'rt';
+  card.innerHTML = '<p class="m">await locator.' + esc(r.m) + '</p><div class="opts" role="group" aria-label="Тип для ' + esc(r.m) + '">' +
+    OPTS.map((o) => '<button type="button" data-o="' + esc(o) + '">' + esc(o) + '</button>').join('') +
+    '</div><p class="fb" hidden></p>';
+  card.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b || card.dataset.solved) return;
+    const fb = card.querySelector('.fb');
+    const ok = b.dataset.o === r.a;
+    if (!(idx in rtState)) rtState[idx] = ok;
+    if (ok){
+      b.classList.add('right'); card.dataset.solved = '1';
+      fb.innerHTML = '<b>Promise&lt;' + esc(r.a) + '&gt;.</b> ' + esc(r.why) + ' <a href="' + API + r.anchor + '" target="_blank" rel="noopener">API</a>';
+    } else {
+      b.classList.add('wrong');
+      fb.textContent = 'Ні, спробуйте інший тип.';
+    }
+    fb.hidden = false; rtScore();
+  });
+  $('#rtGrid').appendChild(card);
+});
+
+/* ---------- 7. utility builder ---------- */
+const FIELDS = [
+  { n:'id', t:'number', opt:false },
+  { n:'email', t:'string', opt:false },
+  { n:'password', t:'string', opt:false },
+  { n:'role', t:"'admin' | 'user' | 'guest'", opt:false },
+  { n:'displayName', t:'string', opt:true },
+  { n:'createdAt', t:'string', opt:false }
+];
+let util = 'Pick';
+const picked = new Set(['email', 'role']);
+const fs = $('#ubFields');
+FIELDS.forEach((f) => {
+  const l = document.createElement('label');
+  l.innerHTML = '<input type="checkbox" value="' + f.n + '"' + (picked.has(f.n) ? ' checked' : '') + '> ' + f.n + (f.opt ? '?' : '') + ': ' + esc(f.t);
+  fs.appendChild(l);
+});
+fs.addEventListener('change', (e) => { if (e.target.checked) picked.add(e.target.value); else picked.delete(e.target.value); renderUtil(); });
+function renderUtil(){
+  const keyed = util === 'Pick' || util === 'Omit';
+  $$('#ubFields label').forEach((l) => { l.classList.toggle('off', !keyed); l.querySelector('input').disabled = !keyed; });
+  const keys = FIELDS.filter((f) => picked.has(f.n)).map((f) => "'" + f.n + "'");
+  let decl, result, say;
+  if (keyed){
+    const keyStr = keys.length ? keys.join(' | ') : 'never';
+    decl = 'type Result = ' + util + '<FullUser, ' + keyStr + '>;';
+    const rows = FIELDS.filter((f) => util === 'Pick' ? picked.has(f.n) : !picked.has(f.n));
+    result = rows.length ? '{\n' + rows.map((f) => '  ' + f.n + (f.opt ? '?' : '') + ': ' + f.t + ';').join('\n') + '\n}' : '{}';
+    say = util === 'Pick' ? 'Pick лишає тільки позначені ключі. Опційність поля зберігається.' : 'Omit прибирає позначені ключі й лишає решту. Типовий приклад — Omit<FullUser, \'password\'> для логів.';
+    if (!keys.length) say = 'Ключі не обрано: ' + (util === 'Pick' ? 'результат — порожній тип {}.' : 'Omit нічого не прибирає.');
+  } else {
+    decl = 'type Result = ' + util + '<FullUser>;';
+    result = '{\n' + FIELDS.map((f) => '  ' + f.n + (util === 'Partial' ? '?' : '') + ': ' + f.t + ';').join('\n') + '\n}';
+    say = util === 'Partial' ? 'Partial робить усі поля опційними. Підходить для об\'єктів-перевизначень.' : 'Required прибирає знак питання з усіх полів, тож displayName стає обов\'язковим.';
+  }
+  const out = $('#ubOut'); out.innerHTML = '';
+  out.appendChild(codeFigure(decl + '\n\n// What Result resolves to:\ntype Resolved = ' + result + ';', 'ts', 'Результуючий тип'));
+  $('#ubSay').textContent = say;
+  $$('#ubWidget .seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.u === util)));
+}
+$$('#ubWidget .seg button').forEach((b) => b.addEventListener('click', () => { util = b.dataset.u; renderUtil(); }));
+renderUtil();
+
+/* ---------- 9. find the bug ---------- */
+const BUGS = [
+  { title:'Хелпер для заповнення поля', lang:'ts', bug:0,
+    lines:["async function fillField(page: any, value: any) {", "  await page.getByLabel('Email').fill(value);", "}"],
+    why:'<code>any</code> вимикає перевірку типів для обох параметрів: жодного автодоповнення і жодної помилки, навіть якщо передати число замість рядка.',
+    fix:"async function fillField(page: Page, value: string): Promise<void> {\n  await page.getByLabel('Email').fill(value);\n}" },
+  { title:'Читання тексту', lang:'ts', bug:1,
+    lines:["const toast: Locator = page.getByRole('status');", "const message: string = await toast.textContent();", "console.log(message.trim());"],
+    why:'<code>textContent()</code> має тип <code>string | null</code>. Під <code>strict</code> присвоєння в <code>string</code> не скомпілюється.',
+    fix:"const message: string = (await toast.textContent()) ?? '';\n// or, if the goal is a check:\nawait expect(toast).toHaveText('Saved');" },
+  { title:'BasePage', lang:'ts', bug:4,
+    lines:["export abstract class BasePage {", "  constructor(protected readonly page: Page) {}", "  abstract get url(): string;", "  async open(): Promise<void> { await this.page.goto(this.url); }", "  async waitReady(): Promise<void> { await this.page.waitForLoadState('networkidle'); }", "}"],
+    why:'Стан <code>networkidle</code> у документації позначено як discouraged для тестування. Готовність сторінки оцінюйте web-first assertions.',
+    fix:"// Remove waitReady(); in the test assert a visible sign of readiness:\nawait expect(dashboard.welcomeHeading).toBeVisible();" },
+  { title:'Клік на кнопку', lang:'ts', bug:0,
+    lines:["const submit = await page.$('.submit');", "await submit?.click();"],
+    why:'<code>page.$()</code> повертає <code>ElementHandle</code>, а це discouraged API. Handle не має автоочікування і «протухає», якщо елемент перемалювали.',
+    fix:"const submit: Locator = page.getByRole('button', { name: 'Submit' });\nawait submit.click();" },
+  { title:'Перевірка тексту після збереження', lang:'ts', bug:1,
+    lines:["await page.getByRole('button', { name: 'Save' }).click();", "const text = await page.getByRole('status').innerText();", "expect(text).toBe('Saved');"],
+    why:'Ручне читання дає знімок у конкретну мить. Якщо статус оновлюється асинхронно, перевірка стане нестабільною. Для тексту є web-first assertion.',
+    fix:"await page.getByRole('button', { name: 'Save' }).click();\nawait expect(page.getByRole('status')).toHaveText('Saved');" },
+  { title:'Заголовок авторизації', lang:'ts', bug:2,
+    lines:["await context.route('**/api/**', async (route: Route) => {", "  const headers = { ...route.request().headers(), authorization: `Bearer ${token}` };", "  route.continue({ headers });", "});"],
+    why:'<code>route.continue()</code> повертає <code>Promise</code>. Без <code>await</code> обробник завершується раніше, ніж рішення щодо запиту буде виконано, а помилка загубиться.',
+    fix:"  await route.continue({ headers });" },
+  { title:'tsconfig: path aliases', lang:'json', bug:2,
+    lines:['{', '  "compilerOptions": {', '    "baseUrl": ".",', '    "paths": { "@pages/*": ["pages/*"] }', '  }', '}'],
+    why:'<code>baseUrl</code> застарів у TypeScript 6.0 і дає помилку в TypeScript 7.0. Для <code>paths</code> він не потрібен: шляхи рахуються відносно tsconfig.',
+    fix:'{\n  "compilerOptions": {\n    "paths": { "@pages/*": ["./pages/*"] }\n  }\n}' },
+  { title:'tsconfig: резолюція модулів', lang:'json', bug:3,
+    lines:['{', '  "compilerOptions": {', '    "module": "commonjs",', '    "moduleResolution": "node",', '    "strict": true', '  }', '}'],
+    why:'<code>"node"</code> (він же <code>"node10"</code>) застарів у TypeScript 6.0 і не підтримується в TypeScript 7.0.',
+    fix:'{\n  "compilerOptions": {\n    "module": "commonjs",\n    "moduleResolution": "bundler",\n    "strict": true\n  }\n}' }
+];
+const solved = new Set();
+function bugScore(){ $('#bugScore').textContent = 'Знайдено: ' + solved.size + ' з ' + BUGS.length; }
+BUGS.forEach((b, i) => {
+  const box = document.createElement('div');
+  box.className = 'bug';
+  box.innerHTML = '<div class="bug-head"><b>' + (i + 1) + '. ' + esc(b.title) + '</b><span class="st">Натисніть на рядок</span></div>' +
+    '<div class="bug-code" role="group" aria-label="Рядки коду">' +
+    b.lines.map((l, k) => '<button type="button" data-k="' + k + '">' + (hl(l, b.lang) || ' ') + '</button>').join('') +
+    '</div><div class="bug-body" hidden></div>' +
+    '<div style="padding:0 16px 12px"><button type="button" class="linkbtn reveal">Показати відповідь</button></div>';
+  const body = box.querySelector('.bug-body');
+  function reveal(found){
+    box.querySelectorAll('.bug-code button')[b.bug].classList.add('hit');
+    body.innerHTML = '<p>' + b.why + '</p>';
+    body.appendChild(codeFigure(b.fix, b.lang, 'Виправлення'));
+    body.hidden = false;
+    const st = box.querySelector('.st');
+    st.textContent = found ? 'Знайдено' : 'Відповідь показано'; st.classList.toggle('ok', found);
+    box.querySelector('.reveal').parentElement.hidden = true;
+    box.dataset.done = '1';
+  }
+  box.querySelector('.bug-code').addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if (!btn || box.dataset.done) return;
+    const k = Number(btn.dataset.k);
+    if (k === b.bug){ solved.add(i); reveal(true); bugScore(); }
+    else { btn.classList.add('miss'); box.querySelector('.st').textContent = 'Цей рядок коректний, шукайте далі'; }
+  });
+  box.querySelector('.reveal').addEventListener('click', () => reveal(false));
+  $('#bugList').appendChild(box);
+});
+bugScore();
+/* ---------- final quiz ---------- */
+const QUIZ = [
+  { sec:'s1', q:'У тесті є некритична помилка типів. Що зробить <code>npx playwright test</code>?',
+    opts:['Запустить тест: раннер трансформує TypeScript, але типи не перевіряє', 'Відмовиться запускати файл і покаже помилку tsc', 'Запустить тест, лише якщо в tsconfig вимкнено strict', 'Автоматично виправить помилку і продовжить'],
+    a:0, why:'Документація Playwright прямо каже: раннер не перевіряє типи і запускає тести навіть із некритичними помилками компіляції. Тому tsc запускають окремо.', link:'https://playwright.dev/docs/test-typescript#introduction' },
+  { sec:'s1', q:'Яку команду документація Playwright радить для перевірки типів у CI?',
+    opts:['<code>npx tsc -p tsconfig.json --noEmit</code>', '<code>npx playwright test --tsconfig=tsconfig.json</code>', '<code>npx tsc -p tsconfig.json --outDir dist</code>', '<code>npx playwright install --with-deps</code>'],
+    a:0, why:'<code>--noEmit</code> означає лише перевірку, без запису файлів. Прапорець <code>--tsconfig</code> у Playwright вказує, який tsconfig читати, але типи не перевіряє.', link:'https://playwright.dev/docs/test-typescript#introduction' },
+  { sec:'s2', q:'Яку з цих опцій tsconfig підтримує сам Playwright під час запуску тестів?',
+    opts:['<code>strict</code>', '<code>paths</code>', '<code>target</code>', '<code>noEmit</code>'],
+    a:1, why:'Playwright підтримує лише allowJs, baseUrl, paths, references і extends. Решта опцій впливає тільки на tsc та IDE.', link:'https://playwright.dev/docs/test-typescript#tsconfigjson' },
+  { sec:'s2', q:'Чому в tsconfig під TypeScript 7.0 немає <code>"baseUrl": "."</code>?',
+    opts:['Playwright його ігнорує', 'Він застарів у TypeScript 6.0 і дає помилку в TypeScript 7.0, а paths працюють і без нього', 'Він потрібен лише для target ES5', 'Його замінила опція esModuleInterop'],
+    a:1, why:'У TS 6.0 baseUrl оголошено застарілим, у TS 7.0 усі deprecations стали помилками. Шляхи в paths вказуються відносно самого tsconfig.', link:'https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html' },
+  { sec:'s2', q:'Навіщо в конфігу рядок <code>"types": ["node"]</code>?',
+    opts:['Щоб Playwright запускав тести в Node.js', 'Щоб увімкнути async/await', 'З TypeScript 6.0 масив types за замовчуванням порожній, і без цього tsc не знає про process.env чи Buffer', 'Щоб tsc перевіряв типи у node_modules'],
+    a:2, why:'Release notes TypeScript 6.0 радять більшості проєктів явно задати "types": ["node"]. Потрібен пакет @types/node.', link:'https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html' },
+  { sec:'s3', q:'Чим <code>unknown</code> відрізняється від <code>any</code>?',
+    opts:['Нічим, це синоніми', 'unknown приймає будь-яке значення, але не дає ним користуватися, доки тип не звужено перевірками', 'unknown можна використовувати лише для чисел', 'any безпечніший, бо перевіряється під час виконання'],
+    a:1, why:'any вимикає перевірку. unknown вимагає narrowing: typeof, перевірки на null, оператор in.', link:'https://www.typescriptlang.org/docs/handbook/2/narrowing.html' },
+  { sec:'s4', q:'Що можна виразити через <code>type</code>, але не через <code>interface</code>?',
+    opts:['Об\'єкт з опційними полями', 'Наслідування іншої моделі', 'Union літералів, наприклад <code>\'admin\' | \'user\'</code>', 'Поле-масив'],
+    a:2, why:'Interface описує лише форму об\'єкта. Type alias може назвати будь-який тип: union, кортеж, примітив, результат utility type.', link:'https://www.typescriptlang.org/docs/handbook/2/everyday-types.html#differences-between-type-aliases-and-interfaces' },
+  { sec:'s5', q:'Що робить <code>as Todo</code> у рядку <code>const todo = await response.json() as Todo;</code>?',
+    opts:['Перевіряє під час виконання, що тіло відповідає інтерфейсу Todo', 'Лише каже компілятору вважати значення типом Todo, без жодної перевірки даних', 'Конвертує JSON у клас Todo', 'Кидає помилку, якщо поля не збігаються'],
+    a:1, why:'Це твердження типу (type assertion). Під час виконання його не існує, тому критичні поля варто перевіряти через expect.', link:'https://www.typescriptlang.org/docs/handbook/2/everyday-types.html#type-assertions' },
+  { sec:'s6', q:'Який тип отримає змінна: <code>await locator.textContent()</code>?',
+    opts:['<code>string</code>', '<code>string | null</code>', '<code>string | undefined</code>', '<code>string[]</code>'],
+    a:1, why:'У сигнатурі textContent() повертає null | string. На відміну від нього, innerText() завжди повертає string.', link:'https://playwright.dev/docs/api/class-locator#locator-text-content' },
+  { sec:'s6', q:'Як найнадійніше перевірити, що статус показує текст «Saved»?',
+    opts:['<code>expect(await status.innerText()).toBe(\'Saved\')</code>', '<code>await status.waitFor(); expect(await status.textContent()).toBe(\'Saved\')</code>', '<code>await expect(status).toHaveText(\'Saved\')</code>', '<code>expect(await status.isVisible()).toBe(true)</code>'],
+    a:2, why:'Web-first assertion повторює перевірку, доки текст не збіжеться або не мине тайм-аут. Ручне читання дає знімок у конкретну мить.', link:'https://playwright.dev/docs/test-assertions' },
+  { sec:'s6', q:'Що повертає <code>page.waitForResponse()</code>?',
+    opts:['<code>APIResponse</code>', '<code>Response</code>', '<code>Request</code>', '<code>Locator</code>'],
+    a:1, why:'Response — відповідь, яку побачила сторінка. APIResponse повертають методи фікстури request (APIRequestContext).', link:'https://playwright.dev/docs/api/class-response' },
+  { sec:'s6', q:'Що не так із кодом <code>context.route(\'**/api/**\', route =&gt; { route.continue({ headers }); })</code>?',
+    opts:['route.continue() не приймає headers', 'Обробник має бути async, а route.continue() треба чекати через await', 'context.route не підтримує glob-шаблони', 'Все правильно'],
+    a:1, why:'route.continue() повертає Promise. Без await обробник завершиться раніше, а помилка загубиться.', link:'https://playwright.dev/docs/api/class-route#route-continue' },
+  { sec:'s7', q:'Який тип вийде з <code>Omit&lt;FullUser, \'password\'&gt;</code>?',
+    opts:['Лише поле password', 'Усі поля FullUser, крім password', 'Усі поля FullUser, але опційні', 'Порожній тип'],
+    a:1, why:'Omit прибирає перелічені ключі й лишає решту. Протилежність — Pick.', link:'https://www.typescriptlang.org/docs/handbook/utility-types.html#omittype-keys' },
+  { sec:'s8', q:'Що обов\'язково має зробити кожна фікстура в <code>base.extend&lt;Pages&gt;()</code>?',
+    opts:['Повернути значення через return', 'Викликати await use(значення)', 'Оголосити тип Page', 'Викликати page.waitForLoadState()'],
+    a:1, why:'Фікстура передає значення в тест через виклик use. Код після await use(...) виконується як teardown.', link:'https://playwright.dev/docs/test-fixtures' }
+];
+const QKEY = 'ts-pw-basics-quiz-best';
+const qz = $('#quizWidget');
+let order = [], qi = 0, qScore = 0, missed = [];
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function sectionTitle(id){ const c = $('#' + id); return c ? c.dataset.title : ''; }
+function sectionNum(id){ return chapters.findIndex((c) => c.id === id) + 1; }
+function startQuiz(){ order = QUIZ.map((q) => ({ q, perm: shuffle(q.opts.map((_, i) => i)) })); qi = 0; qScore = 0; missed = []; renderQ(); }
+function renderQ(){
+  const { q, perm } = order[qi];
+  qz.innerHTML =
+    '<div class="qz-top"><span class="qz-count">Питання ' + (qi + 1) + ' з ' + order.length + '</span><span class="qz-count">Правильно: ' + qScore + '</span></div>' +
+    '<div class="qz-bar"><i style="width:' + (qi / order.length * 100) + '%"></i></div>' +
+    '<p class="qz-q">' + q.q + '</p>' +
+    '<div class="qz-opts" role="group" aria-label="Варіанти відповіді">' + perm.map((i) => '<button type="button" data-i="' + i + '">' + q.opts[i] + '</button>').join('') + '</div>' +
+    '<div class="qz-fb" hidden></div>' +
+    '<div class="qz-actions"><button type="button" class="primary qz-next" hidden>' + (qi === order.length - 1 ? 'Показати результат' : 'Наступне питання') + '</button></div>';
+  qz.querySelector('.qz-opts').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const pickedI = Number(b.dataset.i), ok = pickedI === q.a;
+    $$('.qz-opts button', qz).forEach((x) => { x.disabled = true; if (Number(x.dataset.i) === q.a) x.classList.add('right'); });
+    if (!ok) { b.classList.add('wrong'); missed.push(q); } else qScore++;
+    const fb = qz.querySelector('.qz-fb');
+    fb.className = 'qz-fb ' + (ok ? 'ok' : 'no');
+    fb.innerHTML = '<p><b>' + (ok ? 'Правильно.' : 'Не зовсім.') + '</b> ' + q.why + '</p><p><a href="' + q.link + '" target="_blank" rel="noopener">Документація →</a></p>';
+    fb.hidden = false;
+    const nx = qz.querySelector('.qz-next'); nx.hidden = false; nx.focus();
+  });
+  qz.querySelector('.qz-next').addEventListener('click', () => { qi++; if (qi < order.length) renderQ(); else renderResult(); });
+}
+function renderResult(){
+  let best = 0;
+  try { best = Number(localStorage.getItem(QKEY)) || 0; if (qScore > best) { best = qScore; localStorage.setItem(QKEY, String(best)); } } catch (e) { best = Math.max(best, qScore); }
+  done.add('quiz'); save(); renderProgress();
+  const pct = Math.round(qScore / order.length * 100);
+  const verdict = pct >= 85 ? 'Матеріал засвоєно. Можна переходити до наступної теми курсу.'
+    : pct >= 60 ? 'Основа є, але кілька тем варто повторити за списком нижче.'
+    : 'Варто повернутися до розділів зі списку нижче і пройти квіз ще раз.';
+  const secs = [...new Set(missed.map((q) => q.sec))];
+  qz.innerHTML =
+    '<p class="qz-count">Результат</p><p class="qz-result">' + qScore + ' з ' + order.length + '</p>' +
+    '<p>' + verdict + ' Найкращий результат: ' + best + ' з ' + order.length + '.</p>' +
+    (missed.length ? '<h4 style="margin-top:18px">Помилки</h4><ul class="qz-review">' +
+      missed.map((q) => '<li>' + q.q + '<br><span style="color:var(--muted)">Правильна відповідь: ' + q.opts[q.a] + '</span></li>').join('') + '</ul>' +
+      '<p>Повторити розділи: ' + secs.map((id) => '<button type="button" class="linkbtn" data-go="' + id + '">' + sectionNum(id) + '. ' + esc(sectionTitle(id)) + '</button>').join(', ') + '</p>' : '') +
+    '<div class="qz-actions"><button type="button" class="primary qz-restart">Пройти ще раз</button></div>';
+  qz.querySelector('.qz-restart').addEventListener('click', startQuiz);
+  $$('[data-go]', qz).forEach((b) => b.addEventListener('click', () => window.__showChapter(b.dataset.go)));
+}
+startQuiz();
+})();
+</script>
+<script>
+(function(){
+  var KEY = 'pw-course-theme';
+  var root = document.documentElement;
+  var buttons = document.querySelectorAll('[data-theme-set]');
+  function current(){
+    try { return localStorage.getItem(KEY) || 'auto'; } catch (e) { return 'auto'; }
+  }
+  function paint(v){
+    if (v === 'light' || v === 'dark') root.setAttribute('data-theme', v);
+    else root.removeAttribute('data-theme');
+    buttons.forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.themeSet === v)); });
+  }
+  paint(current());
+  buttons.forEach(function(b){
+    b.addEventListener('click', function(){
+      var v = b.dataset.themeSet;
+      try { localStorage.setItem(KEY, v); } catch (e) {}
+      paint(v);
+    });
+  });
+})();
+</script>
+</body>
+</html>
