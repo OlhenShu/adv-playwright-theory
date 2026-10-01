@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('pw-course-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reporting у Playwright</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#15305A; --navy-2:#224A86; --orange:#E8781A; --orange-soft:#FDEBD8;
+  --paper:#F3F6FB; --surface:#FFFFFF; --ink:#18212F; --muted:#566278; --line:#D9E0EB;
+  --code-bg:#0F1D33; --code-ink:#E3E9F3; --code-line:#1C2E4C;
+  --ok:#1D8455; --ok-soft:#DDF3E8; --bad:#BF3A2F; --bad-soft:#F9E1DE;
+  --pw:#E8781A; --tsc:#3469CF; --tsc-soft:#E1EAFB;
+  --sans:"IBM Plex Sans", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --navy:#A9C3F0; --navy-2:#86A8E6; --orange:#F2923F; --orange-soft:#3A2814;
+    --paper:#0C1524; --surface:#132038; --ink:#E6ECF5; --muted:#9BA8BE; --line:#26365A;
+    --code-bg:#08111F; --code-ink:#E3E9F3; --code-line:#18294A;
+    --ok:#4CC08A; --ok-soft:#113626; --bad:#F07B70; --bad-soft:#3D1A17;
+    --tsc:#7FA6F2; --tsc-soft:#1A2B4D;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --navy:#A9C3F0; --navy-2:#86A8E6; --orange:#F2923F; --orange-soft:#3A2814;
+  --paper:#0C1524; --surface:#132038; --ink:#E6ECF5; --muted:#9BA8BE; --line:#26365A;
+  --code-bg:#08111F; --code-ink:#E3E9F3; --code-line:#18294A;
+  --ok:#4CC08A; --ok-soft:#113626; --bad:#F07B70; --bad-soft:#3D1A17;
+  --tsc:#7FA6F2; --tsc-soft:#1A2B4D;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%; scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans); font-size:17px; line-height:1.62; -webkit-text-size-adjust:100%; transition:background-color .2s ease, color .2s ease}
+a{color:var(--navy-2)}
+a:hover{color:var(--orange)}
+:focus-visible{outline:3px solid var(--orange); outline-offset:2px; border-radius:4px}
+code{font-family:var(--mono); font-size:.86em; background:var(--tsc-soft); color:var(--ink); padding:.08em .35em; border-radius:4px}
+.layout{display:grid; grid-template-columns:292px minmax(0,1fr); min-height:100%}
+/* ---------- sidebar ---------- */
+.side{background:var(--navy); color:#fff; padding:28px 20px 24px; position:sticky; top:env(safe-area-inset-top,0px); height:100vh; overflow-y:auto}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .side{background:#0F1A2E}}
+:root[data-theme="dark"] .side{background:#0F1A2E}
+.brand{font-weight:700; font-size:1.28rem; line-height:1.2; margin:0 0 6px; letter-spacing:-.01em}
+.brand span{display:block; font-family:var(--mono); font-size:.72rem; font-weight:400; color:#F6B77B; margin-top:10px; line-height:1.5}
+.side-tools{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 16px; flex-wrap:wrap}
+.home{color:#F6B77B; font-size:.82rem; font-weight:600; text-decoration:none}
+.home:hover{color:#fff}
+.theme-switch{display:inline-flex; border:1px solid rgba(255,255,255,.3); border-radius:999px; padding:2px; gap:2px}
+.theme-switch button{appearance:none; border:0; background:transparent; color:#DCE5F4; font:inherit; font-size:.72rem; padding:4px 8px; border-radius:999px; cursor:pointer}
+.theme-switch button[aria-pressed="true"]{background:#E8781A; color:#1B0E00; font-weight:600}
+.progress{margin:22px 0 18px}
+.progress-bar{height:8px; background:rgba(255,255,255,.14); border-radius:8px; overflow:hidden}
+.progress-bar i{display:block; height:100%; width:0; background:#F2923F; transition:width .35s ease}
+.progress p{margin:8px 0 0; font-size:.84rem; color:#C9D6EC}
+.nav{list-style:none; margin:0; padding:0; counter-reset:n}
+.nav li{margin:2px 0}
+.nav button{all:unset; box-sizing:border-box; cursor:pointer; display:grid; grid-template-columns:28px 1fr 18px; gap:8px; align-items:start; width:100%; padding:9px 10px; border-radius:8px; color:#DCE5F4; font-size:.93rem; line-height:1.35}
+.nav button:hover{background:rgba(255,255,255,.07)}
+.nav button[aria-current="true"]{background:#fff; color:#15305A; font-weight:600}
+.nav .num{font-family:var(--mono); font-size:.8rem; opacity:.75; padding-top:1px}
+.nav .tick{font-size:.85rem; color:#F2923F; visibility:hidden}
+.nav li.done .tick{visibility:visible}
+.nav button[aria-current="true"] .tick{color:#E8781A}
+.side-foot{margin-top:22px; font-size:.78rem; color:#AFC0DC; line-height:1.5}
+.side-foot button{all:unset; cursor:pointer; text-decoration:underline; color:#F6B77B}
+/* ---------- main ---------- */
+main{padding:44px clamp(18px,5vw,64px) 80px}
+.chapter{max-width:800px}
+.chapter[hidden]{display:none}
+.kicker{font-family:var(--mono); font-size:.8rem; color:var(--orange); margin:0 0 6px}
+h2{font-size:clamp(1.7rem,3.2vw,2.3rem); line-height:1.15; margin:0 0 18px; color:var(--navy); letter-spacing:-.02em}
+h3{font-size:1.22rem; margin:38px 0 10px; color:var(--navy); line-height:1.3}
+h4{font-size:1.02rem; margin:24px 0 6px}
+p{margin:0 0 14px; max-width:72ch}
+.lead{font-size:1.1rem; color:var(--muted)}
+.docs{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 26px}
+.docs a{font-size:.85rem; text-decoration:none; border:1px solid var(--line); background:var(--surface); padding:5px 11px; border-radius:20px; color:var(--navy-2)}
+.docs a:hover{border-color:var(--orange); color:var(--orange)}
+/* code */
+figure.code{position:relative; margin:16px 0 22px; background:var(--code-bg); border-radius:10px; overflow:hidden; border:1px solid var(--code-line)}
+figure.code figcaption{font-family:var(--mono); font-size:.76rem; color:#9FB2D2; padding:8px 14px; border-bottom:1px solid var(--code-line); background:rgba(255,255,255,.03)}
+figure.code pre{margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:.84rem; line-height:1.6; color:var(--code-ink); tab-size:2}
+figure.code pre code{background:none; padding:0; color:inherit; font-size:inherit}
+.copy{position:absolute; top:6px; right:8px; font:500 .72rem var(--sans); color:#BFD0EA; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:6px; padding:3px 9px; cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+.t-com{color:#7D8FAD; font-style:italic}.t-str{color:#F6B77B}.t-key{color:#9CC5FF}.t-num{color:#F9D27A}
+.t-kw{color:#FF9D5C}.t-lit{color:#F9D27A}.t-type{color:#7FD6C2}.t-fn{color:#B6CCFF}
+/* callouts: problem -> why -> solution -> when */
+.fix{background:var(--surface); border:1px solid var(--line); border-left:5px solid var(--orange); border-radius:10px; padding:16px 20px 6px; margin:20px 0 24px}
+.fix h4{margin:0 0 10px; color:var(--orange)}
+.fix p{font-size:.96rem}
+.fix b{color:var(--navy)}
+.note{background:var(--tsc-soft); border-radius:10px; padding:14px 18px 2px; margin:18px 0 22px; font-size:.96rem}
+.note b{color:var(--navy)}
+/* widgets shared */
+.widget{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; margin:22px 0 28px}
+.widget h4{margin:0 0 4px; font-size:1.05rem; color:var(--navy)}
+.widget .hint{font-size:.9rem; color:var(--muted); margin:0 0 14px}
+.seg{display:inline-flex; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:3px; gap:2px; flex-wrap:wrap}
+.seg button{border:0; background:transparent; font:600 .9rem var(--sans); color:var(--muted); padding:7px 14px; border-radius:8px; cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--navy); color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#0C1524}}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#0C1524}
+/* js/ts toggle */
+.editor{margin-top:14px; background:var(--code-bg); border-radius:10px; overflow-x:auto; font-family:var(--mono); font-size:.83rem; line-height:1.65; color:var(--code-ink); padding:12px 0}
+.editor .ln{display:grid; grid-template-columns:38px 1fr; white-space:pre; padding-right:16px}
+.editor .ln > span:first-child{color:#51658A; text-align:right; padding-right:12px; user-select:none}
+.editor .err > span:last-child{text-decoration:underline wavy #FF6B5E; text-underline-offset:4px}
+.editor .msg{display:block; white-space:normal; margin:2px 16px 6px 50px; font-family:var(--sans); font-size:.8rem; color:#FFD2CC; background:rgba(255,107,94,.14); border-left:3px solid #FF6B5E; padding:4px 10px; border-radius:0 6px 6px 0}
+.editor-note{font-size:.92rem; margin:12px 0 0; color:var(--muted)}
+/* return type quiz */
+.rt-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px}
+.rt{border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--paper)}
+.rt .m{font-family:var(--mono); font-size:.88rem; font-weight:600; margin:0 0 10px; color:var(--navy)}
+.rt .opts{display:flex; flex-wrap:wrap; gap:6px}
+.rt .opts button{font:500 .78rem var(--mono); border:1px solid var(--line); background:var(--surface); color:var(--ink); padding:4px 8px; border-radius:6px; cursor:pointer}
+.rt .opts button.right{background:var(--ok-soft); border-color:var(--ok); color:var(--ok)}
+.rt .opts button.wrong{background:var(--bad-soft); border-color:var(--bad); color:var(--bad); text-decoration:line-through}
+.rt .fb{font-size:.84rem; margin:10px 0 0; line-height:1.5}
+.rt .fb[hidden]{display:none}
+.score{font-size:.9rem; margin:14px 0 0; color:var(--muted)}
+/* utility builder */
+.ub{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.2fr); gap:18px; margin-top:14px}
+.ub fieldset{border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin:0}
+.ub legend{font-size:.85rem; color:var(--muted); padding:0 6px}
+.ub label{display:flex; gap:8px; align-items:center; font-family:var(--mono); font-size:.85rem; padding:4px 0; cursor:pointer}
+.ub label.off{opacity:.45; cursor:default}
+.ub-out figure.code{margin:0}
+.ub-say{font-size:.9rem; margin:10px 0 0}
+/* tsconfig */
+.legend{display:flex; flex-wrap:wrap; gap:14px; font-size:.86rem; margin:0 0 12px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.legend i{width:12px; height:12px; border-radius:3px; display:inline-block}
+.tsc-wrap{display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); gap:16px; align-items:start}
+.json{background:var(--code-bg); color:var(--code-ink); font-family:var(--mono); font-size:.82rem; line-height:1.75; padding:14px 12px; border-radius:10px; overflow-x:auto; white-space:pre}
+.json button{all:unset; cursor:pointer; border-radius:4px; padding:0 3px; margin:0 -3px}
+.json button.pw{box-shadow:inset 0 -2px 0 var(--pw); color:#FFC48C}
+.json button.tsc{box-shadow:inset 0 -2px 0 var(--tsc); color:#A9C6FF}
+.json button:hover,.json button[aria-pressed="true"]{background:rgba(255,255,255,.12)}
+.json button:focus-visible{outline:2px solid var(--orange)}
+.explain{border:1px solid var(--line); border-radius:10px; padding:14px 16px; background:var(--paper); font-size:.93rem; min-height:160px}
+.explain .tag{display:inline-block; font-size:.74rem; font-weight:600; padding:2px 8px; border-radius:10px; margin-bottom:8px}
+.explain .tag.pw{background:var(--orange-soft); color:var(--orange)}
+.explain .tag.tsc{background:var(--tsc-soft); color:var(--tsc)}
+.explain h5{font-family:var(--mono); font-size:.92rem; margin:0 0 6px; color:var(--navy)}
+.explain p{margin:0 0 8px}
+/* find the bug */
+.bug{border:1px solid var(--line); border-radius:12px; margin:14px 0; overflow:hidden; background:var(--surface)}
+.bug-head{display:flex; justify-content:space-between; gap:10px; align-items:center; padding:10px 14px; border-bottom:1px solid var(--line)}
+.bug-head b{font-size:.95rem}
+.bug-head .st{font-size:.8rem; color:var(--muted)}
+.bug-head .st.ok{color:var(--ok); font-weight:600}
+.bug-code{background:var(--code-bg); padding:8px 0; overflow-x:auto}
+.bug-code button{all:unset; box-sizing:border-box; display:block; min-width:100%; width:max-content; white-space:pre; font-family:var(--mono); font-size:.82rem; line-height:1.7; color:var(--code-ink); padding:0 16px; cursor:pointer}
+.bug-code button:hover{background:rgba(255,255,255,.06)}
+.bug-code button.hit{background:rgba(76,192,138,.2); box-shadow:inset 3px 0 0 #4CC08A}
+.bug-code button.miss{background:rgba(255,107,94,.16); box-shadow:inset 3px 0 0 #FF6B5E}
+.bug-code button:focus-visible{outline:2px solid var(--orange); outline-offset:-2px}
+.bug-body{padding:12px 16px 4px; font-size:.93rem}
+.bug-body[hidden]{display:none}
+.bug-body figure.code{margin:8px 0 12px}
+.linkbtn{border:0; background:none; color:var(--navy-2); font:500 .82rem var(--sans); text-decoration:underline; cursor:pointer; padding:0}
+/* pager */
+.pager{display:flex; justify-content:space-between; gap:12px; margin-top:48px; padding-top:22px; border-top:1px solid var(--line); flex-wrap:wrap}
+.pager button{font:600 .95rem var(--sans); border:1px solid var(--line); background:var(--surface); color:var(--navy); padding:11px 18px; border-radius:10px; cursor:pointer}
+.pager button.primary{background:var(--orange); border-color:var(--orange); color:#fff}
+.pager button:disabled{visibility:hidden}
+.done-btn{font:500 .85rem var(--sans); border:0; background:none; color:var(--muted); text-decoration:underline; cursor:pointer}
+
+/* runner topic additions */
+.editor .mark > span:last-child{background:rgba(242,146,63,.10)}
+.editor .msg.tip{color:#FFE2C4; background:rgba(242,146,63,.14); border-left-color:#F2923F}
+.tree{background:var(--code-bg); border-radius:10px; padding:10px 6px; display:flex; flex-direction:column; gap:1px}
+.tree button{all:unset; box-sizing:border-box; cursor:pointer; font-family:var(--mono); font-size:.82rem; color:var(--code-ink); padding:5px 10px; border-radius:6px}
+.tree button.later{color:#8193B2; font-style:italic}
+.tree button.ext{margin-top:8px; border-top:1px dashed #2A3D60; border-radius:0; padding-top:9px}
+.tree button:hover,.tree button[aria-pressed="true"]{background:rgba(255,255,255,.1)}
+.tree button:focus-visible{outline:2px solid var(--orange)}
+.json button.run{box-shadow:inset 0 -2px 0 var(--pw); color:#FFC48C}
+.json button.use{box-shadow:inset 0 -2px 0 var(--tsc); color:#A9C6FF}
+.json button.proj{box-shadow:inset 0 -2px 0 var(--ok); color:#8FE0B7}
+.explain .tag.run{background:var(--orange-soft); color:var(--orange)}
+.explain .tag.use{background:var(--tsc-soft); color:var(--tsc)}
+.explain .tag.proj{background:var(--ok-soft); color:var(--ok)}
+.cli-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px 14px; margin-bottom:12px}
+.cli-grid label,.sim-controls label{display:flex; flex-direction:column; gap:4px; font-size:.82rem; color:var(--muted)}
+.cli-grid input,.cli-grid select,.sim-controls select{font:500 .9rem var(--sans); color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:7px 9px}
+.cli-flags{display:flex; flex-wrap:wrap; gap:6px 16px; margin-bottom:6px}
+.cli-flags label{font-family:var(--mono); font-size:.84rem; display:flex; gap:6px; align-items:center; cursor:pointer}
+.cli-explain p{font-size:.92rem; margin:0 0 6px}
+.sim-controls{display:flex; flex-wrap:wrap; gap:12px 18px; align-items:flex-end; margin-bottom:14px}
+.sim-controls label.chk{flex-direction:row; align-items:center; gap:6px; font-family:var(--mono); color:var(--ink); padding-bottom:8px; cursor:pointer}
+.sim-row{display:grid; grid-template-columns:78px 1fr; align-items:center; gap:8px; margin:6px 0}
+.sim-w{font-size:.78rem; color:var(--muted)}
+.sim-track{position:relative; height:34px; background:var(--paper); border:1px solid var(--line); border-radius:8px; overflow:hidden}
+.sim-blk{position:absolute; top:3px; bottom:3px; background:var(--c); color:#fff; font-size:.7rem; line-height:26px; padding:0 5px; border-radius:5px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; border-right:2px solid var(--surface); transition:left .35s ease,width .35s ease}
+.sim-blk.failed{background:repeating-linear-gradient(45deg,var(--bad),var(--bad) 6px,#9E2C22 6px,#9E2C22 12px)}
+.sim-blk.skipped{background:#8E99AB; text-align:center}
+.sim-blk.restart{background:transparent; color:var(--bad); text-align:center; font-weight:700; border:0}
+.sim-legend{display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; margin:10px 0 0; color:var(--muted)}
+.sim-legend span{display:inline-flex; align-items:center; gap:5px}
+.sim-legend i{width:11px; height:11px; border-radius:3px; display:inline-block}
+.sim-legend i.lg-fail{background:var(--bad)} .sim-legend i.lg-skip{background:#8E99AB}
+.sim-total{font-size:.9rem; margin:10px 0 0}
+.sim-say{font-size:.94rem; margin:8px 0 0}
+.hooks{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:14px}
+.hooks-src{background:var(--code-bg); color:var(--code-ink); font-family:var(--mono); font-size:.8rem; line-height:1.75; padding:10px 0; border-radius:10px; overflow-x:auto; white-space:pre}
+.hooks-src div{padding:0 12px}
+.hooks-src div.on{background:rgba(242,146,63,.22); box-shadow:inset 3px 0 0 #F2923F}
+.hooks-log{margin:0; padding:10px 14px 10px 34px; background:var(--paper); border:1px solid var(--line); border-radius:10px; font-size:.88rem}
+.hooks-log li{margin:0 0 6px}
+.hooks-log li.empty{list-style:none; margin-left:-20px; color:var(--muted)}
+#traceSeg button{font-family:var(--mono); font-size:.78rem}
+.runs{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:14px 0 10px}
+.run{border:1px solid var(--line); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:4px; background:var(--paper)}
+.run.fail{border-left:4px solid var(--bad)} .run.pass{border-left:4px solid var(--ok)}
+.run .res{font-size:.82rem; color:var(--muted)}
+.run .tr{font-size:.88rem; font-weight:600}
+.run .tr.kept{color:var(--ok)} .run .tr.dropped{color:var(--bad)} .run .tr.none{color:var(--muted); font-weight:500}
+@media (max-width:900px){.hooks,.runs{grid-template-columns:1fr}}
+
+
+/* reporting additions */
+.term{background:var(--code-bg); color:var(--code-ink); font-family:var(--mono); font-size:.78rem; line-height:1.6; padding:14px 16px; border-radius:10px; overflow-x:auto; min-height:220px; margin:0; white-space:pre}
+.c-r{color:#FF7B70}.c-y{color:#F6C26B}.c-g{color:#5FD39A}
+.hr{border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--paper)}
+.hr-chips{display:flex; flex-wrap:wrap; gap:6px; padding:10px; border-bottom:1px solid var(--line); background:var(--surface)}
+.chip{font:500 .82rem var(--sans); border:1px solid var(--line); background:var(--paper); color:var(--ink); padding:4px 10px; border-radius:16px; cursor:pointer}
+.chip b{font-weight:700; margin-left:3px}
+.chip[aria-pressed="true"]{background:var(--navy); color:#fff; border-color:var(--navy)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .chip[aria-pressed="true"]{color:#0C1524}}
+:root[data-theme="dark"] .chip[aria-pressed="true"]{color:#0C1524}
+.hr-body{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}
+.hr-list{border-right:1px solid var(--line); padding:6px 0}
+.hr-file{font:600 .76rem var(--mono); color:var(--muted); padding:8px 12px 4px}
+.hr-test{all:unset; box-sizing:border-box; display:grid; grid-template-columns:12px 1fr auto; gap:8px; align-items:center; width:100%; padding:7px 12px; font-size:.84rem; cursor:pointer}
+.hr-test:hover{background:var(--surface)}
+.hr-test:focus-visible{outline:2px solid var(--orange); outline-offset:-2px}
+.hr-test .dot,.hr-detail .st{border-radius:50%}
+.hr-test .dot{width:10px; height:10px; background:var(--ok)}
+.hr-test.failed .dot{background:var(--bad)} .hr-test.flaky .dot{background:#D9A21B} .hr-test.skipped .dot{background:#8E99AB}
+.hr-test em{font-style:normal; font-size:.7rem; background:var(--tsc-soft); color:var(--tsc); padding:1px 6px; border-radius:8px}
+.hr-test .du{font-size:.76rem; color:var(--muted)}
+.hr-detail{padding:12px 14px; font-size:.86rem; min-height:220px}
+.hr-detail h5{font-size:.95rem; margin:0 0 8px; color:var(--navy)}
+.hr-detail .st{border-radius:8px; font-size:.72rem; padding:1px 7px; margin-left:4px; color:#fff; background:var(--ok)}
+.hr-detail .st.failed{background:var(--bad)} .hr-detail .st.flaky{background:#D9A21B} .hr-detail .st.skipped{background:#8E99AB}
+.hr-sec{font-weight:600; margin:10px 0 4px; color:var(--navy)}
+.hr-err{background:var(--code-bg); color:#FFD2CC; font-family:var(--mono); font-size:.74rem; padding:10px; border-radius:8px; overflow-x:auto; margin:0; white-space:pre}
+.hr-step{display:grid; grid-template-columns:minmax(0,1fr) 90px 40px; gap:8px; align-items:center; font-size:.8rem; padding:2px 0}
+.hr-step .bar{height:6px; background:var(--line); border-radius:4px; overflow:hidden}
+.hr-step .bar i{display:block; height:100%; background:var(--orange)}
+.hr-att{margin:2px 0}
+.mut{color:var(--muted); font-size:.8rem; font-weight:400}
+.hr-hint{color:var(--muted)}
+.pipe-label{font-size:.85rem; font-weight:600; color:var(--navy); margin:12px 0 6px}
+.pipe-row{display:flex; flex-wrap:wrap; gap:8px}
+.pipe-box{flex:1 1 180px; border:1px solid var(--line); border-left:4px solid var(--orange); background:var(--paper); border-radius:8px; padding:8px 10px; display:flex; flex-direction:column; gap:4px; font-size:.84rem}
+.pipe-box.wide{flex-basis:100%}
+.pipe-box code{background:transparent; padding:0; font-size:.76rem; word-break:break-word}
+#lifeLog code{background:var(--tsc-soft)}
+@media (max-width:900px){.hr-body{grid-template-columns:1fr}.hr-list{border-right:0; border-bottom:1px solid var(--line)}}
+
+/* final quiz */
+.qz-top{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px}
+.qz-count{font-family:var(--mono); font-size:.82rem; color:var(--orange)}
+.qz-bar{height:6px; background:var(--paper); border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-bottom:18px}
+.qz-bar i{display:block; height:100%; width:0; background:var(--orange); transition:width .3s ease}
+.qz-q{font-size:1.08rem; font-weight:600; margin:0 0 12px; color:var(--ink)}
+.qz-opts{display:grid; gap:8px; margin:14px 0}
+.qz-opts button{text-align:left; font:500 .95rem var(--sans); line-height:1.45; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:11px 14px; cursor:pointer}
+.qz-opts button:hover:not(:disabled){border-color:var(--navy-2)}
+.qz-opts button:disabled{cursor:default}
+.qz-opts button.right{background:var(--ok-soft); border-color:var(--ok); color:var(--ok)}
+.qz-opts button.wrong{background:var(--bad-soft); border-color:var(--bad); color:var(--bad)}
+.qz-opts code{background:transparent; padding:0}
+.qz-fb{border-left:4px solid var(--line); padding:4px 0 4px 14px; margin:6px 0 14px; font-size:.94rem}
+.qz-fb.ok{border-color:var(--ok)} .qz-fb.no{border-color:var(--bad)}
+.qz-fb[hidden]{display:none}
+.qz-actions{display:flex; gap:10px; flex-wrap:wrap}
+.qz-actions button{font:600 .92rem var(--sans); border:1px solid var(--line); background:var(--surface); color:var(--navy); padding:10px 16px; border-radius:10px; cursor:pointer}
+.qz-actions button.primary{background:var(--orange); border-color:var(--orange); color:#fff}
+.qz-result{font-size:2.4rem; font-weight:700; color:var(--navy); margin:0; letter-spacing:-.02em}
+.qz-review{list-style:none; padding:0; margin:16px 0}
+.qz-review li{border-top:1px solid var(--line); padding:10px 0; font-size:.93rem}
+.qz-review .linkbtn{margin-left:4px}
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .side{position:sticky; top:0; height:auto; z-index:5; padding:12px 14px 10px; padding-top:calc(12px + env(safe-area-inset-top,0px)); margin-top:calc(-1 * env(safe-area-inset-top,0px))}
+  .brand{font-size:1rem}.brand span{display:none}
+  .progress{margin:8px 0}
+  .nav{display:flex; overflow-x:auto; gap:4px; padding-bottom:2px}
+  .nav li{flex:0 0 auto}
+  .nav button{grid-template-columns:auto auto auto; white-space:nowrap; padding:6px 10px; font-size:.82rem}
+  .side-foot{display:none}
+  main{padding-top:28px}
+  .ub,.tsc-wrap{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="side" aria-label="Зміст">
+  <div class="side-tools">
+    <a class="home" href="../index.html">На головну</a>
+    <div class="theme-switch" role="group" aria-label="Тема оформлення">
+      <button type="button" data-theme-set="auto" aria-pressed="true">Авто</button>
+      <button type="button" data-theme-set="light" aria-pressed="false">Світла</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Темна</button>
+    </div>
+  </div>
+  <p class="brand">Reporting у Playwright<span>@playwright/test 1.63<br>TypeScript 7.0, strict</span></p>
+  <div class="progress" aria-live="polite">
+    <div class="progress-bar"><i id="progressFill"></i></div>
+    <p id="progressText">0 з 12 розділів пройдено</p>
+  </div>
+  <ol class="nav" id="nav"></ol>
+  <div class="side-foot">Прогрес зберігається лише у вашому браузері. <button type="button" id="resetProgress">Скинути прогрес</button></div>
+</aside>
+<main id="main">
+<!-- ================= 1 ================= -->
+<section class="chapter" id="s1" data-title="Навіщо звіти">
+<p class="kicker">Розділ 1 з 12</p>
+<h2>Навіщо звіти і як вони працюють</h2>
+<p class="lead">Прогін тестів — це потік подій: прогін почався, тест стартував, крок завершився, тест упав, прогін закінчився. Репортер — це об'єкт, який отримує ці події і перетворює їх на щось корисне для конкретного читача.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-reporters" target="_blank" rel="noopener">Документація → Reporters</a>
+  <a href="https://playwright.dev/docs/api/class-reporter" target="_blank" rel="noopener">Документація → Reporter API</a>
+</div>
+<p>Різним людям потрібні різні звіти. Розробнику під час роботи досить рядка в терміналі: що пройшло, що впало і де. CI-системі потрібен формат, який вона вміє показати на вкладці з тестами, наприклад JUnit XML. Тому, хто розбирає падіння, потрібен інтерактивний звіт зі скриншотами й трейсом. А для власної аналітики потрібні сирі дані в JSON. Playwright Test має набір вбудованих репортерів під ці задачі й дозволяє написати свій.</p>
+<p>Усі репортери отримують ті самі події від раннера, тому їх можна вмикати одночасно: один пише в термінал, другий будує HTML, третій зберігає XML для CI. Репортер нічого не змінює у виконанні тестів, він лише спостерігає.</p>
+
+<div class="widget" id="whoWidget">
+  <h4>Який репортер для якої задачі?</h4>
+  <p class="hint">Для кожної ситуації оберіть вбудований репортер, який підходить найкраще.</p>
+  <div class="rt-grid" id="whoGrid"></div>
+  <p class="score" id="whoScore" aria-live="polite"></p>
+</div>
+</section>
+
+<!-- ================= 2 ================= -->
+<section class="chapter" id="s2" data-title="Підключення репортерів" hidden>
+<p class="kicker">Розділ 2 з 12</p>
+<h2>Підключення репортерів</h2>
+<p class="lead">Репортер задається в конфігу, у командному рядку або через змінні оточення. Якщо його не задано, раннер обирає сам: <code>list</code> локально і <code>dot</code> у CI.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-reporters#multiple-reporters" target="_blank" rel="noopener">Документація → Multiple reporters</a>
+  <a href="https://playwright.dev/docs/test-reporters#reporters-on-ci" target="_blank" rel="noopener">Документація → Reporters on CI</a>
+  <a href="https://playwright.dev/docs/test-cli" target="_blank" rel="noopener">Документація → Command line</a>
+</div>
+<p>У конфігу опція <code>reporter</code> приймає або рядок з назвою, або масив кортежів «назва + об'єкт опцій». Масив дозволяє ввімкнути кілька репортерів одночасно. Поширений патерн — різні репортери для CI і локальної роботи через <code>process.env.CI</code>.</p>
+<script type="text/x-code" data-file="playwright.config.ts (фрагмент)">
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  reporter: process.env.CI
+    ? [['dot'], ['junit', { outputFile: 'results/junit.xml' }], ['html', { open: 'never' }]]
+    : [['list'], ['html', { open: 'on-failure' }]],
+});
+</script>
+<p>Для одного запуску репортер можна задати прапорцем. <code>--reporter</code> замінює репортери з конфігу, кілька назв перелічуються через кому. <code>--add-reporter</code> додає репортер поверх тих, що вже є в конфігу. Багато опцій вбудованих репортерів дублюються змінними оточення з префіксом <code>PLAYWRIGHT_</code>, наприклад <code>PLAYWRIGHT_HTML_OPEN</code> або <code>PLAYWRIGHT_JSON_OUTPUT_NAME</code>. Це зручно, коли конфіг міняти не можна.</p>
+<script type="text/x-code" data-lang="sh" data-file="Термінал">
+npx playwright test --reporter=line                 # replace config reporters
+npx playwright test --reporter=dot,html             # several at once
+npx playwright test --add-reporter=junit            # keep config reporters and add one more
+PLAYWRIGHT_JSON_OUTPUT_NAME=results.json npx playwright test --reporter=json
+</script>
+
+<div class="widget" id="buildWidget">
+  <h4>Конструктор налаштування reporter</h4>
+  <p class="hint">Позначте репортери й опції: конструктор збере фрагмент конфігу та еквівалентну команду.</p>
+  <div class="cli-flags" id="buildChecks"></div>
+  <div class="sim-controls">
+    <label class="chk"><input type="checkbox" id="buildCi"> Різні репортери для CI і локально</label>
+    <label>HTML open
+      <select id="buildOpen"><option value="">за замовчуванням (on-failure)</option><option>always</option><option>never</option><option>on-failure</option></select>
+    </label>
+  </div>
+  <div id="buildOut"></div>
+  <p class="sim-say" id="buildSay"></p>
+</div>
+</section>
+
+<!-- ================= 3 ================= -->
+<section class="chapter" id="s3" data-title="Термінальні: list, line, dot" hidden>
+<p class="kicker">Розділ 3 з 12</p>
+<h2>Термінальні репортери: list, line, dot</h2>
+<p class="lead">Три репортери пишуть у термінал і відрізняються лише детальністю. Порівняйте їх на одному й тому самому прогоні.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-reporters#list-reporter" target="_blank" rel="noopener">Документація → List reporter</a>
+  <a href="https://playwright.dev/docs/test-reporters#line-reporter" target="_blank" rel="noopener">Документація → Line reporter</a>
+  <a href="https://playwright.dev/docs/test-reporters#dot-reporter" target="_blank" rel="noopener">Документація → Dot reporter</a>
+</div>
+
+<div class="widget" id="termWidget">
+  <h4>Один прогін, три репортери</h4>
+  <p class="hint">Шість тестів, два воркери, <code>retries: 1</code>. «applies a coupon» падає двічі, «signs in» проходить лише на повторі, один тест пропущено. Оберіть репортер і запустіть.</p>
+  <div class="seg" role="group" aria-label="Репортер" id="termSeg">
+    <button type="button" data-r="list" aria-pressed="true">list</button>
+    <button type="button" data-r="line" aria-pressed="false">line</button>
+    <button type="button" data-r="dot" aria-pressed="false">dot</button>
+  </div>
+  <div class="qz-actions" style="margin:12px 0"><button type="button" class="primary" id="termRun">Запустити</button><button type="button" id="termAll">Показати результат одразу</button></div>
+  <pre class="term" id="termOut" aria-live="polite"></pre>
+  <p class="sim-say" id="termSay"></p>
+</div>
+
+<p><code>list</code> друкує рядок на кожен запуск тесту з позначкою результату й тривалістю. Опція <code>printSteps: true</code> додає рядки для кроків <code>test.step</code>. <code>line</code> тримає один рядок прогресу, який постійно оновлюється, і друкує деталі лише тоді, коли тест остаточно впав. Тому його вивід компактний навіть для тисяч тестів. <code>dot</code> друкує один символ на результат і підходить для CI-логів, де важливий лише загальний підсумок. Значення символів взято з вихідного коду репортера: <code>·</code> — пройшов, <code>F</code> — упав, <code>T</code> — тайм-аут, <code>±</code> — flaky, <code>°</code> — пропущено, <code>×</code> — упав, але буде повтор.</p>
+<p>Усі три після прогону друкують однаковий підсумок: деталі падінь, кількість тестів за статусами й загальний час. Опція <code>omitTags</code> прибирає теги з назв тестів у виводі.</p>
+<script type="text/x-code" data-file="playwright.config.ts (фрагмент)">
+reporter: [['list', { printSteps: true }]],
+</script>
+</section>
+
+<!-- ================= 4 ================= -->
+<section class="chapter" id="s4" data-title="HTML reporter" hidden>
+<p class="kicker">Розділ 4 з 12</p>
+<h2>HTML reporter</h2>
+<p class="lead">HTML-звіт — головний інструмент розбору результатів. Це самодостатній вебзастосунок у каталозі <code>playwright-report</code>, з фільтрами, деталями кожного тесту, вкладеннями і вбудованим переглядом трейсів.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-reporters#html-reporter" target="_blank" rel="noopener">Документація → HTML reporter</a>
+  <a href="https://playwright.dev/docs/intro#html-test-reports" target="_blank" rel="noopener">Документація → HTML test reports</a>
+</div>
+<p>Звіт можна відфільтрувати за браузером і статусом: passed, failed, flaky, skipped. Клік на тест відкриває його помилки з фрагментом коду, кроки з тривалістю, вкладення (скриншоти, відео, трейси) і анотації. У Playwright 1.63 біля кроків з'явилася діаграма тривалості, тож видно, який крок «з'їв» найбільше часу.</p>
+
+<div class="widget" id="htmlWidget">
+  <h4>Як читати HTML-звіт</h4>
+  <p class="hint">Спрощений макет звіту для того самого прогону. Фільтруйте за статусом і відкривайте тест, щоб побачити, що в ньому показано.</p>
+  <div class="hr" id="hr"></div>
+</div>
+
+<h3>Опції</h3>
+<p><code>open</code> визначає, коли відкривати звіт після прогону: <code>'always'</code>, <code>'never'</code> або <code>'on-failure'</code>. Останнє значення діє за замовчуванням: звіт відкривається сам, лише якщо щось упало. У CI ставте <code>'never'</code>, інакше процес чекатиме, поки хтось закриє звіт. <code>outputFolder</code> змінює каталог звіту, за замовчуванням <code>playwright-report</code>. <code>host</code> і <code>port</code> визначають, де піднімається сервер для перегляду. <code>title</code> задає заголовок звіту. <code>noSnippets</code> прибирає фрагменти коду біля помилок. <code>attachmentsBaseURL</code> потрібен, коли вкладення лежать на окремому сервері.</p>
+<script type="text/x-code" data-file="playwright.config.ts (фрагмент)">
+reporter: [['html', {
+  outputFolder: 'reports/html',
+  open: process.env.CI ? 'never' : 'on-failure',
+  title: 'Shop E2E',
+}]],
+</script>
+<script type="text/x-code" data-lang="sh" data-file="Термінал">
+npx playwright show-report                 # open playwright-report/
+npx playwright show-report reports/html    # open a report from another folder
+</script>
+<div class="fix">
+  <h4>Чому не відкривати index.html подвійним кліком</h4>
+  <p><b>Проблема.</b> Звіт відкривають прямо з файлової системи, і частина вмісту, зокрема трейси, не працює.</p>
+  <p><b>Чому.</b> Звіт розрахований на роботу через HTTP-сервер. Команда <code>show-report</code> піднімає такий сервер локально.</p>
+  <p><b>Рішення.</b> Відкривайте звіт через <code>npx playwright show-report</code>, а в CI публікуйте каталог як артефакт або статичний сайт.</p>
+  <p><b>Коли.</b> Завжди, коли звіт потрапляє на іншу машину: з CI-артефакту, з архіву колеги.</p>
+</div>
+</section>
+
+<!-- ================= 5 ================= -->
+<section class="chapter" id="s5" data-title="JSON, JUnit, GitHub" hidden>
+<p class="kicker">Розділ 5 з 12</p>
+<h2>Машиночитані звіти: JSON, JUnit, GitHub</h2>
+<p class="lead">Ці репортери пишуть не для людини, а для інших інструментів: CI-системи, дашборду чи власного скрипта аналітики.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-reporters#json-reporter" target="_blank" rel="noopener">Документація → JSON reporter</a>
+  <a href="https://playwright.dev/docs/test-reporters#junit-reporter" target="_blank" rel="noopener">Документація → JUnit reporter</a>
+  <a href="https://playwright.dev/docs/test-reporters#github-actions-annotations" target="_blank" rel="noopener">Документація → GitHub Actions annotations</a>
+</div>
+<p>JSON-репортер формує один об'єкт з усією інформацією про прогін: конфіг, дерево файлів і тестів, результати кожної спроби зі статусами, помилками й вкладеннями, загальну статистику. JUnit-репортер пише XML у форматі, який розуміють Jenkins, GitLab, Azure DevOps та інші CI-системи. Вони показують тести на окремій вкладці.</p>
+<p>Якщо файл не вказано, обидва репортери друкують результат у стандартний вивід. Майже завжди потрібен файл: його задає опція <code>outputFile</code> або змінна <code>PLAYWRIGHT_JSON_OUTPUT_NAME</code> / <code>PLAYWRIGHT_JUNIT_OUTPUT_NAME</code>. Відносний шлях рахується від каталогу конфігу.</p>
+<script type="text/x-code" data-file="playwright.config.ts (фрагмент)">
+reporter: [
+  ['json', { outputFile: 'results/results.json' }],
+  ['junit', {
+    outputFile: 'results/junit.xml',
+    includeProjectInTestName: true, // "[chromium] adds an item" instead of just the title
+  }],
+],
+</script>
+<p>Опції JUnit корисно знати поіменно. <code>includeProjectInTestName</code> додає назву проєкту до назви тесту, щоб у CI розрізняти той самий тест у різних браузерах. <code>includeRetries</code> включає в XML інформацію про повтори. <code>stripANSIControlSequences</code> прибирає з тексту помилок керівні символи кольорів терміналу.</p>
+<p>Репортер <code>github</code> працює в GitHub Actions: він додає до коміту чи pull request анотації з падіннями прямо біля рядків коду. Документація радить вмикати його в CI замість <code>dot</code>: <code>reporter: process.env.CI ? 'github' : 'list'</code>.</p>
+
+<h3>Читаємо JSON власним скриптом</h3>
+<p>Приклад нижче рахує тести за статусом з файлу JSON-звіту. Тип <code>JSONReport</code> експортує сам Playwright, тож структуру звіту не треба описувати вручну.</p>
+<script type="text/x-code" data-file="scripts/summary.ts">
+import { readFileSync } from 'node:fs';
+import type { JSONReport } from '@playwright/test/reporter';
+
+function loadReport(path: string): JSONReport {
+  return JSON.parse(readFileSync(path, 'utf8')) as JSONReport;
+}
+
+function formatSummary(report: JSONReport): string {
+  const { expected, unexpected, flaky, skipped } = report.stats;
+  return `passed: ${expected}, failed: ${unexpected}, flaky: ${flaky}, skipped: ${skipped}`;
+}
+
+console.log(formatSummary(loadReport('results/results.json')));
+</script>
+</section>
+
+<!-- ================= 6 ================= -->
+<section class="chapter" id="s6" data-title="Blob, merge-reports, perfetto" hidden>
+<p class="kicker">Розділ 6 з 12</p>
+<h2>Blob, merge-reports і perfetto</h2>
+<p class="lead">Коли тести шардуються на кілька машин, кожна бачить лише свою частину. Blob-репортер зберігає «сирі» результати шарду, а <code>merge-reports</code> збирає з них один звичайний звіт.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-reporters#blob-reporter" target="_blank" rel="noopener">Документація → Blob reporter</a>
+  <a href="https://playwright.dev/docs/test-sharding#merging-reports-from-multiple-shards" target="_blank" rel="noopener">Документація → Merging reports</a>
+  <a href="https://playwright.dev/docs/release-notes" target="_blank" rel="noopener">Документація → Release notes 1.63</a>
+</div>
+<p>Blob-звіт містить усі деталі прогону й вкладення, але не призначений для читання. За замовчуванням він пишеться в каталог <code>blob-report</code>. Після того як усі шарди відпрацювали, їхні blob-файли збирають в один каталог і запускають <code>npx playwright merge-reports</code> з потрібним репортером. Результат такий самий, наче всі тести йшли на одній машині.</p>
+
+<div class="widget" id="shardWidget">
+  <h4>Конвеєр шардованого звіту</h4>
+  <p class="hint">Оберіть кількість шардів і фінальний репортер, щоб побачити команди й файли на кожному кроці.</p>
+  <div class="sim-controls">
+    <label>Шарди<select id="shardN"><option>2</option><option selected>3</option><option>4</option></select></label>
+    <label>Фінальний репортер<select id="shardR"><option>html</option><option>junit</option><option>json</option></select></label>
+  </div>
+  <div class="pipe" id="pipe"></div>
+</div>
+<p>У CI крок злиття зазвичай окрема задача, яка завантажує артефакти всіх шардів. Документація показує повний приклад workflow для GitHub Actions.</p>
+
+<h3>perfetto</h3>
+<p>Новий у Playwright 1.63 репортер <code>perfetto</code> пише файл у форматі Trace Event Format, за замовчуванням <code>test-results/perfetto.json</code>. Його відкривають у Perfetto UI або на сторінці <code>chrome://tracing</code> і бачать прогін як часову шкалу з окремою доріжкою для кожного воркера. Це зручно, щоб знайти, де воркери простоюють і які файли тягнуть прогін.</p>
+<script type="text/x-code" data-file="playwright.config.ts (фрагмент)">
+reporter: [['list'], ['perfetto', { outputFile: 'perfetto.json.gz' }]],
+</script>
+</section>
+
+<!-- ================= 7 ================= -->
+<section class="chapter" id="s7" data-title="Статуси і результати" hidden>
+<p class="kicker">Розділ 7 з 12</p>
+<h2>Статуси і результати</h2>
+<p class="lead">У звітах живуть два різні поняття: статус окремої спроби тесту і підсумок тесту з урахуванням усіх спроб та очікувань. Їх плутають частіше за все інше.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/api/class-testresult" target="_blank" rel="noopener">Документація → TestResult</a>
+  <a href="https://playwright.dev/docs/api/class-testcase" target="_blank" rel="noopener">Документація → TestCase</a>
+  <a href="https://playwright.dev/docs/api/class-testinfo" target="_blank" rel="noopener">Документація → TestInfo</a>
+</div>
+<p>Кожна спроба має статус: <code>passed</code>, <code>failed</code>, <code>timedOut</code>, <code>skipped</code> або <code>interrupted</code>. Останній означає, що спробу перервано ззовні: прогін зупинено через <code>--max-failures</code> чи вручну. Тест (<code>TestCase</code>) має очікуваний статус <code>expectedStatus</code>: зазвичай <code>passed</code>, а для <code>test.fail()</code> — <code>failed</code>. З порівняння спроб з очікуванням виходить підсумок <code>outcome()</code>: <code>expected</code> (усе як очікувалося), <code>unexpected</code> (не збіглося на жодній спробі), <code>flaky</code> (не збіглося, а на повторі збіглося) або <code>skipped</code>.</p>
+<p>Саме <code>outcome</code> рахують підсумкові рядки «passed / failed / flaky» у терміналі та розділ <code>stats</code> у JSON. Звідси неочевидний наслідок: тест з <code>test.fail()</code>, який справді впав, рахується як очікуваний результат.</p>
+<div class="widget" id="outWidget">
+  <h4>Статус спроби чи підсумок тесту?</h4>
+  <p class="hint">Для кожної ситуації оберіть outcome() тесту.</p>
+  <div class="rt-grid" id="outGrid"></div>
+  <p class="score" id="outScore" aria-live="polite"></p>
+</div>
+<h3>Статус у хуку afterEach</h3>
+<p>Під час виконання той самий статус доступний через <code>testInfo</code>. У <code>afterEach</code> він уже відомий, тож можна, наприклад, зібрати додаткову діагностику лише для тестів, що пішли не за планом. Порівнювати варто з <code>testInfo.expectedStatus</code>, а не з рядком <code>'failed'</code>: так коректно обробляються тести з <code>test.fail()</code>.</p>
+<script type="text/x-code" data-file="tests/hooks.ts">
+import { test, type Page, type TestInfo } from '@playwright/test';
+
+async function attachPageUrl(page: Page, testInfo: TestInfo): Promise<void> {
+  await testInfo.attach('page-url', { body: page.url(), contentType: 'text/plain' });
+}
+
+test.afterEach(async ({ page }, testInfo: TestInfo) => {
+  if (testInfo.status !== testInfo.expectedStatus) {
+    await attachPageUrl(page, testInfo);
+  }
+});
+</script>
+</section>
+
+<!-- ================= 8 ================= -->
+<section class="chapter" id="s8" data-title="Вкладення, кроки, анотації" hidden>
+<p class="kicker">Розділ 8 з 12</p>
+<h2>Вкладення, кроки й анотації</h2>
+<p class="lead">Звіт показує те, що тест йому дав. Чим краще тест структурований і чим більше контексту він прикріплює, тим швидше розбирається падіння.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/api/class-testinfo#test-info-attach" target="_blank" rel="noopener">Документація → testInfo.attach</a>
+  <a href="https://playwright.dev/docs/api/class-test#test-step" target="_blank" rel="noopener">Документація → test.step</a>
+  <a href="https://playwright.dev/docs/test-annotations" target="_blank" rel="noopener">Документація → Annotations</a>
+  <a href="https://playwright.dev/docs/test-use-options#recording-options" target="_blank" rel="noopener">Документація → Recording options</a>
+</div>
+<h3>Кроки</h3>
+<p><code>test.step</code> ділить тест на іменовані кроки, і у звіті замість довгого списку кліків видно зрозумілу структуру. Кроки можна вкладати один в один. Опція <code>box: true</code> робить крок «коробкою»: якщо всередині щось упаде, помилка вказуватиме на виклик кроку, а не на рядок усередині хелпера. Це зручно для кроків з Page Object.</p>
+<script type="text/x-code" data-file="tests/checkout.spec.ts">
+import { test, expect, type Page } from '@playwright/test';
+
+async function addToCart(page: Page, productName: string): Promise<void> {
+  await test.step(`add "${productName}" to the cart`, async () => {
+    await page.getByRole('link', { name: productName }).click();
+    await page.getByRole('button', { name: 'Add to cart' }).click();
+  }, { box: true });
+}
+
+test('checkout with two items', { tag: '@smoke' }, async ({ page }) => {
+  await page.goto('/catalog');
+  await addToCart(page, 'Wireless Mouse');
+  await addToCart(page, 'USB-C Cable');
+
+  await test.step('verify the total', async () => {
+    await expect(page.getByTestId('cart-total')).toHaveText('$34.98');
+  });
+});
+</script>
+<h3>Вкладення</h3>
+<p><code>testInfo.attach()</code> прикріплює до тесту довільні дані: текст, JSON, зображення або файл з диска. Вкладення з'являються в HTML-звіті біля тесту і передаються репортерам у <code>result.attachments</code>. Дані передаються або як <code>body</code> з <code>contentType</code>, або як <code>path</code> до файлу. Метод асинхронний, тож потрібен <code>await</code>.</p>
+<script type="text/x-code" data-file="tests/api-attach.spec.ts">
+import { test, expect, type APIResponse } from '@playwright/test';
+
+test('order API returns the created order', async ({ request }, testInfo) => {
+  const response: APIResponse = await request.post('/api/orders', { data: { productId: 42 } });
+  await testInfo.attach('order-response', {
+    body: JSON.stringify(await response.json(), null, 2),
+    contentType: 'application/json',
+  });
+  await expect(response).toBeOK();
+});
+</script>
+<h3>Автоматичні артефакти</h3>
+<p>Скриншоти, відео й трейси раннер може прикріплювати сам. Їх вмикають у <code>use</code>: <code>screenshot</code>, <code>video</code>, <code>trace</code>. Документація радить для CI режими, що зберігають артефакти лише при проблемах: вони дають діагностику без великих витрат часу й місця.</p>
+<div class="widget" id="artWidget">
+  <h4>Що збереже режим?</h4>
+  <p class="hint">Оберіть, коли буде збережено артефакт.</p>
+  <div class="rt-grid" id="artGrid"></div>
+  <p class="score" id="artScore" aria-live="polite"></p>
+</div>
+<h3>Анотації і теги</h3>
+<p>Анотації (<code>annotation: { type, description }</code>) і теги (<code>tag: '@smoke'</code>) відображаються в HTML-звіті, а репортерам доступні через <code>test.annotations</code> і <code>test.tags</code>. Анотацію типу <code>issue</code> з посиланням на задачу зручно додавати до відомих багів.</p>
+</section>
+
+<!-- ================= 9 ================= -->
+<section class="chapter" id="s9" data-title="Трейси і Trace Viewer" hidden>
+<p class="kicker">Розділ 9 з 12</p>
+<h2>Трейси і Trace Viewer</h2>
+<p class="lead">Трейс — найдетальніше вкладення: повний запис спроби тесту, який можна прокрутити крок за кроком уже після прогону.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/trace-viewer" target="_blank" rel="noopener">Документація → Trace viewer</a>
+  <a href="https://playwright.dev/docs/trace-viewer-intro" target="_blank" rel="noopener">Документація → Trace viewer intro</a>
+</div>
+<p>Trace Viewer показує список дій з тривалістю, знімки DOM до, під час і після кожної дії, мережеві запити, консоль браузера, помилки, вихідний код тесту й метадані. Знімки інтерактивні: можна інспектувати елементи й перевіряти локатори просто в записі. Відкрити трейс можна трьома способами: з HTML-звіту (кнопка біля тесту), командою <code>npx playwright show-trace</code> або завантаживши файл на <code>trace.playwright.dev</code>. Останній варіант обробляє трейс у браузері й нікуди його не надсилає.</p>
+<script type="text/x-code" data-lang="sh" data-file="Термінал">
+npx playwright test --trace on                      # force tracing for this run
+npx playwright show-trace test-results/cart-adds-an-item-chromium/trace.zip
+</script>
+<div class="widget" id="traceWidget">
+  <h4>Який трейс збережеться?</h4>
+  <p class="hint">Оберіть сценарій і режим trace.</p>
+  <div class="seg" role="group" aria-label="Сценарій" id="traceScen">
+    <button type="button" data-s="flaky" aria-pressed="true">Впав, на повторі пройшов</button>
+    <button type="button" data-s="fail" aria-pressed="false">Впав двічі</button>
+    <button type="button" data-s="pass" aria-pressed="false">Пройшов з першого разу</button>
+  </div>
+  <div class="seg" role="group" aria-label="Режим trace" id="traceSeg" style="margin-top:8px"></div>
+  <div class="runs" id="traceRuns" aria-live="polite"></div>
+  <p id="traceText" style="font-size:.94rem"></p>
+</div>
+<div class="note"><p><b>Трейси бувають великими.</b> Режим <code>'on'</code> записує кожну спробу кожного тесту. Для CI документація радить <code>'on-first-retry'</code> або <code>'retain-on-failure'</code>: так діагностика є саме там, де вона потрібна.</p></div>
+</section>
+
+<!-- ================= 10 ================= -->
+<section class="chapter" id="s10" data-title="Власний reporter" hidden>
+<p class="kicker">Розділ 10 з 12</p>
+<h2>Власний reporter</h2>
+<p class="lead">Коли вбудованих форматів замало, наприклад потрібно надіслати підсумок у месенджер чи записати метрики у власну систему, пишуть свій репортер. Це клас з методами, які раннер викликає на кожну подію.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-reporters#custom-reporters" target="_blank" rel="noopener">Документація → Custom reporters</a>
+  <a href="https://playwright.dev/docs/api/class-reporter" target="_blank" rel="noopener">Документація → Reporter API</a>
+</div>
+<p>Усі методи інтерфейсу <code>Reporter</code> необов'язкові: реалізуйте лише ті події, що потрібні. Типи імпортуються з <code>@playwright/test/reporter</code>. <code>onBegin</code> отримує конфіг і кореневий <code>Suite</code> з усіма зібраними тестами. <code>onTestBegin</code> і <code>onTestEnd</code> викликаються для кожної спроби. <code>onStepBegin</code> і <code>onStepEnd</code> — для кроків. <code>onError</code> — для глобальних помилок поза тестами. <code>onEnd</code> — після прогону, з підсумковим статусом; він може бути асинхронним, і саме тут зазвичай пишуть файли чи надсилають запити. <code>onExit</code> — останній шанс прибрати за собою. Метод <code>printsToStdio()</code> варто повертати <code>false</code>, якщо репортер не пише в термінал: тоді раннер сам додасть стандартний вивід, щоб людина бачила прогрес.</p>
+<script type="text/x-code" data-file="reporters/summary-reporter.ts">
+import type {
+  FullConfig, FullResult, Reporter, Suite, TestCase, TestResult,
+} from '@playwright/test/reporter';
+import { writeFileSync } from 'node:fs';
+
+interface SummaryOptions {
+  outputFile?: string;
+}
+
+interface Summary {
+  total: number;
+  failed: string[];
+  flaky: string[];
+  status: FullResult['status'];
+}
+
+class SummaryReporter implements Reporter {
+  private readonly outputFile: string;
+  private total = 0;
+  private readonly tests: TestCase[] = [];
+
+  constructor(options: SummaryOptions = {}) {
+    this.outputFile = options.outputFile ?? 'summary.json';
+  }
+
+  onBegin(config: FullConfig, suite: Suite): void {
+    this.total = suite.allTests().length;
+  }
+
+  onTestEnd(test: TestCase, result: TestResult): void {
+    if (!this.tests.includes(test)) this.tests.push(test);
+  }
+
+  async onEnd(result: FullResult): Promise<void> {
+    writeFileSync(this.outputFile, JSON.stringify(this.buildSummary(result.status), null, 2));
+  }
+
+  printsToStdio(): boolean {
+    return false;
+  }
+
+  private buildSummary(status: FullResult['status']): Summary {
+    const titleOf = (test: TestCase): string => test.titlePath().join(' › ');
+    return {
+      total: this.total,
+      failed: this.tests.filter((t) => t.outcome() === 'unexpected').map(titleOf),
+      flaky: this.tests.filter((t) => t.outcome() === 'flaky').map(titleOf),
+      status,
+    };
+  }
+}
+
+export default SummaryReporter;
+</script>
+<script type="text/x-code" data-file="playwright.config.ts (фрагмент)">
+reporter: [
+  ['list'],
+  ['./reporters/summary-reporter.ts', { outputFile: 'results/summary.json' }],
+],
+</script>
+<p>Шлях до власного репортера вказується відносно конфігу, а об'єкт опцій з кортежу потрапляє в конструктор. Тримайте репортери в окремому каталозі на кшталт <code>reporters/</code>, а не серед тестів, щоб раннер не намагався зібрати їх як тестові файли.</p>
+<div class="widget" id="lifeWidget">
+  <h4>У якому порядку раннер викликає методи</h4>
+  <p class="hint">Один тест з одним кроком, падіння на першій спробі, успіх на повторі (<code>retries: 1</code>). Проходьте по кроках.</p>
+  <ol class="hooks-log" id="lifeLog" aria-live="polite"></ol>
+  <div class="qz-actions" style="margin-top:12px">
+    <button type="button" class="primary" id="lifeNext">Наступна подія</button>
+    <button type="button" id="lifeAll">Показати все</button>
+    <button type="button" id="lifeReset">Спочатку</button>
+  </div>
+</div>
+</section>
+
+<!-- ================= 11 ================= -->
+<section class="chapter" id="s11" data-title="Типові помилки" hidden>
+<p class="kicker">Розділ 11 з 12</p>
+<h2>Типові помилки</h2>
+<p class="lead">Більшість проблем зі звітами — не баги, а неправильні налаштування: звіт не туди пишеться, не тоді відкривається або його ніхто не бачить.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-reporters" target="_blank" rel="noopener">Документація → Reporters</a>
+  <a href="https://playwright.dev/docs/test-sharding" target="_blank" rel="noopener">Документація → Sharding</a>
+</div>
+<p>Найчастіше трапляються такі помилки. HTML-звіт у CI з <code>open</code> за замовчуванням або <code>'always'</code>. JSON чи JUnit без файлу, коли результат змішується з виводом у консолі. <code>--reporter</code> замість <code>--add-reporter</code>, через що зникають репортери з конфігу. Шардовані прогони без <code>blob</code> і злиття. <code>trace: 'on-first-retry'</code> без повторів. <code>testInfo.attach</code> без <code>await</code>. Порівняння статусу з <code>'failed'</code> замість <code>expectedStatus</code>. І власний репортер, що не пише в термінал, але повертає <code>true</code> з <code>printsToStdio</code>.</p>
+<div class="widget" id="bugWidget">
+  <h4>Знайди помилку</h4>
+  <p class="hint">У кожному фрагменті один проблемний рядок. Натисніть на нього, щоб перевірити себе.</p>
+  <div id="bugList"></div>
+  <p class="score" id="bugScore" aria-live="polite"></p>
+</div>
+</section>
+
+<!-- ================= 12 ================= -->
+<section class="chapter" id="s12" data-title="Шпаргалка" hidden>
+<p class="kicker">Розділ 12 з 12</p>
+<h2>Шпаргалка</h2>
+<p class="lead">Усе основне на одному екрані. Після шпаргалки — підсумковий квіз для самоперевірки.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-reporters" target="_blank" rel="noopener">Документація → Reporters</a>
+  <a href="https://playwright.dev/docs/trace-viewer" target="_blank" rel="noopener">Документація → Trace viewer</a>
+  <a href="https://playwright.dev/docs/api/class-reporter" target="_blank" rel="noopener">Документація → Reporter API</a>
+</div>
+<script type="text/x-code" data-file="Вбудовані репортери">
+'list'      // default locally: one line per test result
+'line'      // one updating progress line, failures printed inline
+'dot'       // default on CI: one character per result
+'html'      // interactive report in playwright-report/
+'json'      // full run data; outputFile or PLAYWRIGHT_JSON_OUTPUT_NAME
+'junit'     // XML for CI test tabs; outputFile or PLAYWRIGHT_JUNIT_OUTPUT_NAME
+'github'    // annotations in GitHub Actions
+'blob'      // raw shard results for merge-reports (blob-report/)
+'perfetto'  // timeline per worker, test-results/perfetto.json (new in 1.63)
+'null'      // no output
+</script>
+<script type="text/x-code" data-file="Конфіг">
+reporter: process.env.CI
+  ? [['dot'], ['junit', { outputFile: 'results/junit.xml' }], ['html', { open: 'never' }]]
+  : [['list'], ['html']],
+use: {
+  trace: 'on-first-retry',          // or 'retain-on-failure'
+  screenshot: 'only-on-failure',
+  video: 'retain-on-failure',
+},
+</script>
+<script type="text/x-code" data-lang="sh" data-file="Команди">
+npx playwright test --reporter=line             # replace configured reporters
+npx playwright test --add-reporter=junit        # add on top of configured reporters
+npx playwright show-report                      # open the HTML report
+npx playwright show-trace path/to/trace.zip     # open a trace
+npx playwright test --shard=1/3 --reporter=blob # one shard
+npx playwright merge-reports --reporter=html ./all-blob-reports
+</script>
+<script type="text/x-code" data-file="Статуси">
+// One attempt (TestResult.status): 'passed' | 'failed' | 'timedOut' | 'skipped' | 'interrupted'
+// Whole test (TestCase.outcome()): 'expected' | 'unexpected' | 'flaky' | 'skipped'
+// Whole run (FullResult.status):  'passed' | 'failed' | 'timedout' | 'interrupted'
+// In afterEach: if (testInfo.status !== testInfo.expectedStatus) { /* went wrong */ }
+</script>
+<p>Три правила на пам'ять. Кожен репортер має свого читача, і їх можна поєднувати. У CI звіт не відкривається сам, а зберігається як артефакт. Діагностику (трейси, скриншоти, відео) вмикають у режимах «лише при проблемах», щоб вона була там, де потрібна, і не гальмувала решту.</p>
+</section>
+
+<!-- ================= QUIZ ================= -->
+<section class="chapter" id="quiz" data-title="Підсумковий квіз" data-num="✎" data-count="no" hidden>
+<p class="kicker">Самоперевірка</p>
+<h2>Підсумковий квіз</h2>
+<p class="lead">15 питань за всіма розділами. Після кожної відповіді побачите пояснення, а в кінці — список тем, які варто повторити.</p>
+<div class="widget" id="quizWidget" aria-live="polite"></div>
+</section>
+
+<nav class="pager" aria-label="Навігація між розділами">
+  <button type="button" id="prevBtn">Попередній розділ</button>
+  <button type="button" class="done-btn" id="doneBtn">Позначити як пройдений</button>
+  <button type="button" class="primary" id="nextBtn">Наступний розділ</button>
+</nav>
+</main>
+</div>
+<script>
+(function(){
+'use strict';
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const KW = new Set('import from export const let var async await function return if else throw new class extends implements interface type readonly private protected public abstract get set as in of typeof keyof void this super default try catch require'.split(' '));
+const LIT = new Set(['null','undefined','true','false']);
+const PRIM = new Set(['string','number','boolean','unknown','any','never','object']);
+
+function hl(src, lang){
+  if (lang === 'sh' || lang === 'yaml'){
+    return src.split('\n').map((l) => {
+      const i = l.indexOf('#');
+      if (i === -1) return esc(l);
+      return esc(l.slice(0,i)) + '<span class="t-com">' + esc(l.slice(i)) + '</span>';
+    }).join('\n');
+  }
+  const re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|('(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"|`(?:\\.|[^`\\])*`)|(\b\d[\d_]*(?:\.\d+)?\b)|([A-Za-z_$][\w$]*)/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(src))){
+    out += esc(src.slice(last, m.index));
+    last = re.lastIndex;
+    const t = m[0];
+    if (m[1]) out += '<span class="t-com">' + esc(t) + '</span>';
+    else if (m[2]){
+      const isKey = lang === 'json' && /^\s*:/.test(src.slice(last));
+      out += '<span class="' + (isKey ? 't-key' : 't-str') + '">' + esc(t) + '</span>';
+    }
+    else if (m[3]) out += '<span class="t-num">' + t + '</span>';
+    else if (KW.has(t)) out += '<span class="t-kw">' + t + '</span>';
+    else if (LIT.has(t)) out += '<span class="t-lit">' + t + '</span>';
+    else if (PRIM.has(t) || /^[A-Z]/.test(t)) out += '<span class="t-type">' + t + '</span>';
+    else if (src[last] === '(' || src[last] === '<') out += '<span class="t-fn">' + t + '</span>';
+    else out += esc(t);
+  }
+  return out + esc(src.slice(last));
+}
+function dedent(src){
+  const lines = src.replace(/^\n+/, '').replace(/\s+$/, '').split('\n');
+  const ind = Math.min(...lines.filter((l) => l.trim()).map((l) => l.match(/^ */)[0].length));
+  return lines.map((l) => l.slice(ind)).join('\n');
+}
+function codeFigure(src, lang, file){
+  const fig = document.createElement('figure');
+  fig.className = 'code';
+  fig.innerHTML = (file ? '<figcaption>' + esc(file) + '</figcaption>' : '') +
+    '<pre><code>' + hl(src, lang) + '</code></pre>' +
+    '<button type="button" class="copy">Копіювати</button>';
+  const btn = fig.querySelector('.copy');
+  btn.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(src); btn.textContent = 'Скопійовано'; }
+    catch (e) {
+      const r = document.createRange(); r.selectNodeContents(fig.querySelector('pre'));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      btn.textContent = 'Виділено: Ctrl+C';
+    }
+    setTimeout(() => { btn.textContent = 'Копіювати'; }, 1600);
+  });
+  return fig;
+}
+$$('script[type="text/x-code"]').forEach((s) => {
+  s.replaceWith(codeFigure(dedent(s.textContent), s.dataset.lang || 'ts', s.dataset.file || ''));
+});
+
+/* ---------- navigation + progress ---------- */
+const chapters = $$('.chapter');
+const nav = $('#nav');
+const KEY = 'pw-reporting-progress';
+let done = new Set();
+try { const raw = localStorage.getItem(KEY); if (raw) done = new Set(JSON.parse(raw)); } catch (e) {}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify([...done])); } catch (e) {} }
+
+chapters.forEach((c, i) => {
+  const li = document.createElement('li');
+  li.innerHTML = '<button type="button" data-id="' + c.id + '"><span class="num">' + (i + 1) + '</span><span>' + esc(c.dataset.title) + '</span><span class="tick" aria-hidden="true">✓</span></button>';
+  nav.appendChild(li);
+});
+let current = 0;
+const counted = chapters.filter((c) => c.dataset.count !== 'no');
+function renderProgress(){
+  $$('#nav li').forEach((li, i) => li.classList.toggle('done', done.has(chapters[i].id)));
+  const n = counted.filter((c) => done.has(c.id)).length;
+  $('#progressFill').style.width = (n / counted.length * 100) + '%';
+  $('#progressText').textContent = n + ' з ' + counted.length + ' розділів пройдено';
+  $('#doneBtn').textContent = done.has(chapters[current].id) ? 'Розділ пройдено ✓' : 'Позначити як пройдений';
+}
+function show(i, focus){
+  current = Math.max(0, Math.min(chapters.length - 1, i));
+  chapters.forEach((c, k) => { c.hidden = k !== current; });
+  $$('#nav button').forEach((b, k) => b.setAttribute('aria-current', k === current ? 'true' : 'false'));
+  $('#prevBtn').disabled = current === 0;
+  $('#nextBtn').textContent = current === chapters.length - 1 ? 'Завершити' : (chapters[current + 1].id === 'quiz' ? 'До підсумкового квізу' : 'Наступний розділ');
+  $('#doneBtn').hidden = chapters[current].dataset.count === 'no';
+  const activeBtn = $$('#nav button')[current];
+  if (activeBtn && activeBtn.scrollIntoView && window.matchMedia('(max-width:900px)').matches) activeBtn.scrollIntoView({ inline: 'center', block: 'nearest' });
+  try { if (location.protocol !== 'about:' && history.replaceState) history.replaceState(null, '', '#' + chapters[current].id); } catch (e) { /* sandboxed preview: URL cannot change */ }
+  renderProgress();
+  if (focus) { window.scrollTo(0, 0); chapters[current].querySelector('h2').setAttribute('tabindex', '-1'); chapters[current].querySelector('h2').focus({ preventScroll: true }); }
+}
+nav.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  show(chapters.findIndex((c) => c.id === b.dataset.id), true);
+});
+$('#prevBtn').addEventListener('click', () => show(current - 1, true));
+$('#nextBtn').addEventListener('click', () => {
+  done.add(chapters[current].id); save();
+  if (current < chapters.length - 1) show(current + 1, true); else renderProgress();
+});
+$('#doneBtn').addEventListener('click', () => {
+  const id = chapters[current].id;
+  if (done.has(id)) done.delete(id); else done.add(id);
+  save(); renderProgress();
+});
+$('#resetProgress').addEventListener('click', () => { done.clear(); save(); renderProgress(); });
+window.__showChapter = (id) => show(chapters.findIndex((c) => c.id === id), true);
+let startHash = ''; try { startHash = location.hash; } catch (e) {}
+const startIdx = chapters.findIndex((c) => '#' + c.id === startHash);
+show(startIdx >= 0 ? startIdx : 0, false);
+
+/* ---------- generic card quiz (per-item options allowed) ---------- */
+function cardQuiz(gridId, scoreId, items, opts){
+  const state = {};
+  const grid = $('#' + gridId);
+  function score(){
+    const answered = Object.keys(state).length;
+    const right = Object.values(state).filter(Boolean).length;
+    $('#' + scoreId).textContent = answered ? 'Правильно з першої спроби: ' + right + ' з ' + answered + ' (усього ' + items.length + ')' : '';
+  }
+  items.forEach((r, idx) => {
+    const card = document.createElement('div');
+    card.className = 'rt';
+    card.innerHTML = '<p class="m">' + r.m + '</p><div class="opts" role="group">' +
+      (r.opts || opts).map((o) => '<button type="button" data-o="' + esc(o) + '">' + esc(o) + '</button>').join('') + '</div><p class="fb" hidden></p>';
+    card.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b || card.dataset.solved) return;
+      const fb = card.querySelector('.fb');
+      const ok = b.dataset.o === r.a;
+      if (!(idx in state)) state[idx] = ok;
+      if (ok){
+        b.classList.add('right'); card.dataset.solved = '1';
+        fb.innerHTML = '<b>' + esc(r.a) + '.</b> ' + r.why + (r.link ? ' <a href="' + r.link + '" target="_blank" rel="noopener">Документація</a>' : '');
+      } else { b.classList.add('wrong'); fb.textContent = 'Ні, спробуйте інший варіант.'; }
+      fb.hidden = false; score();
+    });
+    grid.appendChild(card);
+  });
+}
+const REP = 'https://playwright.dev/docs/test-reporters';
+
+/* ---------- 1. who reads ---------- */
+cardQuiz('whoGrid', 'whoScore', [
+  { m:'Пишу тести локально і хочу бачити кожен тест у терміналі', opts:['list','junit','blob'], a:'list', why:'Рядок на кожен результат з позначкою і тривалістю. Репортер за замовчуванням локально.', link:REP + '#list-reporter' },
+  { m:'Jenkins чи GitLab мають показати тести на своїй вкладці', opts:['html','junit','dot'], a:'junit', why:'JUnit XML — формат, який розуміє більшість CI-систем.', link:REP + '#junit-reporter' },
+  { m:'Падіння в pull request мають з\'явитися біля рядків коду в GitHub', opts:['github','json','line'], a:'github', why:'Додає анотації в GitHub Actions.', link:REP + '#github-actions-annotations' },
+  { m:'Тести йдуть на 4 машинах, потрібен один спільний звіт', opts:['html','blob','json'], a:'blob', why:'Кожен шард пише blob, потім merge-reports збирає їх в один звіт.', link:REP + '#blob-reporter' },
+  { m:'Треба розібрати падіння зі скриншотом і трейсом', opts:['dot','html','junit'], a:'html', why:'Інтерактивний звіт з кроками, вкладеннями і переглядом трейсів.', link:REP + '#html-reporter' },
+  { m:'Скрипт має порахувати статистику для власного дашборду', opts:['json','line','github'], a:'json', why:'Повні дані прогону в одному об\'єкті, зручно для обробки кодом.', link:REP + '#json-reporter' },
+  { m:'Хочу побачити, де воркери простоюють під час прогону', opts:['perfetto','list','blob'], a:'perfetto', why:'Новий у 1.63: часова шкала з доріжкою на кожен воркер.', link:REP }
+]);
+
+/* ---------- 2. reporter builder ---------- */
+const RLIST = ['list','line','dot','html','json','junit','github','blob'];
+$('#buildChecks').innerHTML = RLIST.map((r) => '<label><input type="checkbox" value="' + r + '"' + (r === 'list' || r === 'html' ? ' checked' : '') + '> ' + r + '</label>').join('');
+function tupleFor(r){
+  if (r === 'json') return "['json', { outputFile: 'results/results.json' }]";
+  if (r === 'junit') return "['junit', { outputFile: 'results/junit.xml' }]";
+  if (r === 'html'){ const o = $('#buildOpen').value; return o ? "['html', { open: '" + o + "' }]" : "['html']"; }
+  return "['" + r + "']";
+}
+function renderBuild(){
+  const sel = $$('#buildChecks input:checked').map((i) => i.value);
+  const ci = $('#buildCi').checked;
+  let code, cmd, say = [];
+  const arr = (list) => '[' + list.map(tupleFor).join(', ') + ']';
+  if (!sel.length){ code = '// reporter not set: list locally, dot on CI'; cmd = 'npx playwright test'; }
+  else if (ci){
+    const ciList = sel.filter((r) => r !== 'list' && r !== 'line');
+    const localList = sel.filter((r) => !['github','blob','junit'].includes(r));
+    const arrCi = (list) => '[' + list.map((r) => r === 'html' ? "['html', { open: 'never' }]" : tupleFor(r)).join(', ') + ']';
+    code = 'reporter: process.env.CI\n  ? ' + (ciList.length ? arrCi(ciList) : "'dot'") + '\n  : ' + (localList.length ? arr(localList) : "'list'") + ',';
+    cmd = 'npx playwright test --reporter=' + sel.join(',');
+    say.push('Для CI прибрано list і line, а HTML отримав open: \'never\'. Локально прибрано github, blob і junit: їм там немає читача.');
+  } else {
+    code = 'reporter: ' + (sel.length === 1 && !['json','junit','html'].includes(sel[0]) ? "'" + sel[0] + "'" : arr(sel)) + ',';
+    cmd = 'npx playwright test --reporter=' + sel.join(',');
+  }
+  const term = sel.filter((r) => ['list','line','dot'].includes(r));
+  if (term.length > 1) say.push('Кілька термінальних репортерів одночасно дублюватимуть вивід. Зазвичай обирають один.');
+  if (sel.includes('html') && ($('#buildOpen').value === 'always' || !$('#buildOpen').value) && !ci) say.push('У CI HTML-звіт з open не "never" може змусити процес чекати. Розгляньте варіант з окремими налаштуваннями для CI.');
+  if (sel.includes('json') || sel.includes('junit')) say.push('Для json і junit вказано outputFile, інакше вони писали б у стандартний вивід.');
+  if (sel.includes('json') || sel.includes('junit')) cmd = (sel.includes('json') ? 'PLAYWRIGHT_JSON_OUTPUT_NAME=results/results.json ' : '') + (sel.includes('junit') ? 'PLAYWRIGHT_JUNIT_OUTPUT_NAME=results/junit.xml ' : '') + cmd;
+  const out = $('#buildOut'); out.innerHTML = '';
+  out.appendChild(codeFigure(code, 'ts', 'playwright.config.ts (фрагмент)'));
+  out.appendChild(codeFigure(cmd, 'sh', 'Еквівалент у командному рядку'));
+  $('#buildSay').textContent = say.join(' ');
+}
+$$('#buildWidget input, #buildWidget select').forEach((el) => el.addEventListener('change', renderBuild));
+renderBuild();
+
+/* ---------- 3. terminal simulator ---------- */
+const T = {
+  t1:{ loc:'tests/cart.spec.ts:5:7', title:'cart › adds an item' },
+  t2:{ loc:'tests/cart.spec.ts:14:7', title:'cart › removes an item' },
+  t3:{ loc:'tests/cart.spec.ts:22:7', title:'cart › applies a coupon' },
+  t4:{ loc:'tests/login.spec.ts:6:5', title:'signs in with valid credentials' },
+  t5:{ loc:'tests/login.spec.ts:15:5', title:'shows an error for a locked account' },
+  t6:{ loc:'tests/search.spec.ts:8:5', title:'finds a product by name' }
+};
+const EV = [
+  { t:'t1', st:'passed', d:'1.2s', retry:0 },
+  { t:'t4', st:'failed', d:'2.1s', retry:0, willRetry:true },
+  { t:'t2', st:'passed', d:'0.9s', retry:0 },
+  { t:'t3', st:'failed', d:'5.1s', retry:0, willRetry:true },
+  { t:'t5', st:'skipped', retry:0 },
+  { t:'t6', st:'passed', d:'1.7s', retry:0 },
+  { t:'t4', st:'passed', d:'2.4s', retry:1, flaky:true },
+  { t:'t3', st:'failed', d:'5.0s', retry:1, final:true }
+];
+const full = (k) => '[chromium] › ' + T[k].loc + ' › ' + T[k].title;
+const FAIL_BLOCK =
+  '\n  1) ' + full('t3') + ' ─────────\n\n' +
+  '    Error: expect(locator).toHaveText(expected) failed\n\n' +
+  "    Locator:  getByTestId('cart-total')\n" +
+  '    Expected: "$45.00"\n    Received: "$50.00"\n    Timeout:  5000ms\n\n' +
+  '    Retry #1 ───────────────\n    (the same error)\n';
+const SUMMARY =
+  '\n  <r>1 failed</r>\n    ' + full('t3') + '\n  <y>1 flaky</y>\n    ' + full('t4') + '\n  <y>1 skipped</y>\n  <g>3 passed</g> (11.3s)';
+const HEAD = '\nRunning 6 tests using 2 workers\n';
+function colorize(s){
+  return esc(s).replace(/&lt;r&gt;(.*?)&lt;\/r&gt;/g, '<span class="c-r">$1</span>')
+    .replace(/&lt;y&gt;(.*?)&lt;\/y&gt;/g, '<span class="c-y">$1</span>')
+    .replace(/&lt;g&gt;(.*?)&lt;\/g&gt;/g, '<span class="c-g">$1</span>');
+}
+function listLine(e, i){
+  const mark = e.st === 'passed' ? '<g>✓</g>' : e.st === 'failed' ? '<r>✘</r>' : '<y>-</y>';
+  return '  ' + mark + '  ' + (i + 1) + ' ' + full(e.t) + (e.retry ? ' <y>(retry #' + e.retry + ')</y>' : '') + (e.d ? ' (' + e.d + ')' : '');
+}
+function dotChar(e){
+  if (e.st === 'skipped') return '<y>°</y>';
+  if (e.willRetry) return '×';
+  if (e.flaky) return '<y>±</y>';
+  if (e.st === 'failed') return '<r>F</r>';
+  return '<g>·</g>';
+}
+let termMode = 'list', termTimer = null;
+function termFrame(n){
+  let out = HEAD;
+  if (termMode === 'list'){
+    out += '\n' + EV.slice(0, n).map(listLine).join('\n');
+    if (n === EV.length) out += '\n' + FAIL_BLOCK + SUMMARY;
+  } else if (termMode === 'dot'){
+    out += EV.slice(0, n).map(dotChar).join('');
+    if (n === EV.length) out += '\n' + FAIL_BLOCK + SUMMARY;
+  } else {
+    const printedFail = n === EV.length;
+    if (printedFail) out += FAIL_BLOCK;
+    if (n > 0 && n < EV.length){
+      const e = EV[n];
+      out += '\n[' + (n + 1) + '/6]' + (e.retry ? ' (retries)' : '') + ' ' + full(e.t) + (e.retry ? ' <y>(retry #' + e.retry + ')</y>' : '');
+    } else if (n === 0) out += '\n[1/6] ' + full(EV[0].t);
+    if (n === EV.length) out += SUMMARY;
+  }
+  $('#termOut').innerHTML = colorize(out);
+}
+const TERM_SAY = {
+  list:'Рядок на кожну спробу, включно з повторами. Деталі падінь і підсумок друкуються в кінці.',
+  line:'Один рядок прогресу, що весь час перезаписується. Лічильник рахує спроби, тож із повторами може перевищити кількість тестів, а позначка (retries) підказує, що йдуть повтори. Деталі падіння друкуються, щойно тест упав остаточно.',
+  dot:'Символ на кожну спробу: · пройшов, × упав, але буде повтор, ° пропущено, ± flaky, F упав остаточно.'
+};
+function termReset(){ clearTimeout(termTimer); termFrame(0); $('#termSay').textContent = TERM_SAY[termMode]; }
+$('#termSeg').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  termMode = b.dataset.r;
+  $$('#termSeg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  termReset();
+});
+$('#termRun').addEventListener('click', () => {
+  clearTimeout(termTimer);
+  let n = 0;
+  const tick = () => { termFrame(n); if (n < EV.length){ n++; termTimer = setTimeout(tick, 420); } };
+  tick();
+});
+$('#termAll').addEventListener('click', () => { clearTimeout(termTimer); termFrame(EV.length); });
+termReset();
+
+/* ---------- 4. HTML report mock ---------- */
+const HR = [
+  { f:'cart.spec.ts', t:'cart › adds an item', s:'passed', d:'1.2s', tags:['@smoke'],
+    steps:[['Before Hooks',0.3],['Navigate to "/cart"',0.3],['add "Wireless Mouse" to the cart',0.5],['Expect "toHaveText"',0.1]], att:[] },
+  { f:'cart.spec.ts', t:'cart › removes an item', s:'passed', d:'0.9s', tags:[],
+    steps:[['Before Hooks',0.3],['Navigate to "/cart"',0.3],['Click getByRole(\'button\', { name: \'Remove\' })',0.2],['Expect "toHaveCount"',0.1]], att:[] },
+  { f:'cart.spec.ts', t:'cart › applies a coupon', s:'failed', d:'10.1s', tags:['@regression'],
+    err:"Error: expect(locator).toHaveText(expected) failed\n\nLocator:  getByTestId('cart-total')\nExpected: \"$45.00\"\nReceived: \"$50.00\"\n\n  27 |   await page.getByRole('button', { name: 'Apply' }).click();\n> 28 |   await expect(page.getByTestId('cart-total')).toHaveText('$45.00');\n     |                                                ^",
+    steps:[['Before Hooks',0.3],['Navigate to "/cart"',0.3],['Fill "SAVE10"',0.1],['Click getByRole(\'button\', { name: \'Apply\' })',0.2],['Expect "toHaveText"',5.0]],
+    att:[['screenshot','screenshot: \'only-on-failure\' — знімок у момент падіння'],['trace (Retry #1)','trace: \'on-first-retry\' — трейс лише першого повтору'],['error-context','Контекст сторінки на момент помилки']] },
+  { f:'login.spec.ts', t:'signs in with valid credentials', s:'flaky', d:'4.5s', tags:['@smoke'],
+    err:"Run #0: Error: expect(page).toHaveURL(expected) failed — пройшов на Retry #1",
+    steps:[['Before Hooks',0.3],['Fill "Username"',0.1],['Fill "Password"',0.1],['Click getByRole(\'button\', { name: \'Sign in\' })',0.4],['Expect "toHaveURL"',1.5]],
+    att:[['trace (Retry #1)','Трейс повтору: порівняйте його з помилкою першої спроби']] },
+  { f:'login.spec.ts', t:'shows an error for a locked account', s:'skipped', d:'—', tags:[], note:'skip: Locked accounts are not available on staging', steps:[], att:[] },
+  { f:'search.spec.ts', t:'finds a product by name', s:'passed', d:'1.7s', tags:[],
+    steps:[['Before Hooks',0.3],['Fill "Search"',0.1],['Press "Enter"',0.6],['Expect "toHaveCount"',0.2]], att:[] }
+];
+let hrFilter = 'all', hrOpen = -1;
+function renderHr(){
+  const counts = { all:HR.length };
+  ['passed','failed','flaky','skipped'].forEach((s) => { counts[s] = HR.filter((t) => t.s === s).length; });
+  const chips = ['all','passed','failed','flaky','skipped'].map((s) =>
+    '<button type="button" class="chip ' + s + '" data-f="' + s + '" aria-pressed="' + (hrFilter === s) + '">' + (s === 'all' ? 'All' : s[0].toUpperCase() + s.slice(1)) + ' <b>' + counts[s] + '</b></button>').join('');
+  const vis = HR.map((t, i) => [t, i]).filter(([t]) => hrFilter === 'all' || t.s === hrFilter);
+  const files = [...new Set(vis.map(([t]) => t.f))];
+  let list = files.map((f) => '<div class="hr-file">' + esc(f) + '</div>' +
+    vis.filter(([t]) => t.f === f).map(([t, i]) =>
+      '<button type="button" class="hr-test ' + t.s + '" data-i="' + i + '"><span class="dot"></span><span class="nm">' + esc(t.t) + ' ' + t.tags.map((g) => '<em>' + esc(g) + '</em>').join(' ') + '</span><span class="du">' + esc(t.d) + '</span></button>').join('')).join('');
+  let detail = '<p class="hr-hint">Оберіть тест, щоб побачити деталі.</p>';
+  if (hrOpen >= 0){
+    const t = HR[hrOpen];
+    const max = Math.max(1, ...t.steps.map((s) => s[1]));
+    detail = '<h5>' + esc(t.t) + ' <span class="st ' + t.s + '">' + t.s + '</span></h5>' +
+      (t.note ? '<p class="hr-sec">Анотація</p><p>' + esc(t.note) + '</p>' : '') +
+      (t.err ? '<p class="hr-sec">Errors</p><pre class="hr-err">' + esc(t.err) + '</pre>' : '') +
+      (t.steps.length ? '<p class="hr-sec">Test Steps <span class="mut">з діаграмою тривалості (1.63)</span></p>' + t.steps.map((s) =>
+        '<div class="hr-step"><span>' + esc(s[0]) + '</span><span class="bar"><i style="width:' + (s[1] / max * 100) + '%"></i></span><span class="mut">' + s[1] + 's</span></div>').join('') : '') +
+      (t.att.length ? '<p class="hr-sec">Attachments</p>' + t.att.map((a) => '<p class="hr-att"><b>' + esc(a[0]) + '</b> <span class="mut">' + esc(a[1]) + '</span></p>').join('') : '');
+  }
+  $('#hr').innerHTML = '<div class="hr-chips">' + chips + '</div><div class="hr-body"><div class="hr-list">' + list + '</div><div class="hr-detail" aria-live="polite">' + detail + '</div></div>';
+}
+$('#hr').addEventListener('click', (e) => {
+  const c = e.target.closest('.chip'); if (c){ hrFilter = c.dataset.f; renderHr(); return; }
+  const t = e.target.closest('.hr-test'); if (t){ hrOpen = Number(t.dataset.i); renderHr(); }
+});
+renderHr();
+
+/* ---------- 6. shard pipeline ---------- */
+function renderPipe(){
+  const n = Number($('#shardN').value), r = $('#shardR').value;
+  const env = r === 'junit' ? 'PLAYWRIGHT_JUNIT_OUTPUT_NAME=results.xml ' : r === 'json' ? 'PLAYWRIGHT_JSON_OUTPUT_NAME=results.json ' : '';
+  const result = r === 'html' ? 'playwright-report/' : r === 'junit' ? 'results.xml' : 'results.json';
+  let shards = '';
+  for (let k = 1; k <= n; k++) shards += '<div class="pipe-box"><b>Машина ' + k + '</b><code>npx playwright test --shard=' + k + '/' + n + ' --reporter=blob</code><span class="mut">→ blob-report/*.zip</span></div>';
+  $('#pipe').innerHTML =
+    '<p class="pipe-label">1. Шарди працюють паралельно</p><div class="pipe-row">' + shards + '</div>' +
+    '<p class="pipe-label">2. CI збирає zip-файли всіх шардів в один каталог</p><div class="pipe-row"><div class="pipe-box wide"><code>all-blob-reports/</code><span class="mut">' + n + ' файлів</span></div></div>' +
+    '<p class="pipe-label">3. Злиття</p><div class="pipe-row"><div class="pipe-box wide"><code>' + esc(env) + 'npx playwright merge-reports --reporter=' + r + ' ./all-blob-reports</code><span class="mut">→ ' + result + '</span></div></div>';
+}
+$('#shardN').addEventListener('change', renderPipe); $('#shardR').addEventListener('change', renderPipe);
+renderPipe();
+
+/* ---------- 7. outcomes ---------- */
+const TC = 'https://playwright.dev/docs/api/class-testcase#test-case-outcome';
+cardQuiz('outGrid', 'outScore', [
+  { m:'Пройшов з першої спроби', a:'expected', why:'Статус збігся з очікуваним passed.', link:TC },
+  { m:'Упав на всіх спробах', a:'unexpected', why:'Жодна спроба не дала очікуваний статус.', link:TC },
+  { m:'Упав, на повторі пройшов', a:'flaky', why:'Спершу не збіглося, потім збіглося.', link:TC },
+  { m:'Позначений test.fail() і впав', a:'expected', why:'expectedStatus тут failed, тож падіння — очікуваний результат.', link:TC },
+  { m:'Позначений test.fail(), але пройшов', a:'unexpected', why:'Очікували failed, отримали passed.', link:TC },
+  { m:'test.skip()', a:'skipped', why:'Тест не виконувався.', link:TC },
+  { m:'Спроба перевищила тайм-аут (timedOut), повторів немає', a:'unexpected', why:'timedOut — це статус спроби. Для тесту, що мав пройти, це неочікуваний результат.', link:TC }
+], ['expected', 'unexpected', 'flaky', 'skipped']);
+
+/* ---------- 8. artifact modes ---------- */
+const UO = 'https://playwright.dev/docs/test-use-options#recording-options';
+cardQuiz('artGrid', 'artScore', [
+  { m:"screenshot: 'only-on-failure'", opts:['після кожного тесту','після кожного падіння','лише після першого падіння'], a:'після кожного падіння', why:'Скриншот після кожного тесту, що впав.', link:UO },
+  { m:"screenshot: 'on-first-failure'", opts:['після кожного тесту','після кожного падіння','лише після першого падіння'], a:'лише після першого падіння', why:'Скриншот лише для першої невдалої спроби, без повторів.', link:UO },
+  { m:"video: 'retain-on-failure'", opts:['для всіх спроб','лише для невдалих спроб','лише для першого повтору'], a:'лише для невдалих спроб', why:'Відео записується для кожної спроби, але зберігається лише для невдалих.', link:UO },
+  { m:"video: 'on-first-retry'", opts:['для всіх спроб','лише для невдалих спроб','лише для першого повтору'], a:'лише для першого повтору', why:'Записується тільки перший повтор, тож без retries відео не буде.', link:UO },
+  { m:"trace: 'retain-on-failure'", opts:['для всіх спроб','лише для невдалих спроб','лише для першого повтору'], a:'лише для невдалих спроб', why:'Записується кожна спроба, зберігаються невдалі. Трейс невдалої спроби лишається, навіть якщо повтор пройшов.', link:UO }
+]);
+
+/* ---------- 9. trace modes with scenarios ---------- */
+const TRACE_TEXT = {
+  'off':'Трейс не записується. Значення за замовчуванням.',
+  'on':'Записується і зберігається кожна спроба. Найповніше й найдорожче.',
+  'on-first-retry':'Записується лише перший повтор. Режим із шаблону init. Якщо тест пройшов з першого разу або повторів немає, трейсу не буде.',
+  'on-all-retries':'Записуються всі повтори.',
+  'retain-on-failure':'Записується кожна спроба, а зберігаються лише невдалі.',
+  'retain-on-first-failure':'Записується лише перша спроба (не повтори) і зберігається, тільки якщо вона впала.',
+  'retain-on-failure-and-retries':'Записується кожна спроба, а зберігаються невдалі й усі повтори.'
+};
+const SCEN = { flaky:[['Спроба 1','впала','fail'],['Повтор 1','пройшов','pass']], fail:[['Спроба 1','впала','fail'],['Повтор 1','впав','fail']], pass:[['Спроба 1','пройшла','pass']] };
+let tScen = 'flaky', tMode = 'on-first-retry';
+function traceFate(mode, i, failed){
+  const retry = i > 0;
+  const rec = { 'off':false, 'on':true, 'on-first-retry':i === 1, 'on-all-retries':retry, 'retain-on-failure':true, 'retain-on-first-failure':i === 0, 'retain-on-failure-and-retries':true }[mode];
+  if (!rec) return 'none';
+  const keep = { 'on':true, 'on-first-retry':true, 'on-all-retries':true, 'retain-on-failure':failed, 'retain-on-first-failure':failed, 'retain-on-failure-and-retries':failed || retry }[mode];
+  return keep ? 'kept' : 'dropped';
+}
+$('#traceSeg').innerHTML = Object.keys(TRACE_TEXT).map((m) => '<button type="button" data-m="' + m + '">' + m + '</button>').join('');
+function renderTrace(){
+  const LBL = { kept:'📦 трейс збережено', dropped:'🗑 записано, але видалено', none:'— не записується' };
+  $('#traceRuns').innerHTML = SCEN[tScen].map((r, i) => {
+    const f = traceFate(tMode, i, r[2] === 'fail');
+    return '<div class="run ' + r[2] + '"><b>' + r[0] + '</b><span class="res">' + r[1] + '</span><span class="tr ' + f + '">' + LBL[f] + '</span></div>';
+  }).join('');
+  $('#traceText').textContent = TRACE_TEXT[tMode];
+  $$('#traceSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === tMode)));
+  $$('#traceScen button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.s === tScen)));
+}
+$('#traceSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b){ tMode = b.dataset.m; renderTrace(); } });
+$('#traceScen').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b){ tScen = b.dataset.s; renderTrace(); } });
+renderTrace();
+
+/* ---------- 10. reporter lifecycle ---------- */
+const LIFE = [
+  ['onBegin(config, suite)', 'Тести зібрано, прогін починається. suite.allTests() дає всі тести.'],
+  ['onTestBegin(test, result)', 'Спроба 1 стартувала. result.retry = 0.'],
+  ['onStepBegin(test, result, step)', 'Почався крок, зокрема test.step чи дія Playwright.'],
+  ['onStepEnd(test, result, step)', 'Крок завершився, step.error містить помилку, якщо вона є.'],
+  ['onTestEnd(test, result)', 'Спроба 1 завершилася: result.status = "failed". test.outcome() поки "unexpected".'],
+  ['onTestBegin(test, result)', 'Повтор стартував: result.retry = 1. Об\'єкт test той самий, result новий.'],
+  ['onStepBegin / onStepEnd', 'Ті самі кроки для повтору.'],
+  ['onTestEnd(test, result)', 'Повтор пройшов: result.status = "passed". Тепер test.outcome() = "flaky".'],
+  ['onEnd(result)', 'Прогін завершено, result.status = "passed": flaky не валить прогін. Можна повернути { status } і змінити код виходу.'],
+  ['onExit()', 'Останній виклик перед завершенням процесу.']
+];
+let lifeI = 0;
+function renderLife(){
+  $('#lifeLog').innerHTML = LIFE.slice(0, lifeI).map((s) => '<li><code>' + esc(s[0]) + '</code> ' + esc(s[1]) + '</li>').join('') || '<li class="empty">Натисніть «Наступна подія».</li>';
+  $('#lifeNext').disabled = lifeI >= LIFE.length;
+}
+$('#lifeNext').addEventListener('click', () => { lifeI = Math.min(LIFE.length, lifeI + 1); renderLife(); });
+$('#lifeAll').addEventListener('click', () => { lifeI = LIFE.length; renderLife(); });
+$('#lifeReset').addEventListener('click', () => { lifeI = 0; renderLife(); });
+renderLife();
+
+/* ---------- 11. find the bug ---------- */
+const BUGS = [
+  { title:'HTML-звіт у CI', lang:'ts', bug:1,
+    lines:["export default defineConfig({", "  reporter: [['html', { open: 'always' }]],", "});"],
+    why:'З <code>open: \'always\'</code> після прогону піднімається сервер звіту, і CI-задача може не завершитися. У CI потрібен <code>\'never\'</code>.',
+    fix:"reporter: [['html', { open: process.env.CI ? 'never' : 'on-failure' }]]," },
+  { title:'JUnit для CI', lang:'ts', bug:0,
+    lines:["reporter: [['list'], ['junit']],", "// CI job: collect results/junit.xml"],
+    why:'Без <code>outputFile</code> JUnit-репортер пише XML у стандартний вивід, а файлу, який чекає CI, не буде.',
+    fix:"reporter: [['list'], ['junit', { outputFile: 'results/junit.xml' }]]," },
+  { title:'Додати JSON до звичайних репортерів', lang:'sh', bug:0,
+    lines:["npx playwright test --reporter=json", "# expected: html report + results.json"],
+    why:'<code>--reporter</code> замінює репортери з конфігу, тож HTML-звіту не буде. Щоб додати репортер, є <code>--add-reporter</code>. А для JSON у файл потрібна змінна оточення чи <code>outputFile</code>.',
+    fix:"PLAYWRIGHT_JSON_OUTPUT_NAME=results.json npx playwright test --add-reporter=json" },
+  { title:'Звіт для шардів', lang:'sh', bug:0,
+    lines:["npx playwright test --shard=1/3 --reporter=html", "npx playwright test --shard=2/3 --reporter=html", "npx playwright test --shard=3/3 --reporter=html"],
+    why:'Кожен шард зробить окремий HTML-звіт лише зі своєю третиною тестів. Шарди мають писати <code>blob</code>, а спільний звіт збирає <code>merge-reports</code>.',
+    fix:"npx playwright test --shard=1/3 --reporter=blob\n# ...\nnpx playwright merge-reports --reporter=html ./all-blob-reports" },
+  { title:'Трейси в CI', lang:'ts', bug:2,
+    lines:["export default defineConfig({", "  retries: 0,", "  use: { trace: 'on-first-retry' },", "});"],
+    why:'<code>on-first-retry</code> записує лише перший повтор. З <code>retries: 0</code> повторів немає, тож трейсів не буде ніколи.',
+    fix:"  use: { trace: 'retain-on-failure' }, // or keep on-first-retry with retries > 0" },
+  { title:'Вкладення з відповіддю API', lang:'ts', bug:2,
+    lines:["test('creates an order', async ({ request }, testInfo) => {", "  const response = await request.post('/api/orders', { data: { productId: 42 } });", "  testInfo.attach('response', { body: await response.text(), contentType: 'application/json' });", "  await expect(response).toBeOK();", "});"],
+    why:'<code>testInfo.attach()</code> асинхронний. Без <code>await</code> вкладення може не потрапити у звіт, а помилка запису загубиться.',
+    fix:"  await testInfo.attach('response', { body: await response.text(), contentType: 'application/json' });" },
+  { title:'Діагностика для невдалих тестів', lang:'ts', bug:1,
+    lines:["test.afterEach(async ({ page }, testInfo) => {", "  if (testInfo.status === 'failed') {", "    await testInfo.attach('url', { body: page.url(), contentType: 'text/plain' });", "  }", "});"],
+    why:'Порівняння з <code>\'failed\'</code> пропускає <code>timedOut</code> і хибно спрацьовує на тестах з <code>test.fail()</code>, для яких падіння очікуване.',
+    fix:"  if (testInfo.status !== testInfo.expectedStatus) {" },
+  { title:'Власний репортер у файл', lang:'ts', bug:3,
+    lines:["class FileOnlyReporter implements Reporter {", "  onEnd(result: FullResult): void { writeFileSync('out.txt', result.status); }", "", "  printsToStdio(): boolean { return true; }", "}"],
+    why:'Репортер нічого не пише в термінал, але каже, що пише. Якщо це єдиний репортер, раннер не додасть свого виводу, і людина не бачитиме прогресу. Документація радить у такому разі повертати <code>false</code>.',
+    fix:"  printsToStdio(): boolean { return false; }" }
+];
+
+const solved = new Set();
+function bugScore(){ $('#bugScore').textContent = 'Знайдено: ' + solved.size + ' з ' + BUGS.length; }
+BUGS.forEach((b, i) => {
+  const box = document.createElement('div');
+  box.className = 'bug';
+  box.innerHTML = '<div class="bug-head"><b>' + (i + 1) + '. ' + esc(b.title) + '</b><span class="st">Натисніть на рядок</span></div>' +
+    '<div class="bug-code" role="group" aria-label="Рядки коду">' +
+    b.lines.map((l, k) => '<button type="button" data-k="' + k + '">' + (hl(l, b.lang) || ' ') + '</button>').join('') +
+    '</div><div class="bug-body" hidden></div>' +
+    '<div style="padding:0 16px 12px"><button type="button" class="linkbtn reveal">Показати відповідь</button></div>';
+  const body = box.querySelector('.bug-body');
+  function reveal(found){
+    box.querySelectorAll('.bug-code button')[b.bug].classList.add('hit');
+    body.innerHTML = '<p>' + b.why + '</p>';
+    body.appendChild(codeFigure(b.fix, b.lang, 'Виправлення'));
+    body.hidden = false;
+    const st = box.querySelector('.st');
+    st.textContent = found ? 'Знайдено' : 'Відповідь показано'; st.classList.toggle('ok', found);
+    box.querySelector('.reveal').parentElement.hidden = true;
+    box.dataset.done = '1';
+  }
+  box.querySelector('.bug-code').addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if (!btn || box.dataset.done) return;
+    const k = Number(btn.dataset.k);
+    if (k === b.bug){ solved.add(i); reveal(true); bugScore(); }
+    else { btn.classList.add('miss'); box.querySelector('.st').textContent = 'Цей рядок коректний, шукайте далі'; }
+  });
+  box.querySelector('.reveal').addEventListener('click', () => reveal(false));
+  $('#bugList').appendChild(box);
+});
+bugScore();
+
+
+/* ---------- final quiz ---------- */
+const R = 'https://playwright.dev/docs/test-reporters';
+const QUIZ = [
+  { sec:'s2', q:'Який репортер використовує раннер, якщо <code>reporter</code> не задано, а прогін іде в CI?',
+    opts:['list', 'html', 'dot', 'junit'], a:2, why:'Без налаштувань: list локально, dot у CI.', link:R + '#reporters-on-ci' },
+  { sec:'s2', q:'Чим <code>--add-reporter</code> відрізняється від <code>--reporter</code>?',
+    opts:['Нічим, це синоніми', '--add-reporter додає репортер до тих, що в конфігу; --reporter їх замінює', '--add-reporter підключає лише власні репортери', '--reporter працює тільки в CI'],
+    a:1, why:'Так у довідці CLI Playwright 1.63.', link:'https://playwright.dev/docs/test-cli' },
+  { sec:'s2', q:'Як увімкнути кілька репортерів у конфігу?',
+    opts:['Масивом кортежів: <code>[[\'list\'], [\'html\', { open: \'never\' }]]</code>', 'Рядком через пробіл', 'Кількома опціями reporter', 'Лише через CLI'],
+    a:0, why:'Кожен елемент масиву — назва репортера і, за потреби, об\'єкт опцій.', link:R + '#multiple-reporters' },
+  { sec:'s3', q:'Що означає символ <code>±</code> у виводі dot-репортера?',
+    opts:['Тест пропущено', 'Тест упав', 'Тест flaky: пройшов лише на повторі', 'Тайм-аут'],
+    a:2, why:'· пройшов, F упав, T тайм-аут, ± flaky, ° пропущено, × упав, але буде повтор.', link:R + '#dot-reporter' },
+  { sec:'s3', q:'Який термінальний репортер тримає один рядок прогресу, що постійно оновлюється?',
+    opts:['list', 'line', 'dot', 'github'], a:1, why:'line показує поточний тест в одному рядку і друкує деталі лише остаточних падінь.', link:R + '#line-reporter' },
+  { sec:'s4', q:'Коли HTML-звіт відкривається автоматично за замовчуванням?',
+    opts:['Завжди', 'Ніколи', 'Лише якщо є падіння', 'Лише в CI'], a:2, why:'Значення open за замовчуванням — \'on-failure\'. У CI ставлять \'never\'.', link:R + '#html-reporter' },
+  { sec:'s4', q:'Як правильно відкрити HTML-звіт, отриманий з CI-артефакту?',
+    opts:['Подвійним кліком на index.html', '<code>npx playwright show-report шлях/до/звіту</code>', 'Через <code>npx playwright show-trace</code>', 'Його не можна відкрити локально'],
+    a:1, why:'show-report піднімає локальний сервер, через який коректно працюють усі частини звіту, зокрема трейси.', link:R + '#html-reporter' },
+  { sec:'s5', q:'Куди пише JSON-репортер, якщо не задано ні <code>outputFile</code>, ні <code>PLAYWRIGHT_JSON_OUTPUT_NAME</code>?',
+    opts:['У results.json', 'У test-results/', 'У стандартний вивід', 'Нікуди, видає помилку'], a:2, why:'Тому для JSON і JUnit майже завжди задають файл.', link:R + '#json-reporter' },
+  { sec:'s6', q:'Як отримати один HTML-звіт для прогону, розбитого на 3 шарди?',
+    opts:['Кожен шард з --reporter=html, потім скопіювати каталоги разом', 'Кожен шард з --reporter=blob, потім npx playwright merge-reports --reporter=html', 'Запустити --shard=all', 'Це неможливо'],
+    a:1, why:'Blob зберігає сирі результати шарду, merge-reports збирає їх в один звіт потрібного формату.', link:'https://playwright.dev/docs/test-sharding' },
+  { sec:'s6', q:'Що показує новий у 1.63 репортер <code>perfetto</code>?',
+    opts:['Скриншоти всіх тестів', 'Часову шкалу прогону з доріжкою для кожного воркера', 'Покриття коду', 'Порівняння з попереднім прогоном'],
+    a:1, why:'Файл у Trace Event Format відкривається в Perfetto UI або chrome://tracing.', link:R },
+  { sec:'s7', q:'Тест позначено <code>test.fail()</code>, і він упав. Яким буде <code>test.outcome()</code>?',
+    opts:['unexpected', 'expected', 'flaky', 'skipped'], a:1, why:'expectedStatus тут failed, тож падіння відповідає очікуванню.', link:'https://playwright.dev/docs/api/class-testcase#test-case-outcome' },
+  { sec:'s7', q:'Як в <code>afterEach</code> перевірити, що тест пішов не за планом?',
+    opts:['<code>testInfo.status === \'failed\'</code>', '<code>testInfo.status !== testInfo.expectedStatus</code>', '<code>testInfo.retry &gt; 0</code>', '<code>testInfo.errors.length === 0</code>'],
+    a:1, why:'Порівняння з expectedStatus коректно враховує timedOut і тести з test.fail().', link:'https://playwright.dev/docs/api/class-testinfo' },
+  { sec:'s8', q:'Що робить опція <code>box: true</code> у <code>test.step</code>?',
+    opts:['Ховає крок зі звіту', 'Помилка всередині кроку вказує на місце виклику кроку, а не на його внутрішній рядок', 'Робить крок обов\'язковим', 'Обмежує крок тайм-аутом'],
+    a:1, why:'Корисно для кроків у хелперах і Page Object: у звіті видно, який крок тесту впав.', link:'https://playwright.dev/docs/api/class-test#test-step' },
+  { sec:'s9', q:'Конфіг <code>retries: 0</code> і <code>trace: \'on-first-retry\'</code>. Тест упав. Чи буде трейс?',
+    opts:['Так', 'Ні: записується лише перший повтор, а повторів немає', 'Так, але без DOM-знімків', 'Лише в HTML-звіті'],
+    a:1, why:'Для такого випадку підходить retain-on-failure.', link:'https://playwright.dev/docs/test-use-options#recording-options' },
+  { sec:'s10', q:'Який метод власного репортера викликається один раз після прогону і може бути асинхронним?',
+    opts:['onTestEnd', 'onBegin', 'onEnd', 'onStepEnd'], a:2, why:'onEnd отримує підсумковий статус. Тут зазвичай пишуть файли чи надсилають дані. Він також може повернути { status }.', link:'https://playwright.dev/docs/api/class-reporter#reporter-on-end' }
+];
+
+const QKEY = 'pw-reporting-quiz-best';
+const qz = $('#quizWidget');
+let order = [], qi = 0, qScore = 0, missed = [];
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function sectionTitle(id){ const c = $('#' + id); return c ? c.dataset.title : ''; }
+function sectionNum(id){ return chapters.findIndex((c) => c.id === id) + 1; }
+function startQuiz(){ order = QUIZ.map((q) => ({ q, perm: shuffle(q.opts.map((_, i) => i)) })); qi = 0; qScore = 0; missed = []; renderQ(); }
+function renderQ(){
+  const { q, perm } = order[qi];
+  qz.innerHTML =
+    '<div class="qz-top"><span class="qz-count">Питання ' + (qi + 1) + ' з ' + order.length + '</span><span class="qz-count">Правильно: ' + qScore + '</span></div>' +
+    '<div class="qz-bar"><i style="width:' + (qi / order.length * 100) + '%"></i></div>' +
+    '<p class="qz-q">' + q.q + '</p>' +
+    '<div class="qz-opts" role="group" aria-label="Варіанти відповіді">' + perm.map((i) => '<button type="button" data-i="' + i + '">' + q.opts[i] + '</button>').join('') + '</div>' +
+    '<div class="qz-fb" hidden></div>' +
+    '<div class="qz-actions"><button type="button" class="primary qz-next" hidden>' + (qi === order.length - 1 ? 'Показати результат' : 'Наступне питання') + '</button></div>';
+  qz.querySelector('.qz-opts').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const pickedI = Number(b.dataset.i), ok = pickedI === q.a;
+    $$('.qz-opts button', qz).forEach((x) => { x.disabled = true; if (Number(x.dataset.i) === q.a) x.classList.add('right'); });
+    if (!ok) { b.classList.add('wrong'); missed.push(q); } else qScore++;
+    const fb = qz.querySelector('.qz-fb');
+    fb.className = 'qz-fb ' + (ok ? 'ok' : 'no');
+    fb.innerHTML = '<p><b>' + (ok ? 'Правильно.' : 'Не зовсім.') + '</b> ' + q.why + '</p><p><a href="' + q.link + '" target="_blank" rel="noopener">Документація →</a></p>';
+    fb.hidden = false;
+    const nx = qz.querySelector('.qz-next'); nx.hidden = false; nx.focus();
+  });
+  qz.querySelector('.qz-next').addEventListener('click', () => { qi++; if (qi < order.length) renderQ(); else renderResult(); });
+}
+function renderResult(){
+  let best = 0;
+  try { best = Number(localStorage.getItem(QKEY)) || 0; if (qScore > best) { best = qScore; localStorage.setItem(QKEY, String(best)); } } catch (e) { best = Math.max(best, qScore); }
+  done.add('quiz'); save(); renderProgress();
+  const pct = Math.round(qScore / order.length * 100);
+  const verdict = pct >= 85 ? 'Матеріал засвоєно. Можна переходити до наступної теми курсу.'
+    : pct >= 60 ? 'Основа є, але кілька тем варто повторити за списком нижче.'
+    : 'Варто повернутися до розділів зі списку нижче і пройти квіз ще раз.';
+  const secs = [...new Set(missed.map((q) => q.sec))];
+  qz.innerHTML =
+    '<p class="qz-count">Результат</p><p class="qz-result">' + qScore + ' з ' + order.length + '</p>' +
+    '<p>' + verdict + ' Найкращий результат: ' + best + ' з ' + order.length + '.</p>' +
+    (missed.length ? '<h4 style="margin-top:18px">Помилки</h4><ul class="qz-review">' +
+      missed.map((q) => '<li>' + q.q + '<br><span style="color:var(--muted)">Правильна відповідь: ' + q.opts[q.a] + '</span></li>').join('') + '</ul>' +
+      '<p>Повторити розділи: ' + secs.map((id) => '<button type="button" class="linkbtn" data-go="' + id + '">' + sectionNum(id) + '. ' + esc(sectionTitle(id)) + '</button>').join(', ') + '</p>' : '') +
+    '<div class="qz-actions"><button type="button" class="primary qz-restart">Пройти ще раз</button></div>';
+  qz.querySelector('.qz-restart').addEventListener('click', startQuiz);
+  $$('[data-go]', qz).forEach((b) => b.addEventListener('click', () => window.__showChapter(b.dataset.go)));
+}
+startQuiz();
+})();
+</script>
+<script>
+(function(){
+  var KEY = 'pw-course-theme';
+  var root = document.documentElement;
+  var buttons = document.querySelectorAll('[data-theme-set]');
+  function current(){
+    try { return localStorage.getItem(KEY) || 'auto'; } catch (e) { return 'auto'; }
+  }
+  function paint(v){
+    if (v === 'light' || v === 'dark') root.setAttribute('data-theme', v);
+    else root.removeAttribute('data-theme');
+    buttons.forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.themeSet === v)); });
+  }
+  paint(current());
+  buttons.forEach(function(b){
+    b.addEventListener('click', function(){
+      var v = b.dataset.themeSet;
+      try { localStorage.setItem(KEY, v); } catch (e) {}
+      paint(v);
+    });
+  });
+})();
+</script>
+</body>
+</html>

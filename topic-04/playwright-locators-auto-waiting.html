@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('pw-course-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Locators &amp; Auto-waiting у Playwright</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#15305A; --navy-2:#224A86; --orange:#E8781A; --orange-soft:#FDEBD8;
+  --paper:#F3F6FB; --surface:#FFFFFF; --ink:#18212F; --muted:#566278; --line:#D9E0EB;
+  --code-bg:#0F1D33; --code-ink:#E3E9F3; --code-line:#1C2E4C;
+  --ok:#1D8455; --ok-soft:#DDF3E8; --bad:#BF3A2F; --bad-soft:#F9E1DE;
+  --pw:#E8781A; --tsc:#3469CF; --tsc-soft:#E1EAFB;
+  --sans:"IBM Plex Sans", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --navy:#A9C3F0; --navy-2:#86A8E6; --orange:#F2923F; --orange-soft:#3A2814;
+    --paper:#0C1524; --surface:#132038; --ink:#E6ECF5; --muted:#9BA8BE; --line:#26365A;
+    --code-bg:#08111F; --code-ink:#E3E9F3; --code-line:#18294A;
+    --ok:#4CC08A; --ok-soft:#113626; --bad:#F07B70; --bad-soft:#3D1A17;
+    --tsc:#7FA6F2; --tsc-soft:#1A2B4D;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --navy:#A9C3F0; --navy-2:#86A8E6; --orange:#F2923F; --orange-soft:#3A2814;
+  --paper:#0C1524; --surface:#132038; --ink:#E6ECF5; --muted:#9BA8BE; --line:#26365A;
+  --code-bg:#08111F; --code-ink:#E3E9F3; --code-line:#18294A;
+  --ok:#4CC08A; --ok-soft:#113626; --bad:#F07B70; --bad-soft:#3D1A17;
+  --tsc:#7FA6F2; --tsc-soft:#1A2B4D;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%; scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans); font-size:17px; line-height:1.62; -webkit-text-size-adjust:100%; transition:background-color .2s ease, color .2s ease}
+a{color:var(--navy-2)}
+a:hover{color:var(--orange)}
+:focus-visible{outline:3px solid var(--orange); outline-offset:2px; border-radius:4px}
+code{font-family:var(--mono); font-size:.86em; background:var(--tsc-soft); color:var(--ink); padding:.08em .35em; border-radius:4px}
+.layout{display:grid; grid-template-columns:292px minmax(0,1fr); min-height:100%}
+/* ---------- sidebar ---------- */
+.side{background:var(--navy); color:#fff; padding:28px 20px 24px; position:sticky; top:env(safe-area-inset-top,0px); height:100vh; overflow-y:auto}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .side{background:#0F1A2E}}
+:root[data-theme="dark"] .side{background:#0F1A2E}
+.brand{font-weight:700; font-size:1.28rem; line-height:1.2; margin:0 0 6px; letter-spacing:-.01em}
+.brand span{display:block; font-family:var(--mono); font-size:.72rem; font-weight:400; color:#F6B77B; margin-top:10px; line-height:1.5}
+.side-tools{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 16px; flex-wrap:wrap}
+.home{color:#F6B77B; font-size:.82rem; font-weight:600; text-decoration:none}
+.home:hover{color:#fff}
+.theme-switch{display:inline-flex; border:1px solid rgba(255,255,255,.3); border-radius:999px; padding:2px; gap:2px}
+.theme-switch button{appearance:none; border:0; background:transparent; color:#DCE5F4; font:inherit; font-size:.72rem; padding:4px 8px; border-radius:999px; cursor:pointer}
+.theme-switch button[aria-pressed="true"]{background:#E8781A; color:#1B0E00; font-weight:600}
+.progress{margin:22px 0 18px}
+.progress-bar{height:8px; background:rgba(255,255,255,.14); border-radius:8px; overflow:hidden}
+.progress-bar i{display:block; height:100%; width:0; background:#F2923F; transition:width .35s ease}
+.progress p{margin:8px 0 0; font-size:.84rem; color:#C9D6EC}
+.nav{list-style:none; margin:0; padding:0; counter-reset:n}
+.nav li{margin:2px 0}
+.nav button{all:unset; box-sizing:border-box; cursor:pointer; display:grid; grid-template-columns:28px 1fr 18px; gap:8px; align-items:start; width:100%; padding:9px 10px; border-radius:8px; color:#DCE5F4; font-size:.93rem; line-height:1.35}
+.nav button:hover{background:rgba(255,255,255,.07)}
+.nav button[aria-current="true"]{background:#fff; color:#15305A; font-weight:600}
+.nav .num{font-family:var(--mono); font-size:.8rem; opacity:.75; padding-top:1px}
+.nav .tick{font-size:.85rem; color:#F2923F; visibility:hidden}
+.nav li.done .tick{visibility:visible}
+.nav button[aria-current="true"] .tick{color:#E8781A}
+.side-foot{margin-top:22px; font-size:.78rem; color:#AFC0DC; line-height:1.5}
+.side-foot button{all:unset; cursor:pointer; text-decoration:underline; color:#F6B77B}
+/* ---------- main ---------- */
+main{padding:44px clamp(18px,5vw,64px) 80px}
+.chapter{max-width:800px}
+.chapter[hidden]{display:none}
+.kicker{font-family:var(--mono); font-size:.8rem; color:var(--orange); margin:0 0 6px}
+h2{font-size:clamp(1.7rem,3.2vw,2.3rem); line-height:1.15; margin:0 0 18px; color:var(--navy); letter-spacing:-.02em}
+h3{font-size:1.22rem; margin:38px 0 10px; color:var(--navy); line-height:1.3}
+h4{font-size:1.02rem; margin:24px 0 6px}
+p{margin:0 0 14px; max-width:72ch}
+.lead{font-size:1.1rem; color:var(--muted)}
+.docs{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 26px}
+.docs a{font-size:.85rem; text-decoration:none; border:1px solid var(--line); background:var(--surface); padding:5px 11px; border-radius:20px; color:var(--navy-2)}
+.docs a:hover{border-color:var(--orange); color:var(--orange)}
+/* code */
+figure.code{position:relative; margin:16px 0 22px; background:var(--code-bg); border-radius:10px; overflow:hidden; border:1px solid var(--code-line)}
+figure.code figcaption{font-family:var(--mono); font-size:.76rem; color:#9FB2D2; padding:8px 14px; border-bottom:1px solid var(--code-line); background:rgba(255,255,255,.03)}
+figure.code pre{margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:.84rem; line-height:1.6; color:var(--code-ink); tab-size:2}
+figure.code pre code{background:none; padding:0; color:inherit; font-size:inherit}
+.copy{position:absolute; top:6px; right:8px; font:500 .72rem var(--sans); color:#BFD0EA; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:6px; padding:3px 9px; cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+.t-com{color:#7D8FAD; font-style:italic}.t-str{color:#F6B77B}.t-key{color:#9CC5FF}.t-num{color:#F9D27A}
+.t-kw{color:#FF9D5C}.t-lit{color:#F9D27A}.t-type{color:#7FD6C2}.t-fn{color:#B6CCFF}
+/* callouts: problem -> why -> solution -> when */
+.fix{background:var(--surface); border:1px solid var(--line); border-left:5px solid var(--orange); border-radius:10px; padding:16px 20px 6px; margin:20px 0 24px}
+.fix h4{margin:0 0 10px; color:var(--orange)}
+.fix p{font-size:.96rem}
+.fix b{color:var(--navy)}
+.note{background:var(--tsc-soft); border-radius:10px; padding:14px 18px 2px; margin:18px 0 22px; font-size:.96rem}
+.note b{color:var(--navy)}
+/* widgets shared */
+.widget{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; margin:22px 0 28px}
+.widget h4{margin:0 0 4px; font-size:1.05rem; color:var(--navy)}
+.widget .hint{font-size:.9rem; color:var(--muted); margin:0 0 14px}
+.seg{display:inline-flex; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:3px; gap:2px; flex-wrap:wrap}
+.seg button{border:0; background:transparent; font:600 .9rem var(--sans); color:var(--muted); padding:7px 14px; border-radius:8px; cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--navy); color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#0C1524}}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#0C1524}
+/* js/ts toggle */
+.editor{margin-top:14px; background:var(--code-bg); border-radius:10px; overflow-x:auto; font-family:var(--mono); font-size:.83rem; line-height:1.65; color:var(--code-ink); padding:12px 0}
+.editor .ln{display:grid; grid-template-columns:38px 1fr; white-space:pre; padding-right:16px}
+.editor .ln > span:first-child{color:#51658A; text-align:right; padding-right:12px; user-select:none}
+.editor .err > span:last-child{text-decoration:underline wavy #FF6B5E; text-underline-offset:4px}
+.editor .msg{display:block; white-space:normal; margin:2px 16px 6px 50px; font-family:var(--sans); font-size:.8rem; color:#FFD2CC; background:rgba(255,107,94,.14); border-left:3px solid #FF6B5E; padding:4px 10px; border-radius:0 6px 6px 0}
+.editor-note{font-size:.92rem; margin:12px 0 0; color:var(--muted)}
+/* return type quiz */
+.rt-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px}
+.rt{border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--paper)}
+.rt .m{font-family:var(--mono); font-size:.88rem; font-weight:600; margin:0 0 10px; color:var(--navy)}
+.rt .opts{display:flex; flex-wrap:wrap; gap:6px}
+.rt .opts button{font:500 .78rem var(--mono); border:1px solid var(--line); background:var(--surface); color:var(--ink); padding:4px 8px; border-radius:6px; cursor:pointer}
+.rt .opts button.right{background:var(--ok-soft); border-color:var(--ok); color:var(--ok)}
+.rt .opts button.wrong{background:var(--bad-soft); border-color:var(--bad); color:var(--bad); text-decoration:line-through}
+.rt .fb{font-size:.84rem; margin:10px 0 0; line-height:1.5}
+.rt .fb[hidden]{display:none}
+.score{font-size:.9rem; margin:14px 0 0; color:var(--muted)}
+/* utility builder */
+.ub{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.2fr); gap:18px; margin-top:14px}
+.ub fieldset{border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin:0}
+.ub legend{font-size:.85rem; color:var(--muted); padding:0 6px}
+.ub label{display:flex; gap:8px; align-items:center; font-family:var(--mono); font-size:.85rem; padding:4px 0; cursor:pointer}
+.ub label.off{opacity:.45; cursor:default}
+.ub-out figure.code{margin:0}
+.ub-say{font-size:.9rem; margin:10px 0 0}
+/* tsconfig */
+.legend{display:flex; flex-wrap:wrap; gap:14px; font-size:.86rem; margin:0 0 12px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.legend i{width:12px; height:12px; border-radius:3px; display:inline-block}
+.tsc-wrap{display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); gap:16px; align-items:start}
+.json{background:var(--code-bg); color:var(--code-ink); font-family:var(--mono); font-size:.82rem; line-height:1.75; padding:14px 12px; border-radius:10px; overflow-x:auto; white-space:pre}
+.json button{all:unset; cursor:pointer; border-radius:4px; padding:0 3px; margin:0 -3px}
+.json button.pw{box-shadow:inset 0 -2px 0 var(--pw); color:#FFC48C}
+.json button.tsc{box-shadow:inset 0 -2px 0 var(--tsc); color:#A9C6FF}
+.json button:hover,.json button[aria-pressed="true"]{background:rgba(255,255,255,.12)}
+.json button:focus-visible{outline:2px solid var(--orange)}
+.explain{border:1px solid var(--line); border-radius:10px; padding:14px 16px; background:var(--paper); font-size:.93rem; min-height:160px}
+.explain .tag{display:inline-block; font-size:.74rem; font-weight:600; padding:2px 8px; border-radius:10px; margin-bottom:8px}
+.explain .tag.pw{background:var(--orange-soft); color:var(--orange)}
+.explain .tag.tsc{background:var(--tsc-soft); color:var(--tsc)}
+.explain h5{font-family:var(--mono); font-size:.92rem; margin:0 0 6px; color:var(--navy)}
+.explain p{margin:0 0 8px}
+/* find the bug */
+.bug{border:1px solid var(--line); border-radius:12px; margin:14px 0; overflow:hidden; background:var(--surface)}
+.bug-head{display:flex; justify-content:space-between; gap:10px; align-items:center; padding:10px 14px; border-bottom:1px solid var(--line)}
+.bug-head b{font-size:.95rem}
+.bug-head .st{font-size:.8rem; color:var(--muted)}
+.bug-head .st.ok{color:var(--ok); font-weight:600}
+.bug-code{background:var(--code-bg); padding:8px 0; overflow-x:auto}
+.bug-code button{all:unset; box-sizing:border-box; display:block; min-width:100%; width:max-content; white-space:pre; font-family:var(--mono); font-size:.82rem; line-height:1.7; color:var(--code-ink); padding:0 16px; cursor:pointer}
+.bug-code button:hover{background:rgba(255,255,255,.06)}
+.bug-code button.hit{background:rgba(76,192,138,.2); box-shadow:inset 3px 0 0 #4CC08A}
+.bug-code button.miss{background:rgba(255,107,94,.16); box-shadow:inset 3px 0 0 #FF6B5E}
+.bug-code button:focus-visible{outline:2px solid var(--orange); outline-offset:-2px}
+.bug-body{padding:12px 16px 4px; font-size:.93rem}
+.bug-body[hidden]{display:none}
+.bug-body figure.code{margin:8px 0 12px}
+.linkbtn{border:0; background:none; color:var(--navy-2); font:500 .82rem var(--sans); text-decoration:underline; cursor:pointer; padding:0}
+/* pager */
+.pager{display:flex; justify-content:space-between; gap:12px; margin-top:48px; padding-top:22px; border-top:1px solid var(--line); flex-wrap:wrap}
+.pager button{font:600 .95rem var(--sans); border:1px solid var(--line); background:var(--surface); color:var(--navy); padding:11px 18px; border-radius:10px; cursor:pointer}
+.pager button.primary{background:var(--orange); border-color:var(--orange); color:#fff}
+.pager button:disabled{visibility:hidden}
+.done-btn{font:500 .85rem var(--sans); border:0; background:none; color:var(--muted); text-decoration:underline; cursor:pointer}
+
+/* runner topic additions */
+.editor .mark > span:last-child{background:rgba(242,146,63,.10)}
+.editor .msg.tip{color:#FFE2C4; background:rgba(242,146,63,.14); border-left-color:#F2923F}
+.tree{background:var(--code-bg); border-radius:10px; padding:10px 6px; display:flex; flex-direction:column; gap:1px}
+.tree button{all:unset; box-sizing:border-box; cursor:pointer; font-family:var(--mono); font-size:.82rem; color:var(--code-ink); padding:5px 10px; border-radius:6px}
+.tree button.later{color:#8193B2; font-style:italic}
+.tree button.ext{margin-top:8px; border-top:1px dashed #2A3D60; border-radius:0; padding-top:9px}
+.tree button:hover,.tree button[aria-pressed="true"]{background:rgba(255,255,255,.1)}
+.tree button:focus-visible{outline:2px solid var(--orange)}
+.json button.run{box-shadow:inset 0 -2px 0 var(--pw); color:#FFC48C}
+.json button.use{box-shadow:inset 0 -2px 0 var(--tsc); color:#A9C6FF}
+.json button.proj{box-shadow:inset 0 -2px 0 var(--ok); color:#8FE0B7}
+.explain .tag.run{background:var(--orange-soft); color:var(--orange)}
+.explain .tag.use{background:var(--tsc-soft); color:var(--tsc)}
+.explain .tag.proj{background:var(--ok-soft); color:var(--ok)}
+.cli-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px 14px; margin-bottom:12px}
+.cli-grid label,.sim-controls label{display:flex; flex-direction:column; gap:4px; font-size:.82rem; color:var(--muted)}
+.cli-grid input,.cli-grid select,.sim-controls select{font:500 .9rem var(--sans); color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:7px 9px}
+.cli-flags{display:flex; flex-wrap:wrap; gap:6px 16px; margin-bottom:6px}
+.cli-flags label{font-family:var(--mono); font-size:.84rem; display:flex; gap:6px; align-items:center; cursor:pointer}
+.cli-explain p{font-size:.92rem; margin:0 0 6px}
+.sim-controls{display:flex; flex-wrap:wrap; gap:12px 18px; align-items:flex-end; margin-bottom:14px}
+.sim-controls label.chk{flex-direction:row; align-items:center; gap:6px; font-family:var(--mono); color:var(--ink); padding-bottom:8px; cursor:pointer}
+.sim-row{display:grid; grid-template-columns:78px 1fr; align-items:center; gap:8px; margin:6px 0}
+.sim-w{font-size:.78rem; color:var(--muted)}
+.sim-track{position:relative; height:34px; background:var(--paper); border:1px solid var(--line); border-radius:8px; overflow:hidden}
+.sim-blk{position:absolute; top:3px; bottom:3px; background:var(--c); color:#fff; font-size:.7rem; line-height:26px; padding:0 5px; border-radius:5px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; border-right:2px solid var(--surface); transition:left .35s ease,width .35s ease}
+.sim-blk.failed{background:repeating-linear-gradient(45deg,var(--bad),var(--bad) 6px,#9E2C22 6px,#9E2C22 12px)}
+.sim-blk.skipped{background:#8E99AB; text-align:center}
+.sim-blk.restart{background:transparent; color:var(--bad); text-align:center; font-weight:700; border:0}
+.sim-legend{display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; margin:10px 0 0; color:var(--muted)}
+.sim-legend span{display:inline-flex; align-items:center; gap:5px}
+.sim-legend i{width:11px; height:11px; border-radius:3px; display:inline-block}
+.sim-legend i.lg-fail{background:var(--bad)} .sim-legend i.lg-skip{background:#8E99AB}
+.sim-total{font-size:.9rem; margin:10px 0 0}
+.sim-say{font-size:.94rem; margin:8px 0 0}
+.hooks{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:14px}
+.hooks-src{background:var(--code-bg); color:var(--code-ink); font-family:var(--mono); font-size:.8rem; line-height:1.75; padding:10px 0; border-radius:10px; overflow-x:auto; white-space:pre}
+.hooks-src div{padding:0 12px}
+.hooks-src div.on{background:rgba(242,146,63,.22); box-shadow:inset 3px 0 0 #F2923F}
+.hooks-log{margin:0; padding:10px 14px 10px 34px; background:var(--paper); border:1px solid var(--line); border-radius:10px; font-size:.88rem}
+.hooks-log li{margin:0 0 6px}
+.hooks-log li.empty{list-style:none; margin-left:-20px; color:var(--muted)}
+#traceSeg button{font-family:var(--mono); font-size:.78rem}
+.runs{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:14px 0 10px}
+.run{border:1px solid var(--line); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:4px; background:var(--paper)}
+.run.fail{border-left:4px solid var(--bad)} .run.pass{border-left:4px solid var(--ok)}
+.run .res{font-size:.82rem; color:var(--muted)}
+.run .tr{font-size:.88rem; font-weight:600}
+.run .tr.kept{color:var(--ok)} .run .tr.dropped{color:var(--bad)} .run .tr.none{color:var(--muted); font-weight:500}
+@media (max-width:900px){.hooks,.runs{grid-template-columns:1fr}}
+
+
+/* reporting additions */
+.term{background:var(--code-bg); color:var(--code-ink); font-family:var(--mono); font-size:.78rem; line-height:1.6; padding:14px 16px; border-radius:10px; overflow-x:auto; min-height:220px; margin:0; white-space:pre}
+.c-r{color:#FF7B70}.c-y{color:#F6C26B}.c-g{color:#5FD39A}
+.hr{border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--paper)}
+.hr-chips{display:flex; flex-wrap:wrap; gap:6px; padding:10px; border-bottom:1px solid var(--line); background:var(--surface)}
+.chip{font:500 .82rem var(--sans); border:1px solid var(--line); background:var(--paper); color:var(--ink); padding:4px 10px; border-radius:16px; cursor:pointer}
+.chip b{font-weight:700; margin-left:3px}
+.chip[aria-pressed="true"]{background:var(--navy); color:#fff; border-color:var(--navy)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .chip[aria-pressed="true"]{color:#0C1524}}
+:root[data-theme="dark"] .chip[aria-pressed="true"]{color:#0C1524}
+.hr-body{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}
+.hr-list{border-right:1px solid var(--line); padding:6px 0}
+.hr-file{font:600 .76rem var(--mono); color:var(--muted); padding:8px 12px 4px}
+.hr-test{all:unset; box-sizing:border-box; display:grid; grid-template-columns:12px 1fr auto; gap:8px; align-items:center; width:100%; padding:7px 12px; font-size:.84rem; cursor:pointer}
+.hr-test:hover{background:var(--surface)}
+.hr-test:focus-visible{outline:2px solid var(--orange); outline-offset:-2px}
+.hr-test .dot,.hr-detail .st{border-radius:50%}
+.hr-test .dot{width:10px; height:10px; background:var(--ok)}
+.hr-test.failed .dot{background:var(--bad)} .hr-test.flaky .dot{background:#D9A21B} .hr-test.skipped .dot{background:#8E99AB}
+.hr-test em{font-style:normal; font-size:.7rem; background:var(--tsc-soft); color:var(--tsc); padding:1px 6px; border-radius:8px}
+.hr-test .du{font-size:.76rem; color:var(--muted)}
+.hr-detail{padding:12px 14px; font-size:.86rem; min-height:220px}
+.hr-detail h5{font-size:.95rem; margin:0 0 8px; color:var(--navy)}
+.hr-detail .st{border-radius:8px; font-size:.72rem; padding:1px 7px; margin-left:4px; color:#fff; background:var(--ok)}
+.hr-detail .st.failed{background:var(--bad)} .hr-detail .st.flaky{background:#D9A21B} .hr-detail .st.skipped{background:#8E99AB}
+.hr-sec{font-weight:600; margin:10px 0 4px; color:var(--navy)}
+.hr-err{background:var(--code-bg); color:#FFD2CC; font-family:var(--mono); font-size:.74rem; padding:10px; border-radius:8px; overflow-x:auto; margin:0; white-space:pre}
+.hr-step{display:grid; grid-template-columns:minmax(0,1fr) 90px 40px; gap:8px; align-items:center; font-size:.8rem; padding:2px 0}
+.hr-step .bar{height:6px; background:var(--line); border-radius:4px; overflow:hidden}
+.hr-step .bar i{display:block; height:100%; background:var(--orange)}
+.hr-att{margin:2px 0}
+.mut{color:var(--muted); font-size:.8rem; font-weight:400}
+.hr-hint{color:var(--muted)}
+.pipe-label{font-size:.85rem; font-weight:600; color:var(--navy); margin:12px 0 6px}
+.pipe-row{display:flex; flex-wrap:wrap; gap:8px}
+.pipe-box{flex:1 1 180px; border:1px solid var(--line); border-left:4px solid var(--orange); background:var(--paper); border-radius:8px; padding:8px 10px; display:flex; flex-direction:column; gap:4px; font-size:.84rem}
+.pipe-box.wide{flex-basis:100%}
+.pipe-box code{background:transparent; padding:0; font-size:.76rem; word-break:break-word}
+#lifeLog code{background:var(--tsc-soft)}
+@media (max-width:900px){.hr-body{grid-template-columns:1fr}.hr-list{border-right:0; border-bottom:1px solid var(--line)}}
+
+
+/* locators additions */
+.rt-grid.wide{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.rt .m code{white-space:normal; word-break:break-word}
+.rt .opts button{white-space:normal; text-align:left}
+.rr{display:grid; gap:12px}
+.rr-page{display:flex; flex-wrap:wrap; align-items:center; gap:10px; background:var(--paper); border:1px dashed var(--line); border-radius:10px; padding:14px}
+.rr-lbl{font-size:.78rem; color:var(--muted); width:100%}
+.rr-btn{font:600 .9rem var(--sans); background:var(--navy); color:#fff; border:0; border-radius:8px; padding:8px 16px}
+.rr-node{font-family:var(--mono); font-size:.8rem; color:var(--ok)}
+.rr-old{font-family:var(--mono); font-size:.8rem; color:var(--bad); text-decoration:line-through}
+.rr-cols{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.rr-col{border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--paper)}
+.rr-col b{font-family:var(--mono); font-size:.76rem; display:block; margin-bottom:8px; color:var(--navy); word-break:break-word}
+.rr-col p{font-size:.88rem; margin:0}
+.ok{color:var(--ok)} .bad{color:var(--bad)} .wait{color:#C98A0B}
+.sim-controls input[type="text"]{font:500 .9rem var(--mono); color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:7px 9px}
+.tx-dom{display:grid; gap:6px; margin:8px 0 12px}
+.tx-el{border:1px solid var(--line); border-radius:8px; padding:7px 10px; font-size:.86rem; background:var(--paper); white-space:pre-wrap}
+.tx-el.hit{border-color:var(--orange); background:var(--orange-soft); box-shadow:inset 3px 0 0 var(--orange)}
+.tx-el code{background:transparent; padding:0; color:var(--muted)}
+.fl{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:14px; align-items:start}
+.fl figure.code{margin:0}
+.fl-list{list-style:none; margin:0; padding:0; display:grid; gap:8px}
+.fl-list li{border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--paper); display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:.88rem}
+.fl-list li.hit{border-color:var(--orange); background:var(--orange-soft); box-shadow:inset 3px 0 0 var(--orange)}
+.fl-list .badge{font-size:.7rem; background:var(--ok); color:#fff; padding:1px 7px; border-radius:8px}
+.fl-list .oos{font-size:.74rem; color:var(--bad)}
+.fl-btn{margin-left:auto; font-size:.76rem; font-weight:600; border:1px solid var(--line); border-radius:6px; padding:3px 9px; background:var(--surface)}
+.fl-btn.hit{border-color:var(--orange); background:var(--orange); color:#fff}
+.act{display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr); gap:16px}
+.act-state{display:flex; flex-direction:column; gap:8px; border:1px solid var(--line); border-radius:10px; padding:12px; background:var(--paper)}
+.act-state label,.act-main > label{display:flex; flex-direction:column; gap:4px; font-size:.82rem; color:var(--muted)}
+.act-state label.chk{flex-direction:row; align-items:center; gap:7px; color:var(--ink); font-size:.88rem; cursor:pointer}
+.act-state select,.act-main select{font:500 .9rem var(--mono); color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:7px 9px}
+.act-checks{margin:12px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.ac-row{display:flex; justify-content:space-between; gap:10px; padding:7px 12px; font-size:.88rem; border-top:1px solid var(--line)}
+.ac-row:first-child{border-top:0}
+.ac-row.off{color:var(--muted)} .ac-row.off b{font-weight:400; font-size:.8rem}
+.act-res{font-size:.94rem; border-left:4px solid var(--orange); padding:4px 0 4px 12px; margin:0}
+@media (max-width:900px){.rr-cols,.fl,.act{grid-template-columns:1fr}}
+
+/* final quiz */
+.qz-top{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px}
+.qz-count{font-family:var(--mono); font-size:.82rem; color:var(--orange)}
+.qz-bar{height:6px; background:var(--paper); border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-bottom:18px}
+.qz-bar i{display:block; height:100%; width:0; background:var(--orange); transition:width .3s ease}
+.qz-q{font-size:1.08rem; font-weight:600; margin:0 0 12px; color:var(--ink)}
+.qz-opts{display:grid; gap:8px; margin:14px 0}
+.qz-opts button{text-align:left; font:500 .95rem var(--sans); line-height:1.45; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:11px 14px; cursor:pointer}
+.qz-opts button:hover:not(:disabled){border-color:var(--navy-2)}
+.qz-opts button:disabled{cursor:default}
+.qz-opts button.right{background:var(--ok-soft); border-color:var(--ok); color:var(--ok)}
+.qz-opts button.wrong{background:var(--bad-soft); border-color:var(--bad); color:var(--bad)}
+.qz-opts code{background:transparent; padding:0}
+.qz-fb{border-left:4px solid var(--line); padding:4px 0 4px 14px; margin:6px 0 14px; font-size:.94rem}
+.qz-fb.ok{border-color:var(--ok)} .qz-fb.no{border-color:var(--bad)}
+.qz-fb[hidden]{display:none}
+.qz-actions{display:flex; gap:10px; flex-wrap:wrap}
+.qz-actions button{font:600 .92rem var(--sans); border:1px solid var(--line); background:var(--surface); color:var(--navy); padding:10px 16px; border-radius:10px; cursor:pointer}
+.qz-actions button.primary{background:var(--orange); border-color:var(--orange); color:#fff}
+.qz-result{font-size:2.4rem; font-weight:700; color:var(--navy); margin:0; letter-spacing:-.02em}
+.qz-review{list-style:none; padding:0; margin:16px 0}
+.qz-review li{border-top:1px solid var(--line); padding:10px 0; font-size:.93rem}
+.qz-review .linkbtn{margin-left:4px}
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .side{position:sticky; top:0; height:auto; z-index:5; padding:12px 14px 10px; padding-top:calc(12px + env(safe-area-inset-top,0px)); margin-top:calc(-1 * env(safe-area-inset-top,0px))}
+  .brand{font-size:1rem}.brand span{display:none}
+  .progress{margin:8px 0}
+  .nav{display:flex; overflow-x:auto; gap:4px; padding-bottom:2px}
+  .nav li{flex:0 0 auto}
+  .nav button{grid-template-columns:auto auto auto; white-space:nowrap; padding:6px 10px; font-size:.82rem}
+  .side-foot{display:none}
+  main{padding-top:28px}
+  .ub,.tsc-wrap{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="side" aria-label="Зміст">
+  <div class="side-tools">
+    <a class="home" href="../index.html">На головну</a>
+    <div class="theme-switch" role="group" aria-label="Тема оформлення">
+      <button type="button" data-theme-set="auto" aria-pressed="true">Авто</button>
+      <button type="button" data-theme-set="light" aria-pressed="false">Світла</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Темна</button>
+    </div>
+  </div>
+  <p class="brand">Locators &amp; Auto-waiting<span>@playwright/test 1.63<br>TypeScript 7.0, strict</span></p>
+  <div class="progress" aria-live="polite">
+    <div class="progress-bar"><i id="progressFill"></i></div>
+    <p id="progressText">0 з 12 розділів пройдено</p>
+  </div>
+  <ol class="nav" id="nav"></ol>
+  <div class="side-foot">Прогрес зберігається лише у вашому браузері. <button type="button" id="resetProgress">Скинути прогрес</button></div>
+</aside>
+<main id="main">
+<!-- ================= 1 ================= -->
+<section class="chapter" id="s1" data-title="Що таке локатор">
+<p class="kicker">Розділ 1 з 12</p>
+<h2>Що таке локатор</h2>
+<p class="lead">Локатор — це не елемент, а спосіб знайти елемент. Він нічого не шукає в момент створення, а шукає заново щоразу, коли ви виконуєте дію чи перевірку. Саме на цьому тримаються автоочікування і стійкість до перемальовування сторінки.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/locators#introduction" target="_blank" rel="noopener">Документація → Locators</a>
+  <a href="https://playwright.dev/docs/api/class-locator" target="_blank" rel="noopener">Документація → Locator API</a>
+</div>
+<p>Документація називає локатори центральним елементом автоочікування та повторних спроб у Playwright: локатор описує, як знайти елемент на сторінці в будь-який момент. Рядок <code>const signIn = page.getByRole('button', { name: 'Sign in' })</code> миттєвий і не звертається до браузера. Пошук відбувається лише під час <code>await signIn.hover()</code>, а потім знову під час <code>await signIn.click()</code>. Якщо між цими викликами фреймворк перемалював кнопку, другий виклик знайде вже нову.</p>
+<p>Порівняйте це з <code>ElementHandle</code>, який повертає <code>page.$()</code>. Handle вказує на конкретний DOM-вузол. Коли вузол видаляють і створюють новий, handle продовжує вказувати на старий, відʼєднаний від сторінки. Тому <code>ElementHandle</code> у документації позначений як discouraged.</p>
+
+<div class="widget" id="rerender">
+  <h4>Перемальовування сторінки: Locator проти ElementHandle</h4>
+  <p class="hint">Виконайте кроки по черзі й подивіться, що бачить кожен підхід.</p>
+  <div class="rr">
+    <div class="rr-page" id="rrPage"></div>
+    <div class="rr-cols">
+      <div class="rr-col"><b>const btn = page.getByRole('button', { name: 'Save' })</b><p id="rrLoc"></p></div>
+      <div class="rr-col"><b>const handle = await page.$('button.save')</b><p id="rrHandle"></p></div>
+    </div>
+  </div>
+  <div class="qz-actions" style="margin-top:12px">
+    <button type="button" class="primary" id="rrRender">Фреймворк перемальовує кнопку</button>
+    <button type="button" id="rrClick">Клік</button>
+    <button type="button" id="rrReset">Спочатку</button>
+  </div>
+</div>
+<p>Друга ключова властивість — строгість. Якщо дія чи перевірка, що працює з одним елементом, знаходить кілька, локатор не обирає перший навмання, а кидає помилку strict mode violation. Детально про це в розділі 7.</p>
+</section>
+
+<!-- ================= 2 ================= -->
+<section class="chapter" id="s2" data-title="Вбудовані локатори" hidden>
+<p class="kicker">Розділ 2 з 12</p>
+<h2>Вбудовані локатори і їхній пріоритет</h2>
+<p class="lead">Playwright має сім вбудованих методів пошуку. Документація радить ставити на перше місце атрибути, які бачить користувач, і явні контракти з розробниками, а вже потім структуру DOM.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/locators#quick-guide" target="_blank" rel="noopener">Документація → Quick Guide</a>
+  <a href="https://playwright.dev/docs/best-practices#use-locators" target="_blank" rel="noopener">Документація → Best Practices</a>
+</div>
+<p><code>getByRole</code> шукає за явною або неявною роллю доступності і доступною назвою. Документація рекомендує його насамперед, бо він найближчий до того, як сторінку сприймають користувачі й допоміжні технології. <code>getByLabel</code> знаходить поле форми за текстом підпису. <code>getByPlaceholder</code> — поле без підпису, але з placeholder. <code>getByText</code> радять для неінтерактивних елементів на кшталт <code>div</code>, <code>span</code>, <code>p</code>, а для кнопок, посилань і полів краще роль. <code>getByAltText</code> шукає зображення за альтернативним текстом. <code>getByTitle</code> — елемент з атрибутом <code>title</code>. <code>getByTestId</code> шукає за атрибутом <code>data-testid</code>: це найстійкіший до змін тексту варіант, але він не відображає того, що бачить користувач.</p>
+<script type="text/x-code" data-file="tests/login.spec.ts">
+import { test, expect } from '@playwright/test';
+
+test('user signs in', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel('User Name').fill('John');
+  await page.getByLabel('Password').fill('secret-password');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByText('Welcome, John!')).toBeVisible();
+});
+</script>
+<div class="widget" id="bestWidget">
+  <h4>Обери найкращий локатор</h4>
+  <p class="hint">Для кожного фрагмента HTML оберіть локатор, який відповідає рекомендаціям документації.</p>
+  <div class="rt-grid wide" id="bestGrid"></div>
+  <p class="score" id="bestScore" aria-live="polite"></p>
+</div>
+</section>
+
+<!-- ================= 3 ================= -->
+<section class="chapter" id="s3" data-title="getByRole детально" hidden>
+<p class="kicker">Розділ 3 з 12</p>
+<h2>getByRole детально</h2>
+<p class="lead">Більшість HTML-елементів мають неявну роль: <code>&lt;button&gt;</code> — це <code>button</code>, <code>&lt;h2&gt;</code> — <code>heading</code>. Тому <code>getByRole</code> працює і без атрибутів <code>role</code> у розмітці.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/locators#locate-by-role" target="_blank" rel="noopener">Документація → Locate by role</a>
+  <a href="https://playwright.dev/docs/api/class-page#page-get-by-role" target="_blank" rel="noopener">Документація → page.getByRole</a>
+</div>
+<p>Роль майже завжди уточнюють доступною назвою через опцію <code>name</code>. За замовчуванням назва порівнюється без урахування регістру і як підрядок. <code>exact: true</code> вимагає точного збігу з урахуванням регістру, але пробіли на краях однаково обрізаються. Замість рядка можна передати регулярний вираз. Інші опції відповідають ARIA-станам: <code>checked</code>, <code>disabled</code>, <code>expanded</code>, <code>pressed</code>, <code>selected</code>, <code>level</code> (рівень заголовка), а <code>includeHidden</code> дозволяє знаходити приховані елементи, які за замовчуванням виключаються.</p>
+<script type="text/x-code" data-file="tests/signup.spec.ts">
+import { test, expect } from '@playwright/test';
+
+test('subscribes to the newsletter', async ({ page }) => {
+  await page.goto('/signup');
+  await expect(page.getByRole('heading', { name: 'Sign up', level: 1 })).toBeVisible();
+  await page.getByRole('checkbox', { name: 'Subscribe' }).check();
+  await page.getByRole('button', { name: /submit/i }).click();
+  await expect(page.getByRole('checkbox', { name: 'Subscribe', checked: true })).toBeVisible();
+});
+</script>
+<div class="widget" id="roleWidget">
+  <h4>Яка неявна роль?</h4>
+  <p class="hint">Для кожного елемента оберіть роль, за якою його знайде <code>getByRole</code>.</p>
+  <div class="rt-grid" id="roleGrid"></div>
+  <p class="score" id="roleScore" aria-live="polite"></p>
+</div>
+<div class="note"><p><b>Ролі не замінюють аудит доступності.</b> Документація окремо зазначає, що role-локатори дають ранній сигнал про відповідність ARIA, але не є перевіркою доступності.</p></div>
+</section>
+
+<!-- ================= 4 ================= -->
+<section class="chapter" id="s4" data-title="Текст, label, test id" hidden>
+<p class="kicker">Розділ 4 з 12</p>
+<h2>Текст, label, placeholder, alt, title і test id</h2>
+<p class="lead">У текстових локаторів спільні правила порівняння, і їх варто знати напам'ять: від них залежить, скільки елементів знайде локатор.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/locators#locate-by-text" target="_blank" rel="noopener">Документація → Locate by text</a>
+  <a href="https://playwright.dev/docs/locators#locate-by-label" target="_blank" rel="noopener">Документація → Locate by label</a>
+  <a href="https://playwright.dev/docs/locators#locate-by-test-id" target="_blank" rel="noopener">Документація → Locate by test id</a>
+</div>
+<p>Рядок за замовчуванням шукається як підрядок без урахування регістру. <code>{ exact: true }</code> вимагає збігу всього рядка з урахуванням регістру. Регулярний вираз дає повний контроль, і для нього <code>exact</code> ігнорується. Пробіли нормалізуються завжди, навіть з <code>exact</code>: кілька пробілів стають одним, переноси рядків — пробілами, пробіли на краях відкидаються. У <code>getByText</code> є ще нюанс: поля <code>&lt;input type="button"&gt;</code> і <code>type="submit"</code> порівнюються за атрибутом <code>value</code>.</p>
+<div class="widget" id="textWidget">
+  <h4>Пісочниця getByText</h4>
+  <p class="hint">Введіть текст, перемкніть exact або регулярний вираз і подивіться, які елементи знайде локатор.</p>
+  <div class="sim-controls">
+    <label>Текст<input type="text" id="txtQ" value="welcome" autocomplete="off"></label>
+    <label class="chk"><input type="checkbox" id="txtExact"> exact: true</label>
+    <label class="chk"><input type="checkbox" id="txtRe"> регулярний вираз (/…/i)</label>
+  </div>
+  <div class="tx-dom" id="txtDom"></div>
+  <div id="txtOut"></div>
+</div>
+<p><code>getByLabel</code> знаходить поле за текстом пов'язаного <code>&lt;label&gt;</code>, за елементом з <code>aria-labelledby</code> або за атрибутом <code>aria-label</code>. <code>getByTestId</code> за замовчуванням читає <code>data-testid</code>, але атрибут можна змінити в конфігу.</p>
+<script type="text/x-code" data-file="playwright.config.ts (фрагмент)">
+use: {
+  testIdAttribute: 'data-pw', // getByTestId('directions') now matches data-pw="directions"
+},
+</script>
+</section>
+
+<!-- ================= 5 ================= -->
+<section class="chapter" id="s5" data-title="CSS, XPath, Shadow DOM, iframe" hidden>
+<p class="kicker">Розділ 5 з 12</p>
+<h2>CSS, XPath, Shadow DOM і iframe</h2>
+<p class="lead">Коли вбудованих локаторів замало, є <code>page.locator()</code> з CSS чи XPath. Документація радить робити це лише за потреби, бо такі селектори прив'язані до верстки.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/locators#locate-by-css-or-xpath" target="_blank" rel="noopener">Документація → CSS or XPath</a>
+  <a href="https://playwright.dev/docs/locators#locate-in-shadow-dom" target="_blank" rel="noopener">Документація → Shadow DOM</a>
+  <a href="https://playwright.dev/docs/frames" target="_blank" rel="noopener">Документація → Frames</a>
+</div>
+<p>Playwright сам розпізнає CSS і XPath, тож префікси <code>css=</code> і <code>xpath=</code> необов'язкові. Довгі ланцюжки на кшталт <code>#tsf &gt; div:nth-child(2) &gt; div.A8SBwf …</code> документація прямо наводить як погану практику: вони ламаються від будь-якої зміни DOM. Якщо CSS неминучий, шукайте короткий селектор за стабільним атрибутом, а краще домовтеся з розробниками про <code>data-testid</code>.</p>
+<script type="text/x-code">
+await page.locator('css=button').click();
+await page.locator('xpath=//button').click();
+await page.locator('button').click();   // CSS detected automatically
+await page.locator('//button').click(); // XPath detected automatically
+</script>
+<h3>Shadow DOM</h3>
+<p>Усі локатори за замовчуванням бачать елементи всередині Shadow DOM, наче тіньового кореня немає. Винятків два: XPath не проходить у shadow root, а закриті (closed-mode) shadow root не підтримуються.</p>
+<h3>iframe</h3>
+<p>Вміст iframe — окремий документ, і звичайні локатори сторінки його не бачать. Щоб «увійти» у фрейм, використовують <code>page.frameLocator(selector)</code> або, маючи локатор самого iframe, <code>locator.contentFrame()</code>. Далі працюють ті самі <code>getByRole</code>, <code>getByText</code> тощо.</p>
+<script type="text/x-code" data-file="tests/payment.spec.ts">
+import { test, expect, type FrameLocator } from '@playwright/test';
+
+test('pays with a card inside an iframe', async ({ page }) => {
+  await page.goto('/checkout');
+  const payment: FrameLocator = page.locator('iframe[title="Payment form"]').contentFrame();
+  await payment.getByLabel('Card number').fill('4242 4242 4242 4242');
+  await payment.getByRole('button', { name: 'Pay' }).click();
+  await expect(page.getByText('Payment received')).toBeVisible();
+});
+</script>
+</section>
+
+<!-- ================= 6 ================= -->
+<section class="chapter" id="s6" data-title="Фільтри й оператори" hidden>
+<p class="kicker">Розділ 6 з 12</p>
+<h2>Фільтри, ланцюжки й оператори</h2>
+<p class="lead">Коли схожих елементів багато, локатор звужують: ланцюжком від контейнера до потрібного елемента, фільтром за текстом чи вмістом або комбінацією двох локаторів.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/locators#filtering-locators" target="_blank" rel="noopener">Документація → Filtering</a>
+  <a href="https://playwright.dev/docs/locators#locator-operators" target="_blank" rel="noopener">Документація → Locator operators</a>
+</div>
+<p><code>filter({ hasText })</code> лишає елементи, що містять текст десь усередині, зокрема в нащадках. Рядок порівнюється як підрядок без урахування регістру. <code>hasNotText</code> робить навпаки. <code>has</code> і <code>hasNot</code> фільтрують за наявністю нащадка, що відповідає іншому локатору. Важлива деталь з документації: внутрішній локатор шукається відносно зовнішнього, а не від кореня документа. Тому <code>has: page.getByRole('list').getByText('…')</code> усередині <code>listitem</code> не спрацює. <code>filter({ visible: true })</code> або скорочення <code>.visible()</code> лишає тільки видимі елементи, але документація радить спершу пошукати надійніший спосіб відрізнити елемент.</p>
+<p>Методи <code>getBy…</code> є і в <code>Locator</code>, тому їх можна ланцюжити: <code>product.getByRole('button')</code> шукає кнопку лише всередині продукту. <code>a.and(b)</code> знаходить елементи, які відповідають обом локаторам одночасно. <code>a.or(b)</code> — будь-якому з них. Якщо обидва варіанти присутні, <code>or</code> поверне два елементи і може спричинити strict mode violation.</p>
+
+<div class="widget" id="flWidget">
+  <h4>Конструктор фільтрів</h4>
+  <p class="hint">Список товарів праворуч. Зберіть локатор і подивіться, скільки елементів він знаходить і що станеться з <code>click()</code>.</p>
+  <div class="sim-controls">
+    <label>Базовий локатор
+      <select id="flBase"><option value="li">getByRole('listitem')</option><option value="btn">getByRole('button', { name: 'Add to cart' })</option></select>
+    </label>
+    <label>filter
+      <select id="flFilter">
+        <option value="">без фільтра</option>
+        <option value="hasText:Keyboard">{ hasText: 'Keyboard' }</option>
+        <option value="hasText:Mouse">{ hasText: 'Mouse' }</option>
+        <option value="hasNotText:Out of stock">{ hasNotText: 'Out of stock' }</option>
+        <option value="hasSale">{ has: page.getByText('Sale') }</option>
+      </select>
+    </label>
+    <label>Ланцюжок
+      <select id="flChain"><option value="">—</option><option value="btn">.getByRole('button', { name: 'Add to cart' })</option></select>
+    </label>
+    <label>Позиція
+      <select id="flPos"><option value="">—</option><option value="first">.first()</option><option value="last">.last()</option></select>
+    </label>
+  </div>
+  <div class="fl">
+    <div id="flCode"></div>
+    <ul class="fl-list" id="flList"></ul>
+  </div>
+  <p class="sim-say" id="flSay"></p>
+</div>
+<script type="text/x-code" data-file="tests/cart.spec.ts">
+import { test, expect, type Locator } from '@playwright/test';
+
+test('adds the wireless mouse to the cart', async ({ page }) => {
+  await page.goto('/catalog');
+  const product: Locator = page.getByRole('listitem').filter({ hasText: 'Wireless Mouse' });
+  await expect(product).toHaveCount(1);
+  await product.getByRole('button', { name: 'Add to cart' }).click();
+  await expect(page.getByTestId('cart-count')).toHaveText('1');
+});
+</script>
+</section>
+
+<!-- ================= 7 ================= -->
+<section class="chapter" id="s7" data-title="Строгість і списки" hidden>
+<p class="kicker">Розділ 7 з 12</p>
+<h2>Строгість і робота зі списками</h2>
+<p class="lead">Локатори строгі: операція, що має на увазі один елемент, кидає помилку, якщо знайдено кілька. Операції над множиною елементів працюють з будь-якою кількістю.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/locators#strictness" target="_blank" rel="noopener">Документація → Strictness</a>
+  <a href="https://playwright.dev/docs/locators#lists" target="_blank" rel="noopener">Документація → Lists</a>
+</div>
+<p>Строгість захищає від тихих помилок: якщо на сторінці дві кнопки «Delete», тест не повинен навмання клікнути першу. Розв'язок — уточнити локатор роллю, назвою, фільтром чи ланцюжком від контейнера. <code>first()</code>, <code>last()</code> і <code>nth(i)</code> теж знімають неоднозначність, але документація застерігає: коли сторінка змінюється, позиційний локатор може почати вказувати на зовсім інший елемент.</p>
+<div class="widget" id="strictWidget">
+  <h4>Кине strict mode violation?</h4>
+  <p class="hint">Локатор <code>items = page.getByRole('listitem')</code> знаходить 3 елементи. Що станеться з кожною операцією?</p>
+  <div class="rt-grid" id="strictGrid"></div>
+  <p class="score" id="strictScore" aria-live="polite"></p>
+</div>
+<h3>Перевірки для списків</h3>
+<p>Для списків є дві основні web-first перевірки. <code>toHaveCount(n)</code> перевіряє кількість елементів. <code>toHaveText([...])</code> з масивом перевіряє тексти всіх елементів по порядку. Обидві повторюють перевірку, доки список не прийде до очікуваного стану.</p>
+<script type="text/x-code" data-file="tests/todo.spec.ts">
+import { test, expect, type Locator } from '@playwright/test';
+
+test('shows three todo items in order', async ({ page }) => {
+  await page.goto('/todos');
+  const items: Locator = page.getByRole('listitem');
+  await expect(items).toHaveCount(3);
+  await expect(items).toHaveText(['Buy milk', 'Walk the dog', 'Read a book']);
+});
+</script>
+<h3>Перебір елементів</h3>
+<p>Документація відносить перебір до рідкісних випадків. <code>locator.all()</code> не чекає на елементи, а одразу повертає те, що є на сторінці. Якщо список змінюється, результат буде непередбачуваним. Тому спочатку дочекайтеся повного списку, наприклад через <code>toHaveCount</code>, і лише потім перебирайте.</p>
+<script type="text/x-code" data-file="helpers/readPrices.ts">
+import { expect, type Locator } from '@playwright/test';
+
+export async function readPrices(prices: Locator, expectedCount: number): Promise<number[]> {
+  await expect(prices).toHaveCount(expectedCount); // wait for the full list first
+  const texts: string[] = await prices.allTextContents();
+  return texts.map((text: string) => Number.parseFloat(text.replace('$', '')));
+}
+</script>
+</section>
+
+<!-- ================= 8 ================= -->
+<section class="chapter" id="s8" data-title="Auto-waiting: перевірки дій" hidden>
+<p class="kicker">Розділ 8 з 12</p>
+<h2>Auto-waiting: перевірки перед дією</h2>
+<p class="lead">Перед кожною дією Playwright чекає, доки елемент стане придатним для неї (actionability checks). Лише коли всі потрібні перевірки пройдено, дія виконується. Якщо цього не сталося в межах тайм-ауту, дія падає з <code>TimeoutError</code>.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/actionability" target="_blank" rel="noopener">Документація → Auto-waiting</a>
+  <a href="https://playwright.dev/docs/input" target="_blank" rel="noopener">Документація → Actions</a>
+</div>
+<p>Для <code>click()</code> документація перелічує повний набір: локатор знаходить рівно один елемент, елемент <b>Visible</b>, <b>Stable</b>, <b>Receives Events</b> і <b>Enabled</b>. Кожен термін має точне визначення. Visible — непорожній bounding box і без <code>visibility:hidden</code>. Отже, елементи нульового розміру чи з <code>display:none</code> невидимі, а елемент з <code>opacity:0</code> видимий. Stable — bounding box не змінювався щонайменше два послідовні кадри анімації. Receives Events — у точці дії саме цей елемент є ціллю вказівника, а не, скажімо, оверлей поверх нього. Enabled — елемент не disabled: не має атрибута <code>disabled</code>, не лежить у вимкненому <code>&lt;fieldset&gt;</code> і не є нащадком елемента з <code>aria-disabled=true</code>. Editable — елемент enabled і не readonly.</p>
+<p>Різні дії потребують різних перевірок. <code>click</code>, <code>check</code>, <code>dblclick</code>, <code>tap</code> перевіряють перші чотири, <code>hover</code> і <code>dragTo</code> — без Enabled, <code>fill</code> і <code>clear</code> — Visible, Enabled і Editable. <code>press</code>, <code>focus</code>, <code>setInputFiles</code> і <code>dispatchEvent</code> не роблять жодної з п'яти перевірок, але, як і всі дії, чекають, поки локатор знайде елемент.</p>
+
+<div class="widget" id="actWidget">
+  <h4>Симулятор actionability</h4>
+  <p class="hint">Налаштуйте стан елемента й оберіть дію. Симулятор покаже, які перевірки виконуються, яка з них блокує і чим закінчиться виклик. Матриця перевірок узята з документації Playwright 1.63.</p>
+  <div class="act">
+    <div class="act-state">
+      <label>Знайдено елементів<select id="actCount"><option value="0">0 (ще не в DOM)</option><option value="1" selected>1</option><option value="2">2</option></select></label>
+      <label class="chk"><input type="checkbox" id="actVisible" checked> видимий</label>
+      <label class="chk"><input type="checkbox" id="actStable" checked> не анімується</label>
+      <label class="chk"><input type="checkbox" id="actEvents" checked> нічим не перекритий</label>
+      <label class="chk"><input type="checkbox" id="actEnabled" checked> enabled</label>
+      <label class="chk"><input type="checkbox" id="actEditable" checked> не readonly</label>
+      <label class="chk"><input type="checkbox" id="actForce"> force: true</label>
+    </div>
+    <div class="act-main">
+      <label>Дія<select id="actAction"></select></label>
+      <div class="act-checks" id="actChecks"></div>
+      <p class="act-res" id="actRes" aria-live="polite"></p>
+    </div>
+  </div>
+</div>
+<div class="fix">
+  <h4>force: true — не спосіб полагодити тест</h4>
+  <p><b>Проблема.</b> Клік падає через оверлей чи анімацію, і в код додають <code>{ force: true }</code>.</p>
+  <p><b>Чому це погано.</b> <code>force</code> повністю обходить actionability-перевірки. Тест клікає туди, куди користувач клікнути не зміг би, і перестає ловити реальний баг: оверлей, що не зникає, чи кнопку, яка так і не стала активною.</p>
+  <p><b>Рішення.</b> Спершу з'ясуйте, яка перевірка блокує: це видно в логу дії та в трейсі. Потім дочекайтеся потрібного стану сторінки, наприклад закрийте банер або перевірте <code>toBeHidden()</code> для оверлею.</p>
+  <p><b>Коли force доречний.</b> Рідко: коли поведінка навмисно відрізняється від звичайної, наприклад прихований нативний input під кастомним контролом, і ви свідомо перевіряєте саме цей input.</p>
+</div>
+<p>Опція <code>trial: true</code> працює навпаки: виконує лише перевірки і не робить саму дію. Це зручно, щоб дочекатися готовності елемента без кліку.</p>
+</section>
+
+<!-- ================= 9 ================= -->
+<section class="chapter" id="s9" data-title="Очікування і assertions" hidden>
+<p class="kicker">Розділ 9 з 12</p>
+<h2>Очікування в assertions і явні очікування</h2>
+<p class="lead">Дії чекають на actionability, web-first assertions повторюють перевірку до тайм-ауту. Між цими двома механізмами майже не лишається місця для ручних очікувань.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/actionability#assertions" target="_blank" rel="noopener">Документація → Assertions</a>
+  <a href="https://playwright.dev/docs/best-practices#use-web-first-assertions" target="_blank" rel="noopener">Документація → Web-first assertions</a>
+  <a href="https://playwright.dev/docs/api/class-locator#locator-wait-for" target="_blank" rel="noopener">Документація → locator.waitFor</a>
+</div>
+<p>Auto-retrying assertions — <code>toBeVisible</code>, <code>toBeHidden</code>, <code>toBeEnabled</code>, <code>toBeChecked</code>, <code>toHaveText</code>, <code>toHaveValue</code>, <code>toHaveCount</code>, <code>toHaveURL</code> та інші — повторюють перевірку, доки умова не виконається або не мине <code>expect.timeout</code>. Методи-запити <code>isVisible()</code>, <code>isEnabled()</code>, <code>isChecked()</code>, <code>isHidden()</code> повертають стан негайно і не чекають. Best practices наводять це як типову помилку: <code>expect(await locator.isVisible()).toBe(true)</code> не почекає жодної секунди.</p>
+<div class="widget" id="waitWidget">
+  <h4>Чекає чи ні?</h4>
+  <p class="hint">Оберіть, як поводиться кожен виклик, коли елемент з'являється лише через секунду.</p>
+  <div class="rt-grid" id="waitGrid"></div>
+  <p class="score" id="waitScore" aria-live="polite"></p>
+</div>
+<h3>locator.waitFor</h3>
+<p>Явне очікування стану є: <code>waitFor({ state })</code> зі станами <code>'attached'</code>, <code>'detached'</code>, <code>'visible'</code> (за замовчуванням) і <code>'hidden'</code>. Воно потрібне рідко, наприклад у хелпері, який має дочекатися зникнення спінера перед подальшою логікою. Для перевірок у тесті використовуйте assertions.</p>
+<script type="text/x-code" data-file="helpers/waitForLoaded.ts">
+import type { Locator, Page } from '@playwright/test';
+
+export async function waitForTableLoaded(page: Page): Promise<Locator> {
+  await page.getByRole('progressbar').waitFor({ state: 'hidden' });
+  return page.getByRole('table', { name: 'Orders' });
+}
+</script>
+<div class="fix">
+  <h4>Чого не варто робити</h4>
+  <p><b>Проблема.</b> У тестах з'являються <code>page.waitForTimeout(3000)</code>, <code>page.waitForSelector()</code> чи <code>waitForLoadState('networkidle')</code> «для надійності».</p>
+  <p><b>Чому.</b> Фіксована пауза або занадто коротка, і тест нестабільний, або занадто довга, і тест повільний. У документації <code>waitForTimeout</code> призначений лише для налагодження, а <code>waitForSelector</code> і <code>networkidle</code> позначені як discouraged.</p>
+  <p><b>Рішення.</b> Сформулюйте, якого видимого стану ви чекаєте, і перевірте його web-first assertion: <code>await expect(page.getByRole('table')).toBeVisible()</code>.</p>
+  <p><b>Коли пауза припустима.</b> Лише тимчасово під час налагодження, і в комміт вона не потрапляє.</p>
+</div>
+</section>
+
+<!-- ================= 10 ================= -->
+<section class="chapter" id="s10" data-title="Інструменти підбору" hidden>
+<p class="kicker">Розділ 10 з 12</p>
+<h2>Інструменти для підбору локаторів</h2>
+<p class="lead">Локатори не обов'язково писати наосліп. Playwright має три інструменти, які пропонують локатор і показують, що він знаходить.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/codegen" target="_blank" rel="noopener">Документація → Test generator</a>
+  <a href="https://playwright.dev/docs/test-ui-mode" target="_blank" rel="noopener">Документація → UI Mode</a>
+  <a href="https://playwright.dev/docs/best-practices#generate-locators" target="_blank" rel="noopener">Документація → Generate locators</a>
+</div>
+<p>Генератор тестів (<code>npx playwright codegen &lt;url&gt;</code>) відкриває браузер і Playwright Inspector. За документацією, він обирає найкращий локатор, віддаючи перевагу ролі, тексту й test id. Якщо знаходиться кілька елементів, генератор уточнює локатор, щоб той був унікальним. Щоб лише підібрати локатор, зупиніть запис кнопкою Record, і стане доступною кнопка Pick Locator: наведіть на елемент і скопіюйте локатор або відредагуйте його в Inspector, спостерігаючи підсвічування на сторінці.</p>
+<p>В UI mode є така сама кнопка Pick locator для DOM-знімків трейсу і пісочниця, де можна змінювати локатор і бачити, що він знаходить. Розширення VS Code вміє записувати тести, підбирати локатори й підсвічувати в браузері елементи, які знаходить локатор під курсором у коді.</p>
+<script type="text/x-code" data-lang="sh" data-file="Термінал">
+npx playwright codegen http://localhost:3000   # record actions and pick locators
+npx playwright test --ui                       # Pick locator in UI mode
+</script>
+<p>Згенерований локатор — чернетка, а не остаточне рішення. Перевірте, чи не прив'язаний він до випадкового тексту чи позиції, і чи читається він як опис для людини. Для складних локаторів у Page Object корисний <code>locator.describe('Subscribe button')</code>: цей опис з'являється у трейсі та звітах замість технічного селектора.</p>
+</section>
+
+<!-- ================= 11 ================= -->
+<section class="chapter" id="s11" data-title="Типові помилки" hidden>
+<p class="kicker">Розділ 11 з 12</p>
+<h2>Типові помилки</h2>
+<p class="lead">Більшість нестабільних тестів спричинені не повільною сторінкою, а локатором, який знаходить не те або не стільки, або ручним очікуванням замість вбудованого.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/best-practices" target="_blank" rel="noopener">Документація → Best Practices</a>
+  <a href="https://playwright.dev/docs/locators" target="_blank" rel="noopener">Документація → Locators</a>
+</div>
+<p>Найчастіше трапляються такі помилки. Довгі CSS-ланцюжки, прив'язані до верстки. <code>getByText</code> для кнопок замість ролі. Неоднозначний локатор, «виправлений» через <code>first()</code>. <code>has</code> з локатором від кореня сторінки. <code>isVisible()</code> всередині <code>expect</code>. Фіксовані паузи. <code>force: true</code> як заплатка. Перебір <code>all()</code> до того, як список завантажився.</p>
+<div class="widget" id="bugWidget">
+  <h4>Знайди помилку</h4>
+  <p class="hint">У кожному фрагменті один проблемний рядок. Натисніть на нього, щоб перевірити себе.</p>
+  <div id="bugList"></div>
+  <p class="score" id="bugScore" aria-live="polite"></p>
+</div>
+</section>
+
+<!-- ================= 12 ================= -->
+<section class="chapter" id="s12" data-title="Шпаргалка" hidden>
+<p class="kicker">Розділ 12 з 12</p>
+<h2>Шпаргалка</h2>
+<p class="lead">Усе основне на одному екрані. Після шпаргалки — підсумковий квіз для самоперевірки.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/locators" target="_blank" rel="noopener">Документація → Locators</a>
+  <a href="https://playwright.dev/docs/actionability" target="_blank" rel="noopener">Документація → Auto-waiting</a>
+</div>
+<script type="text/x-code" data-file="Локатори за пріоритетом">
+page.getByRole('button', { name: 'Sign in' });          // first choice
+page.getByRole('heading', { name: 'Cart', level: 2 });
+page.getByLabel('Password');                            // form fields
+page.getByPlaceholder('name@example.com');              // fields without a label
+page.getByText('Welcome, John');                        // non-interactive text
+page.getByAltText('Company logo');                      // images
+page.getByTitle('Issues count');                        // title attribute
+page.getByTestId('cart-total');                         // explicit contract (data-testid)
+page.locator('css=.legacy-widget');                     // last resort
+</script>
+<script type="text/x-code" data-file="Звуження">
+const row: Locator = page.getByRole('listitem')
+  .filter({ hasText: 'Wireless Mouse' })                // text inside, case-insensitive substring
+  .filter({ has: page.getByText('In stock') });         // inner locator is relative to the row
+await row.getByRole('button', { name: 'Add to cart' }).click();
+
+page.getByRole('button').and(page.getByTitle('Subscribe'));  // both
+page.getByRole('button', { name: 'New' }).or(page.getByRole('dialog')); // either
+page.locator('iframe[title="Payment form"]').contentFrame().getByLabel('Card number');
+</script>
+<script type="text/x-code" data-file="Actionability (Playwright 1.63)">
+// click, dblclick, check, uncheck, setChecked, tap: Visible, Stable, Receives Events, Enabled
+// hover, dragTo:                                    Visible, Stable, Receives Events
+// screenshot:                                       Visible, Stable
+// fill, clear:                                      Visible, Enabled, Editable
+// selectOption:                                     Visible, Enabled
+// selectText:                                       Visible
+// scrollIntoViewIfNeeded:                           Stable
+// press, pressSequentially, focus, blur, setInputFiles, dispatchEvent: none of the five
+// Every action waits for the locator to resolve to exactly one element.
+// force: true bypasses the checks; trial: true runs the checks without the action.
+</script>
+<script type="text/x-code" data-file="Чекати правильно">
+await expect(locator).toBeVisible();          // retries up to expect.timeout
+await expect(items).toHaveCount(3);
+await expect(items).toHaveText(['a', 'b']);
+await spinner.waitFor({ state: 'hidden' });   // explicit wait, rarely needed
+// avoid: page.waitForTimeout(), page.waitForSelector(), expect(await locator.isVisible())
+</script>
+<p>Три правила на пам'ять. Локатор описує, як знайти елемент, і шукає його заново під час кожної дії. Найкращий локатор описує елемент так, як його бачить користувач, і знаходить рівно один елемент. Чекати вручну майже ніколи не потрібно: дії чекають на actionability, а web-first assertions — на очікуваний стан.</p>
+</section>
+
+<!-- ================= QUIZ ================= -->
+<section class="chapter" id="quiz" data-title="Підсумковий квіз" data-num="✎" data-count="no" hidden>
+<p class="kicker">Самоперевірка</p>
+<h2>Підсумковий квіз</h2>
+<p class="lead">15 питань за всіма розділами. Після кожної відповіді побачите пояснення, а в кінці — список тем, які варто повторити.</p>
+<div class="widget" id="quizWidget" aria-live="polite"></div>
+</section>
+
+<nav class="pager" aria-label="Навігація між розділами">
+  <button type="button" id="prevBtn">Попередній розділ</button>
+  <button type="button" class="done-btn" id="doneBtn">Позначити як пройдений</button>
+  <button type="button" class="primary" id="nextBtn">Наступний розділ</button>
+</nav>
+</main>
+</div>
+<script>
+(function(){
+'use strict';
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const KW = new Set('import from export const let var async await function return if else throw new class extends implements interface type readonly private protected public abstract get set as in of typeof keyof void this super default try catch require'.split(' '));
+const LIT = new Set(['null','undefined','true','false']);
+const PRIM = new Set(['string','number','boolean','unknown','any','never','object']);
+
+function hl(src, lang){
+  if (lang === 'sh' || lang === 'yaml'){
+    return src.split('\n').map((l) => {
+      const i = l.indexOf('#');
+      if (i === -1) return esc(l);
+      return esc(l.slice(0,i)) + '<span class="t-com">' + esc(l.slice(i)) + '</span>';
+    }).join('\n');
+  }
+  const re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|('(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"|`(?:\\.|[^`\\])*`)|(\b\d[\d_]*(?:\.\d+)?\b)|([A-Za-z_$][\w$]*)/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(src))){
+    out += esc(src.slice(last, m.index));
+    last = re.lastIndex;
+    const t = m[0];
+    if (m[1]) out += '<span class="t-com">' + esc(t) + '</span>';
+    else if (m[2]){
+      const isKey = lang === 'json' && /^\s*:/.test(src.slice(last));
+      out += '<span class="' + (isKey ? 't-key' : 't-str') + '">' + esc(t) + '</span>';
+    }
+    else if (m[3]) out += '<span class="t-num">' + t + '</span>';
+    else if (KW.has(t)) out += '<span class="t-kw">' + t + '</span>';
+    else if (LIT.has(t)) out += '<span class="t-lit">' + t + '</span>';
+    else if (PRIM.has(t) || /^[A-Z]/.test(t)) out += '<span class="t-type">' + t + '</span>';
+    else if (src[last] === '(' || src[last] === '<') out += '<span class="t-fn">' + t + '</span>';
+    else out += esc(t);
+  }
+  return out + esc(src.slice(last));
+}
+function dedent(src){
+  const lines = src.replace(/^\n+/, '').replace(/\s+$/, '').split('\n');
+  const ind = Math.min(...lines.filter((l) => l.trim()).map((l) => l.match(/^ */)[0].length));
+  return lines.map((l) => l.slice(ind)).join('\n');
+}
+function codeFigure(src, lang, file){
+  const fig = document.createElement('figure');
+  fig.className = 'code';
+  fig.innerHTML = (file ? '<figcaption>' + esc(file) + '</figcaption>' : '') +
+    '<pre><code>' + hl(src, lang) + '</code></pre>' +
+    '<button type="button" class="copy">Копіювати</button>';
+  const btn = fig.querySelector('.copy');
+  btn.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(src); btn.textContent = 'Скопійовано'; }
+    catch (e) {
+      const r = document.createRange(); r.selectNodeContents(fig.querySelector('pre'));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      btn.textContent = 'Виділено: Ctrl+C';
+    }
+    setTimeout(() => { btn.textContent = 'Копіювати'; }, 1600);
+  });
+  return fig;
+}
+$$('script[type="text/x-code"]').forEach((s) => {
+  s.replaceWith(codeFigure(dedent(s.textContent), s.dataset.lang || 'ts', s.dataset.file || ''));
+});
+
+/* ---------- navigation + progress ---------- */
+const chapters = $$('.chapter');
+const nav = $('#nav');
+const KEY = 'pw-locators-progress';
+let done = new Set();
+try { const raw = localStorage.getItem(KEY); if (raw) done = new Set(JSON.parse(raw)); } catch (e) {}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify([...done])); } catch (e) {} }
+
+chapters.forEach((c, i) => {
+  const li = document.createElement('li');
+  li.innerHTML = '<button type="button" data-id="' + c.id + '"><span class="num">' + (i + 1) + '</span><span>' + esc(c.dataset.title) + '</span><span class="tick" aria-hidden="true">✓</span></button>';
+  nav.appendChild(li);
+});
+let current = 0;
+const counted = chapters.filter((c) => c.dataset.count !== 'no');
+function renderProgress(){
+  $$('#nav li').forEach((li, i) => li.classList.toggle('done', done.has(chapters[i].id)));
+  const n = counted.filter((c) => done.has(c.id)).length;
+  $('#progressFill').style.width = (n / counted.length * 100) + '%';
+  $('#progressText').textContent = n + ' з ' + counted.length + ' розділів пройдено';
+  $('#doneBtn').textContent = done.has(chapters[current].id) ? 'Розділ пройдено ✓' : 'Позначити як пройдений';
+}
+function show(i, focus){
+  current = Math.max(0, Math.min(chapters.length - 1, i));
+  chapters.forEach((c, k) => { c.hidden = k !== current; });
+  $$('#nav button').forEach((b, k) => b.setAttribute('aria-current', k === current ? 'true' : 'false'));
+  $('#prevBtn').disabled = current === 0;
+  $('#nextBtn').textContent = current === chapters.length - 1 ? 'Завершити' : (chapters[current + 1].id === 'quiz' ? 'До підсумкового квізу' : 'Наступний розділ');
+  $('#doneBtn').hidden = chapters[current].dataset.count === 'no';
+  const activeBtn = $$('#nav button')[current];
+  if (activeBtn && activeBtn.scrollIntoView && window.matchMedia('(max-width:900px)').matches) activeBtn.scrollIntoView({ inline: 'center', block: 'nearest' });
+  try { if (location.protocol !== 'about:' && history.replaceState) history.replaceState(null, '', '#' + chapters[current].id); } catch (e) { /* sandboxed preview: URL cannot change */ }
+  renderProgress();
+  if (focus) { window.scrollTo(0, 0); chapters[current].querySelector('h2').setAttribute('tabindex', '-1'); chapters[current].querySelector('h2').focus({ preventScroll: true }); }
+}
+nav.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  show(chapters.findIndex((c) => c.id === b.dataset.id), true);
+});
+$('#prevBtn').addEventListener('click', () => show(current - 1, true));
+$('#nextBtn').addEventListener('click', () => {
+  done.add(chapters[current].id); save();
+  if (current < chapters.length - 1) show(current + 1, true); else renderProgress();
+});
+$('#doneBtn').addEventListener('click', () => {
+  const id = chapters[current].id;
+  if (done.has(id)) done.delete(id); else done.add(id);
+  save(); renderProgress();
+});
+$('#resetProgress').addEventListener('click', () => { done.clear(); save(); renderProgress(); });
+window.__showChapter = (id) => show(chapters.findIndex((c) => c.id === id), true);
+let startHash = ''; try { startHash = location.hash; } catch (e) {}
+const startIdx = chapters.findIndex((c) => '#' + c.id === startHash);
+show(startIdx >= 0 ? startIdx : 0, false);
+
+/* ---------- generic card quiz (per-item options allowed) ---------- */
+function cardQuiz(gridId, scoreId, items, opts){
+  const state = {};
+  const grid = $('#' + gridId);
+  function score(){
+    const answered = Object.keys(state).length;
+    const right = Object.values(state).filter(Boolean).length;
+    $('#' + scoreId).textContent = answered ? 'Правильно з першої спроби: ' + right + ' з ' + answered + ' (усього ' + items.length + ')' : '';
+  }
+  items.forEach((r, idx) => {
+    const card = document.createElement('div');
+    card.className = 'rt';
+    card.innerHTML = '<p class="m">' + r.m + '</p><div class="opts" role="group">' +
+      (r.opts || opts).map((o) => '<button type="button" data-o="' + esc(o) + '">' + esc(o) + '</button>').join('') + '</div><p class="fb" hidden></p>';
+    card.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b || card.dataset.solved) return;
+      const fb = card.querySelector('.fb');
+      const ok = b.dataset.o === r.a;
+      if (!(idx in state)) state[idx] = ok;
+      if (ok){
+        b.classList.add('right'); card.dataset.solved = '1';
+        fb.innerHTML = '<b>Так.</b> ' + r.why + (r.link ? ' <a href="' + r.link + '" target="_blank" rel="noopener">Документація</a>' : '');
+      } else { b.classList.add('wrong'); fb.textContent = 'Ні, спробуйте інший варіант.'; }
+      fb.hidden = false; score();
+    });
+    grid.appendChild(card);
+  });
+}
+const LOC = 'https://playwright.dev/docs/locators';
+const code = (s) => '<code>' + esc(s) + '</code>';
+
+/* ---------- 1. re-render ---------- */
+let rr = { gen:1, rendered:false, clicked:false };
+function renderRr(){
+  $('#rrPage').innerHTML = '<span class="rr-lbl">DOM сторінки</span><button type="button" class="rr-btn" tabindex="-1">Save</button><span class="rr-node">вузол #' + rr.gen + '</span>' +
+    (rr.rendered ? '<span class="rr-old">вузол #1 видалено з DOM</span>' : '');
+  if (!rr.clicked){
+    $('#rrLoc').textContent = 'Нічого не знайдено: локатор лише описує, як шукати.';
+    $('#rrHandle').textContent = 'Вказує на вузол #1, знайдений у момент виклику page.$().';
+  } else {
+    $('#rrLoc').innerHTML = '<span class="ok">✓ Перед кліком шукає заново і знаходить вузол #' + rr.gen + '. Клік виконано.</span>';
+    $('#rrHandle').innerHTML = rr.rendered
+      ? '<span class="bad">✗ Досі вказує на вузол #1, який вже не в DOM. Клік падає з помилкою про відʼєднаний елемент.</span>'
+      : '<span class="ok">✓ Вузол #1 ще на місці, клік виконано. Проблема проявиться лише після перемальовування.</span>';
+  }
+}
+$('#rrRender').addEventListener('click', () => { rr.gen += 1; rr.rendered = true; rr.clicked = false; renderRr(); });
+$('#rrClick').addEventListener('click', () => { rr.clicked = true; renderRr(); });
+$('#rrReset').addEventListener('click', () => { rr = { gen:1, rendered:false, clicked:false }; renderRr(); });
+renderRr();
+
+/* ---------- 2. best locator ---------- */
+cardQuiz('bestGrid', 'bestScore', [
+  { m: code('<button class="btn btn-primary">Save</button>'), opts:["getByRole('button', { name: 'Save' })", "locator('.btn.btn-primary')", "getByText('Save')"], a:"getByRole('button', { name: 'Save' })", why:'Для інтерактивних елементів документація радить роль з назвою. CSS-класи — деталь верстки.', link:LOC + '#locate-by-role' },
+  { m: code('<label>Email <input type="email"></label>'), opts:["locator('input[type=email]')", "getByLabel('Email')", "getByPlaceholder('Email')"], a:"getByLabel('Email')", why:'Поле форми з підписом шукають за підписом. Placeholder тут немає.', link:LOC + '#locate-by-label' },
+  { m: code('<input placeholder="Search products">'), opts:["getByLabel('Search products')", "locator('input')", "getByPlaceholder('Search products')"], a:"getByPlaceholder('Search products')", why:'Підпису немає, але є placeholder: саме для такого випадку і є getByPlaceholder.', link:LOC + '#locate-by-placeholder' },
+  { m: code('<p class="msg">Order #1042 confirmed</p>'), opts:["locator('p.msg')", "getByText('Order #1042 confirmed')", "getByRole('button')"], a:"getByText('Order #1042 confirmed')", why:'Для неінтерактивного тексту документація радить getByText.', link:LOC + '#locate-by-text' },
+  { m: code('<img src="/logo.svg" alt="Company logo">'), opts:["getByAltText('Company logo')", "locator('img[src=\"/logo.svg\"]')", "getByTitle('Company logo')"], a:"getByAltText('Company logo')", why:'Зображення шукають за альтернативним текстом. Шлях до файлу може змінитися.', link:LOC + '#locate-by-alt-text' },
+  { m: code('<div data-testid="cart-total">$59.98</div>'), opts:["getByText('$59.98')", "getByTestId('cart-total')", "locator('div:nth-child(3)')"], a:"getByTestId('cart-total')", why:'Ролі й стабільного тексту немає, сума змінюється. Явний test id — найстійкіший контракт.', link:LOC + '#locate-by-test-id' }
+]);
+
+/* ---------- 3. implicit roles ---------- */
+const ROLE = 'https://playwright.dev/docs/locators#locate-by-role';
+cardQuiz('roleGrid', 'roleScore', [
+  { m: code('<a href="/cart">Cart</a>'), opts:['link','button','navigation'], a:'link', why:'Посилання з href має роль link.', link:ROLE },
+  { m: code('<a>Cart</a>') + ' (без href)', opts:['link','button','без ролі link'], a:'без ролі link', why:'Без href елемент <a> не є посиланням для дерева доступності, тож getByRole(\'link\') його не знайде.', link:ROLE },
+  { m: code('<h3>Sign up</h3>'), opts:['heading','text','banner'], a:'heading', why:'Заголовки h1–h6 мають роль heading і рівень, який перевіряє опція level.', link:ROLE },
+  { m: code('<input type="checkbox">'), opts:['checkbox','switch','button'], a:'checkbox', why:'Неявна роль checkbox.', link:ROLE },
+  { m: code('<input type="text">'), opts:['input','textbox','searchbox'], a:'textbox', why:'Ролі input не існує: текстове поле — це textbox.', link:ROLE },
+  { m: code('<textarea></textarea>'), opts:['textbox','textarea','document'], a:'textbox', why:'Багаторядкове поле теж textbox.', link:ROLE },
+  { m: code('<select>…</select>'), opts:['listbox','combobox','menu'], a:'combobox', why:'Звичайний випадний select без multiple і size має роль combobox.', link:ROLE },
+  { m: code('<input type="search">'), opts:['textbox','searchbox','search'], a:'searchbox', why:'Поле type="search" має окрему роль searchbox.', link:ROLE },
+  { m: code('<li>Buy milk</li>') + ' у ' + code('<ul>'), opts:['listitem','item','option'], a:'listitem', why:'Елемент списку — listitem, сам ul — list.', link:ROLE },
+  { m: code('<nav>…</nav>'), opts:['menu','navigation','toolbar'], a:'navigation', why:'Неявна роль nav — navigation.', link:ROLE }
+]);
+
+/* ---------- 4. getByText sandbox ---------- */
+const TXT = [
+  { tag:'h1', html:'Welcome, John!', text:'Welcome, John!' },
+  { tag:'p', html:'Welcome back to your dashboard', text:'Welcome back to your dashboard' },
+  { tag:'span', html:'␣␣Welcome,↵␣␣␣John!␣␣', text:'  Welcome,\n   John!  ' },
+  { tag:'button', html:'Sign out', text:'Sign out' },
+  { tag:'input type="submit"', html:'value="Welcome tour"', text:'Welcome tour' },
+  { tag:'p', html:'WELCOME', text:'WELCOME' }
+];
+const norm = (s) => s.replace(/\s+/g, ' ').trim();
+function renderTxt(){
+  const q = $('#txtQ').value, exact = $('#txtExact').checked, isRe = $('#txtRe').checked;
+  let test, err = '';
+  if (isRe){
+    try { const re = new RegExp(q, 'i'); test = (t) => re.test(norm(t)); } catch (e) { err = 'Некоректний регулярний вираз.'; test = () => false; }
+  } else if (exact) test = (t) => norm(t) === norm(q);
+  else test = (t) => norm(t).toLowerCase().includes(norm(q).toLowerCase());
+  const hits = TXT.map((el) => q.trim() !== '' && test(el.text));
+  $('#txtDom').innerHTML = TXT.map((el, i) => '<div class="tx-el' + (hits[i] ? ' hit' : '') + '"><code>&lt;' + esc(el.tag) + '&gt;</code> ' + esc(el.html) + '</div>').join('');
+  const n = hits.filter(Boolean).length;
+  const call = isRe ? "page.getByText(/" + q + "/i)" : "page.getByText('" + q + "'" + (exact ? ', { exact: true }' : '') + ')';
+  const out = $('#txtOut'); out.innerHTML = '';
+  out.appendChild(codeFigure(call, 'ts', 'Локатор'));
+  const p = document.createElement('p'); p.className = 'sim-say';
+  p.textContent = err || ('Знайдено: ' + n + '. ' + (n === 0 ? 'Дія чекатиме появи елемента.' : n === 1 ? 'Рівно один елемент: дії й перевірки працюватимуть.' : 'Кілька елементів: click() чи toBeVisible() дадуть strict mode violation.') +
+    (exact ? ' З exact регістр важливий, а пробіли однаково нормалізуються.' : isRe ? ' Для регулярного виразу exact ігнорується.' : ' Без exact: підрядок без урахування регістру.'));
+  out.appendChild(p);
+}
+['txtQ','txtExact','txtRe'].forEach((id) => $('#' + id).addEventListener('input', renderTxt));
+['txtExact','txtRe'].forEach((id) => $('#' + id).addEventListener('change', renderTxt));
+renderTxt();
+
+/* ---------- 6. filter builder ---------- */
+const PRODUCTS = [
+  { name:'Wireless Mouse', sale:true, stock:true },
+  { name:'Mechanical Keyboard', sale:false, stock:true },
+  { name:'USB-C Cable', sale:false, stock:false },
+  { name:'Mouse Pad', sale:false, stock:true }
+];
+const liText = (p) => p.name + (p.sale ? ' Sale' : '') + (p.stock ? '' : ' Out of stock') + ' Add to cart';
+function renderFl(){
+  const base = $('#flBase').value, f = $('#flFilter').value, chain = $('#flChain').value, pos = $('#flPos').value;
+  // elements: {li:index, kind:'li'|'btn'}
+  let els = PRODUCTS.map((p, i) => ({ i, kind: base }));
+  const textOf = (el) => el.kind === 'li' ? liText(PRODUCTS[el.i]) : 'Add to cart';
+  if (f){
+    if (f.startsWith('hasText:')){ const t = f.slice(8).toLowerCase(); els = els.filter((el) => textOf(el).toLowerCase().includes(t)); }
+    else if (f.startsWith('hasNotText:')){ const t = f.slice(11).toLowerCase(); els = els.filter((el) => !textOf(el).toLowerCase().includes(t)); }
+    else if (f === 'hasSale') els = els.filter((el) => el.kind === 'li' && PRODUCTS[el.i].sale);
+  }
+  if (chain === 'btn') els = els.filter((el) => el.kind === 'li').map((el) => ({ i: el.i, kind: 'btn' }));
+  if (pos === 'first') els = els.slice(0, 1);
+  if (pos === 'last') els = els.slice(-1);
+  const fLabel = f === '' ? '' : f === 'hasSale' ? "\n  .filter({ has: page.getByText('Sale') })" : "\n  .filter({ " + f.split(':')[0] + ": '" + f.slice(f.indexOf(':') + 1) + "' })";
+  const src = 'const target: Locator = page.' + (base === 'li' ? "getByRole('listitem')" : "getByRole('button', { name: 'Add to cart' })") + fLabel +
+    (chain ? "\n  .getByRole('button', { name: 'Add to cart' })" : '') + (pos ? '\n  .' + pos + '()' : '') + ';\nawait target.click();';
+  const c = $('#flCode'); c.innerHTML = ''; c.appendChild(codeFigure(src, 'ts', 'Локатор'));
+  $('#flList').innerHTML = PRODUCTS.map((p, i) => {
+    const liHit = els.some((el) => el.i === i && el.kind === 'li');
+    const btnHit = els.some((el) => el.i === i && el.kind === 'btn');
+    return '<li class="' + (liHit ? 'hit' : '') + '"><b>' + esc(p.name) + '</b>' + (p.sale ? ' <span class="badge">Sale</span>' : '') +
+      (p.stock ? '' : ' <span class="oos">Out of stock</span>') + '<span class="fl-btn' + (btnHit ? ' hit' : '') + '">Add to cart</span></li>';
+  }).join('');
+  const n = els.length;
+  let say = 'Знайдено: ' + n + '. ';
+  if (n === 0) say += 'click() чекатиме, поки локатор щось знайде, і впаде з TimeoutError, коли закінчиться тайм-аут тесту.' + (base === 'btn' && (f === 'hasSale' || chain) ? ' Кнопка не містить бейджа Sale і не містить іншої кнопки: фільтр і ланцюжок застосовуються до самих кнопок.' : '');
+  else if (n === 1) say += 'click() виконається: рівно один елемент.' + (pos ? ' Але позиційний вибір крихкий: якщо порядок зміниться, клік піде на інший товар.' : '');
+  else say += 'click() кине strict mode violation: локатор знайшов ' + n + ' елементи(ів). Уточніть його фільтром чи ланцюжком.';
+  if (f === 'hasText:Mouse' && n > 1) say += ' Підрядок «Mouse» є і в «Wireless Mouse», і в «Mouse Pad».';
+  $('#flSay').textContent = say;
+}
+['flBase','flFilter','flChain','flPos'].forEach((id) => $('#' + id).addEventListener('change', renderFl));
+renderFl();
+
+/* ---------- 7. strictness ---------- */
+const STR = LOC + '#strictness';
+cardQuiz('strictGrid', 'strictScore', [
+  { m: code('await items.click()'), a:'помилка', why:'Клік має на увазі один елемент, а знайдено три.', link:STR },
+  { m: code('await items.count()'), a:'працює', why:'Операція над множиною, повертає 3.', link:STR },
+  { m: code('await expect(items).toHaveCount(3)'), a:'працює', why:'Перевірка кількості за визначенням працює з множиною.', link:LOC + '#count-items-in-a-list' },
+  { m: code('await items.textContent()'), a:'помилка', why:'Метод читає текст одного елемента, тож строгість діє.', link:STR },
+  { m: code('await items.first().click()'), a:'працює', why:'first() лишає один елемент. Але це позиційний вибір, він крихкий.', link:LOC + '#get-by-nth-item' },
+  { m: code('await expect(items).toBeVisible()'), a:'помилка', why:'toBeVisible перевіряє один елемент, тож для трьох — strict mode violation.', link:STR },
+  { m: code('await items.allTextContents()'), a:'працює', why:'Повертає масив текстів усіх елементів.', link:'https://playwright.dev/docs/api/class-locator#locator-all-text-contents' },
+  { m: code("await expect(items).toHaveText(['a', 'b', 'c'])"), a:'працює', why:'Масив очікуваних текстів перевіряє весь список по порядку.', link:LOC + '#assert-all-text-in-a-list' }
+], ['помилка', 'працює']);
+
+/* ---------- 8. actionability simulator ---------- */
+const CHECKS = [['V','Visible'],['S','Stable'],['R','Receives Events'],['E','Enabled'],['Ed','Editable']];
+const ACTIONS = {
+  click:'VSRE', dblclick:'VSRE', check:'VSRE', uncheck:'VSRE', setChecked:'VSRE', tap:'VSRE',
+  hover:'VSR', dragTo:'VSR', screenshot:'VS', fill:'VEEd', clear:'VEEd', selectOption:'VE', selectText:'V',
+  scrollIntoViewIfNeeded:'S', press:'', pressSequentially:'', focus:'', blur:'', setInputFiles:'', dispatchEvent:''
+};
+const needs = (spec, k) => k === 'Ed' ? spec.includes('Ed') : k === 'E' ? /E(?!d)/.test(spec) : spec.includes(k);
+$('#actAction').innerHTML = Object.keys(ACTIONS).map((a) => '<option value="' + a + '">' + a + '()</option>').join('');
+function renderAct(){
+  const a = $('#actAction').value, spec = ACTIONS[a], count = Number($('#actCount').value), force = $('#actForce').checked;
+  const st = { V: $('#actVisible').checked, S: $('#actStable').checked, R: $('#actEvents').checked, E: $('#actEnabled').checked, Ed: $('#actEnabled').checked && $('#actEditable').checked };
+  const forceable = ['click','dblclick','check','uncheck','setChecked','tap','hover','dragTo','fill','clear','selectOption','selectText'].includes(a);
+  let blocker = null;
+  $('#actChecks').innerHTML = '<div class="ac-row"><span>Локатор знаходить рівно один елемент</span><b class="' + (count === 1 ? 'ok' : 'bad') + '">' + (count === 1 ? '✓' : count === 0 ? '⏳ чекає' : '✗') + '</b></div>' +
+    CHECKS.map(([k, label]) => {
+      const need = needs(spec, k);
+      if (!need) return '<div class="ac-row off"><span>' + label + '</span><b>не перевіряється</b></div>';
+      if (force && forceable) return '<div class="ac-row off"><span>' + label + '</span><b>пропущено (force)</b></div>';
+      const ok = st[k];
+      if (!ok && !blocker) blocker = label;
+      return '<div class="ac-row"><span>' + label + '</span><b class="' + (ok ? 'ok' : 'wait') + '">' + (ok ? '✓' : '⏳ чекає') + '</b></div>';
+    }).join('');
+  let res;
+  if (count === 0) res = 'Дія чекає, поки локатор знайде елемент. Якщо елемент так і не з\'явиться, вона впаде з TimeoutError, коли закінчиться тайм-аут тесту (actionTimeout за замовчуванням 0).';
+  else if (count === 2) res = 'Strict mode violation: локатор знайшов 2 елементи, і дія над одним елементом неможлива. force цього не змінює.';
+  else if (force && !forceable) res = 'Для ' + a + '() опції force немає. ' + (blocker ? 'Дія чекає: ' + blocker + '.' : 'Усі потрібні перевірки пройдено, дія виконується.');
+  else if (blocker) res = 'Дія чекає, доки стан «' + blocker + '» стане істинним, повторюючи перевірки. Якщо цього не станеться, буде TimeoutError. У лозі дії буде видно, яка саме перевірка не пройшла.';
+  else res = (force && forceable ? 'force: true пропускає перевірки, тож дія виконується без них. Користувач у такому стані, можливо, не зміг би цього зробити. ' : 'Усі потрібні перевірки пройдено, дія виконується. ') + (spec === '' && !force ? 'Для ' + a + '() жодна з п\'яти перевірок не потрібна.' : '');
+  $('#actRes').textContent = res;
+}
+$$('#actWidget select, #actWidget input').forEach((el) => el.addEventListener('change', renderAct));
+renderAct();
+
+/* ---------- 9. wait or not ---------- */
+const AW = 'https://playwright.dev/docs/actionability';
+cardQuiz('waitGrid', 'waitScore', [
+  { m: code('await locator.click()'), a:'чекає на actionability', why:'Дія чекає, поки елемент з\'явиться і пройде перевірки.', link:AW },
+  { m: code('await expect(locator).toBeVisible()'), a:'повторює перевірку', why:'Web-first assertion повторює до expect.timeout.', link:AW + '#assertions' },
+  { m: code('await locator.isVisible()'), a:'повертає одразу', why:'Повертає поточний стан негайно. Опція timeout для нього ігнорується.', link:'https://playwright.dev/docs/api/class-locator#locator-is-visible' },
+  { m: code('await locator.count()'), a:'повертає одразу', why:'Кількість на цю мить. Щоб дочекатися кількості, є toHaveCount.', link:'https://playwright.dev/docs/api/class-locator#locator-count' },
+  { m: code('await expect(locator).toHaveCount(2)'), a:'повторює перевірку', why:'Повторює, доки кількість не стане 2.', link:AW + '#assertions' },
+  { m: code('await locator.all()'), a:'повертає одразу', why:'Документація прямо каже, що all() не чекає на елементи.', link:'https://playwright.dev/docs/api/class-locator#locator-all' },
+  { m: code("await locator.fill('John')"), a:'чекає на actionability', why:'fill чекає Visible, Enabled і Editable.', link:AW },
+  { m: code('await locator.isEnabled()'), a:'повертає одразу', why:'Методи is…() не чекають. Для перевірки є toBeEnabled.', link:'https://playwright.dev/docs/api/class-locator#locator-is-enabled' }
+], ['чекає на actionability', 'повторює перевірку', 'повертає одразу']);
+
+/* ---------- 11. find the bug ---------- */
+const BUGS = [
+  { title:'Кнопка збереження', lang:'ts', bug:0,
+    lines:["await page.locator('#app > div:nth-child(2) > form > div.row > button').click();"],
+    why:'Довгий CSS-ланцюжок прив\'язаний до структури DOM і зламається від будь-якої зміни верстки. Документація наводить такі селектори як погану практику.',
+    fix:"await page.getByRole('button', { name: 'Save' }).click();" },
+  { title:'Відправка форми', lang:'ts', bug:1,
+    lines:["await page.getByLabel('Email').fill('john@example.com');", "await page.getByText('Submit').click();"],
+    why:'Для інтерактивних елементів документація радить роль, а не текст. getByText знайде будь-який елемент зі словом «Submit», зокрема підказку чи заголовок.',
+    fix:"await page.getByRole('button', { name: 'Submit' }).click();" },
+  { title:'Видалення рядка', lang:'ts', bug:1,
+    lines:["// every row has its own \"Delete\" button", "await page.getByRole('button', { name: 'Delete' }).first().click();"],
+    why:'first() лише приховує неоднозначність. Тест видалить той рядок, що виявиться першим, і це може бути не той, що потрібен.',
+    fix:"await page.getByRole('row').filter({ hasText: 'Invoice #1042' })\n  .getByRole('button', { name: 'Delete' }).click();" },
+  { title:'Фільтр за вмістом', lang:'ts', bug:2,
+    lines:["await expect(page", "  .getByRole('listitem')", "  .filter({ has: page.getByRole('list').getByText('Product 2') }))", "  .toHaveCount(1);"],
+    why:'Внутрішній локатор у has шукається відносно зовнішнього, тобто всередині listitem. Там немає елемента list, тож фільтр нічого не знайде. Документація наводить саме цей приклад як помилку.',
+    fix:"  .filter({ has: page.getByRole('heading', { name: 'Product 2' }) }))" },
+  { title:'Перевірка банера', lang:'ts', bug:1,
+    lines:["await page.getByRole('button', { name: 'Save' }).click();", "expect(await page.getByRole('alert').isVisible()).toBe(true);"],
+    why:'isVisible() повертає стан негайно. Якщо банер з\'являється через мить, тест упаде випадково.',
+    fix:"await expect(page.getByRole('alert')).toBeVisible();" },
+  { title:'Очікування збереження', lang:'ts', bug:1,
+    lines:["await page.getByRole('button', { name: 'Save' }).click();", "await page.waitForTimeout(3000);", "await expect(page.getByText('Saved')).toBeVisible();"],
+    why:'Фіксована пауза сповільнює тест і не гарантує результату. Наступна перевірка сама дочекається тексту.',
+    fix:"await page.getByRole('button', { name: 'Save' }).click();\nawait expect(page.getByText('Saved')).toBeVisible();" },
+  { title:'Кнопка під оверлеєм', lang:'ts', bug:0,
+    lines:["await page.getByRole('button', { name: 'Checkout' }).click({ force: true }); // overlay sometimes covers it"],
+    why:'force обходить усі actionability-перевірки. Тест клікне крізь оверлей, який реальному користувачу заважає, і пропустить баг.',
+    fix:"await expect(page.getByTestId('loading-overlay')).toBeHidden();\nawait page.getByRole('button', { name: 'Checkout' }).click();" },
+  { title:'Перебір рядків таблиці', lang:'ts', bug:1,
+    lines:["await page.goto('/orders');", "for (const row of await page.getByRole('row').all()) {", "  await expect(row.getByRole('cell').first()).not.toBeEmpty();", "}"],
+    why:'all() не чекає на елементи. Якщо таблиця ще завантажується, цикл перегляне неповний список або порожній.',
+    fix:"const rows: Locator = page.getByRole('row');\nawait expect(rows).toHaveCount(11); // header + 10 orders\nfor (const row of await rows.all()) { /* ... */ }" }
+];
+
+const solved = new Set();
+function bugScore(){ $('#bugScore').textContent = 'Знайдено: ' + solved.size + ' з ' + BUGS.length; }
+BUGS.forEach((b, i) => {
+  const box = document.createElement('div');
+  box.className = 'bug';
+  box.innerHTML = '<div class="bug-head"><b>' + (i + 1) + '. ' + esc(b.title) + '</b><span class="st">Натисніть на рядок</span></div>' +
+    '<div class="bug-code" role="group" aria-label="Рядки коду">' +
+    b.lines.map((l, k) => '<button type="button" data-k="' + k + '">' + (hl(l, b.lang) || ' ') + '</button>').join('') +
+    '</div><div class="bug-body" hidden></div>' +
+    '<div style="padding:0 16px 12px"><button type="button" class="linkbtn reveal">Показати відповідь</button></div>';
+  const body = box.querySelector('.bug-body');
+  function reveal(found){
+    box.querySelectorAll('.bug-code button')[b.bug].classList.add('hit');
+    body.innerHTML = '<p>' + b.why + '</p>';
+    body.appendChild(codeFigure(b.fix, b.lang, 'Виправлення'));
+    body.hidden = false;
+    const st = box.querySelector('.st');
+    st.textContent = found ? 'Знайдено' : 'Відповідь показано'; st.classList.toggle('ok', found);
+    box.querySelector('.reveal').parentElement.hidden = true;
+    box.dataset.done = '1';
+  }
+  box.querySelector('.bug-code').addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if (!btn || box.dataset.done) return;
+    const k = Number(btn.dataset.k);
+    if (k === b.bug){ solved.add(i); reveal(true); bugScore(); }
+    else { btn.classList.add('miss'); box.querySelector('.st').textContent = 'Цей рядок коректний, шукайте далі'; }
+  });
+  box.querySelector('.reveal').addEventListener('click', () => reveal(false));
+  $('#bugList').appendChild(box);
+});
+bugScore();
+
+
+
+/* ---------- final quiz ---------- */
+const L = 'https://playwright.dev/docs/locators';
+const QUIZ = [
+  { sec:'s1', q:'Коли локатор шукає елемент на сторінці?', opts:['У момент створення локатора', 'Щоразу перед дією чи перевіркою', 'Один раз при першому використанні', 'Лише під час page.goto()'], a:1, why:'Тому локатор переживає перемальовування DOM.', link:L + '#locating-elements' },
+  { sec:'s1', q:'Що станеться з ElementHandle, якщо фреймворк перемалював елемент?', opts:['Він автоматично оновиться', 'Він вказуватиме на старий вузол, відʼєднаний від DOM', 'Він стане локатором', 'Нічого, handle не залежить від DOM'], a:1, why:'Саме тому ElementHandle — discouraged API.', link:'https://playwright.dev/docs/api/class-elementhandle' },
+  { sec:'s2', q:'Який локатор документація радить ставити на перше місце?', opts:['getByTestId', 'locator() з CSS', 'getByRole', 'getByText'], a:2, why:'Він найближчий до того, як сторінку сприймають користувачі й допоміжні технології.', link:L + '#locate-by-role' },
+  { sec:'s2', q:'Для яких елементів документація радить getByText?', opts:['Для кнопок і посилань', 'Для неінтерактивних елементів: div, span, p', 'Для полів форми', 'Лише для заголовків'], a:1, why:'Для інтерактивних елементів краще getByRole.', link:L + '#locate-by-text' },
+  { sec:'s3', q:'Як за замовчуванням порівнюється опція name у getByRole?', opts:['Точний збіг з урахуванням регістру', 'Підрядок без урахування регістру', 'Лише регулярний вираз', 'Збіг лише першого слова'], a:1, why:'exact: true вмикає точне порівняння, але пробіли на краях однаково обрізаються.', link:'https://playwright.dev/docs/api/class-page#page-get-by-role' },
+  { sec:'s3', q:'Яка роль у &lt;input type="text"&gt;?', opts:['input', 'textbox', 'text', 'field'], a:1, why:'Ролі input не існує, текстові поля мають роль textbox.', link:L + '#locate-by-role' },
+  { sec:'s4', q:'Як getByText поводиться з пробілами при <code>exact: true</code>?', opts:['Порівнює пробіли буквально', 'Однаково нормалізує їх: кілька пробілів стають одним, краї обрізаються', 'Видаляє всі пробіли', 'exact не можна використовувати з пробілами'], a:1, why:'Нормалізація пробілів діє завжди, навіть з exact.', link:L + '#locate-by-text' },
+  { sec:'s4', q:'Як змусити getByTestId шукати атрибут data-pw замість data-testid?', opts:['getByTestId(\'x\', { attribute: \'data-pw\' })', 'use: { testIdAttribute: \'data-pw\' } у конфігу', 'Це неможливо', 'Через locator(\'[data-pw]\')'], a:1, why:'Атрибут для test id налаштовується в use конфігу.', link:L + '#set-a-custom-test-id-attribute' },
+  { sec:'s5', q:'Який спосіб пошуку не проходить у Shadow DOM?', opts:['getByRole', 'getByText', 'CSS', 'XPath'], a:3, why:'Решта за замовчуванням бачить відкриті shadow root. Закриті не підтримуються взагалі.', link:L + '#locate-in-shadow-dom' },
+  { sec:'s6', q:'Відносно чого шукається внутрішній локатор у <code>filter({ has })</code>?', opts:['Від кореня сторінки', 'Відносно зовнішнього локатора', 'Відносно батьківського елемента', 'Від body'], a:1, why:'Тому has: page.getByRole(\'list\')… усередині listitem не спрацює.', link:L + '#filter-by-childdescendant' },
+  { sec:'s7', q:'Локатор знаходить 2 кнопки. Що зробить <code>click()</code>?', opts:['Клікне першу', 'Клікне обидві', 'Кине strict mode violation', 'Чекатиме, поки лишиться одна'], a:2, why:'Операції над одним елементом строгі.', link:L + '#strictness' },
+  { sec:'s7', q:'Чи чекає <code>locator.all()</code>, поки список завантажиться?', opts:['Так, до expect.timeout', 'Так, до тайм-ауту тесту', 'Ні, повертає те, що є зараз', 'Чекає хоча б один елемент'], a:2, why:'Спочатку дочекайтеся списку, наприклад через toHaveCount.', link:'https://playwright.dev/docs/api/class-locator#locator-all' },
+  { sec:'s8', q:'Елемент має <code>opacity: 0</code>. Чи вважає його Playwright видимим?', opts:['Так', 'Ні', 'Лише в Chromium', 'Залежить від розміру шрифту'], a:0, why:'Видимість — це непорожній bounding box і відсутність visibility:hidden. Нульовий розмір і display:none — невидимі.', link:'https://playwright.dev/docs/actionability#visible' },
+  { sec:'s8', q:'Які actionability-перевірки виконує <code>fill()</code>?', opts:['Visible, Stable, Receives Events, Enabled', 'Visible, Enabled, Editable', 'Лише Visible', 'Жодних'], a:1, why:'Так у таблиці перевірок документації.', link:'https://playwright.dev/docs/actionability' },
+  { sec:'s9', q:'Що не так з <code>expect(await locator.isVisible()).toBe(true)</code>?', opts:['Нічого', 'isVisible() повертає стан одразу, тож перевірка не чекає', 'isVisible() не існує', 'toBe не працює з boolean'], a:1, why:'Правильно: await expect(locator).toBeVisible().', link:'https://playwright.dev/docs/best-practices#use-web-first-assertions' }
+];
+
+const QKEY = 'pw-locators-quiz-best';
+const qz = $('#quizWidget');
+let order = [], qi = 0, qScore = 0, missed = [];
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function sectionTitle(id){ const c = $('#' + id); return c ? c.dataset.title : ''; }
+function sectionNum(id){ return chapters.findIndex((c) => c.id === id) + 1; }
+function startQuiz(){ order = QUIZ.map((q) => ({ q, perm: shuffle(q.opts.map((_, i) => i)) })); qi = 0; qScore = 0; missed = []; renderQ(); }
+function renderQ(){
+  const { q, perm } = order[qi];
+  qz.innerHTML =
+    '<div class="qz-top"><span class="qz-count">Питання ' + (qi + 1) + ' з ' + order.length + '</span><span class="qz-count">Правильно: ' + qScore + '</span></div>' +
+    '<div class="qz-bar"><i style="width:' + (qi / order.length * 100) + '%"></i></div>' +
+    '<p class="qz-q">' + q.q + '</p>' +
+    '<div class="qz-opts" role="group" aria-label="Варіанти відповіді">' + perm.map((i) => '<button type="button" data-i="' + i + '">' + q.opts[i] + '</button>').join('') + '</div>' +
+    '<div class="qz-fb" hidden></div>' +
+    '<div class="qz-actions"><button type="button" class="primary qz-next" hidden>' + (qi === order.length - 1 ? 'Показати результат' : 'Наступне питання') + '</button></div>';
+  qz.querySelector('.qz-opts').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const pickedI = Number(b.dataset.i), ok = pickedI === q.a;
+    $$('.qz-opts button', qz).forEach((x) => { x.disabled = true; if (Number(x.dataset.i) === q.a) x.classList.add('right'); });
+    if (!ok) { b.classList.add('wrong'); missed.push(q); } else qScore++;
+    const fb = qz.querySelector('.qz-fb');
+    fb.className = 'qz-fb ' + (ok ? 'ok' : 'no');
+    fb.innerHTML = '<p><b>' + (ok ? 'Правильно.' : 'Не зовсім.') + '</b> ' + q.why + '</p><p><a href="' + q.link + '" target="_blank" rel="noopener">Документація →</a></p>';
+    fb.hidden = false;
+    const nx = qz.querySelector('.qz-next'); nx.hidden = false; nx.focus();
+  });
+  qz.querySelector('.qz-next').addEventListener('click', () => { qi++; if (qi < order.length) renderQ(); else renderResult(); });
+}
+function renderResult(){
+  let best = 0;
+  try { best = Number(localStorage.getItem(QKEY)) || 0; if (qScore > best) { best = qScore; localStorage.setItem(QKEY, String(best)); } } catch (e) { best = Math.max(best, qScore); }
+  done.add('quiz'); save(); renderProgress();
+  const pct = Math.round(qScore / order.length * 100);
+  const verdict = pct >= 85 ? 'Матеріал засвоєно. Можна переходити до наступної теми курсу.'
+    : pct >= 60 ? 'Основа є, але кілька тем варто повторити за списком нижче.'
+    : 'Варто повернутися до розділів зі списку нижче і пройти квіз ще раз.';
+  const secs = [...new Set(missed.map((q) => q.sec))];
+  qz.innerHTML =
+    '<p class="qz-count">Результат</p><p class="qz-result">' + qScore + ' з ' + order.length + '</p>' +
+    '<p>' + verdict + ' Найкращий результат: ' + best + ' з ' + order.length + '.</p>' +
+    (missed.length ? '<h4 style="margin-top:18px">Помилки</h4><ul class="qz-review">' +
+      missed.map((q) => '<li>' + q.q + '<br><span style="color:var(--muted)">Правильна відповідь: ' + q.opts[q.a] + '</span></li>').join('') + '</ul>' +
+      '<p>Повторити розділи: ' + secs.map((id) => '<button type="button" class="linkbtn" data-go="' + id + '">' + sectionNum(id) + '. ' + esc(sectionTitle(id)) + '</button>').join(', ') + '</p>' : '') +
+    '<div class="qz-actions"><button type="button" class="primary qz-restart">Пройти ще раз</button></div>';
+  qz.querySelector('.qz-restart').addEventListener('click', startQuiz);
+  $$('[data-go]', qz).forEach((b) => b.addEventListener('click', () => window.__showChapter(b.dataset.go)));
+}
+startQuiz();
+})();
+</script>
+<script>
+(function(){
+  var KEY = 'pw-course-theme';
+  var root = document.documentElement;
+  var buttons = document.querySelectorAll('[data-theme-set]');
+  function current(){
+    try { return localStorage.getItem(KEY) || 'auto'; } catch (e) { return 'auto'; }
+  }
+  function paint(v){
+    if (v === 'light' || v === 'dark') root.setAttribute('data-theme', v);
+    else root.removeAttribute('data-theme');
+    buttons.forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.themeSet === v)); });
+  }
+  paint(current());
+  buttons.forEach(function(b){
+    b.addEventListener('click', function(){
+      var v = b.dataset.themeSet;
+      try { localStorage.setItem(KEY, v); } catch (e) {}
+      paint(v);
+    });
+  });
+})();
+</script>
+</body>
+</html>
