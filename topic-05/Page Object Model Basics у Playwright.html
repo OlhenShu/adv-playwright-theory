@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('pw-course-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Page Object Model Basics у Playwright</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#15305A; --navy-2:#224A86; --orange:#E8781A; --orange-soft:#FDEBD8;
+  --paper:#F3F6FB; --surface:#FFFFFF; --ink:#18212F; --muted:#566278; --line:#D9E0EB;
+  --code-bg:#0F1D33; --code-ink:#E3E9F3; --code-line:#1C2E4C;
+  --ok:#1D8455; --ok-soft:#DDF3E8; --bad:#BF3A2F; --bad-soft:#F9E1DE;
+  --pw:#E8781A; --tsc:#3469CF; --tsc-soft:#E1EAFB;
+  --sans:"IBM Plex Sans", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --navy:#A9C3F0; --navy-2:#86A8E6; --orange:#F2923F; --orange-soft:#3A2814;
+    --paper:#0C1524; --surface:#132038; --ink:#E6ECF5; --muted:#9BA8BE; --line:#26365A;
+    --code-bg:#08111F; --code-ink:#E3E9F3; --code-line:#18294A;
+    --ok:#4CC08A; --ok-soft:#113626; --bad:#F07B70; --bad-soft:#3D1A17;
+    --tsc:#7FA6F2; --tsc-soft:#1A2B4D;
+  }
+}
+:root[data-theme="dark"]{
+  --navy:#A9C3F0; --navy-2:#86A8E6; --orange:#F2923F; --orange-soft:#3A2814;
+  --paper:#0C1524; --surface:#132038; --ink:#E6ECF5; --muted:#9BA8BE; --line:#26365A;
+  --code-bg:#08111F; --code-ink:#E3E9F3; --code-line:#18294A;
+  --ok:#4CC08A; --ok-soft:#113626; --bad:#F07B70; --bad-soft:#3D1A17;
+  --tsc:#7FA6F2; --tsc-soft:#1A2B4D;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%; scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans); font-size:17px; line-height:1.62; -webkit-text-size-adjust:100%}
+a{color:var(--navy-2)}
+a:hover{color:var(--orange)}
+:focus-visible{outline:3px solid var(--orange); outline-offset:2px; border-radius:4px}
+code{font-family:var(--mono); font-size:.86em; background:var(--tsc-soft); color:var(--ink); padding:.08em .35em; border-radius:4px}
+.layout{display:grid; grid-template-columns:292px minmax(0,1fr); min-height:100%}
+/* ---------- sidebar ---------- */
+.side{background:var(--navy); color:#fff; padding:28px 20px 24px; position:sticky; top:env(safe-area-inset-top,0px); height:100vh; overflow-y:auto}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .side{background:#0F1A2E}}
+:root[data-theme="dark"] .side{background:#0F1A2E}
+.brand{font-weight:700; font-size:1.28rem; line-height:1.2; margin:0 0 6px; letter-spacing:-.01em}
+.brand span{display:block; font-family:var(--mono); font-size:.72rem; font-weight:400; color:#F6B77B; margin-top:10px; line-height:1.5}
+.side-tools{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 16px; flex-wrap:wrap}
+.home{color:#F6B77B; font-size:.82rem; font-weight:600; text-decoration:none}
+.home:hover{color:#fff}
+.theme-switch{display:inline-flex; border:1px solid rgba(255,255,255,.3); border-radius:999px; padding:2px; gap:2px}
+.theme-switch button{appearance:none; border:0; background:transparent; color:#DCE5F4; font:inherit; font-size:.72rem; padding:4px 8px; border-radius:999px; cursor:pointer}
+.theme-switch button[aria-pressed="true"]{background:#E8781A; color:#1B0E00; font-weight:600}
+.progress{margin:22px 0 18px}
+.progress-bar{height:8px; background:rgba(255,255,255,.14); border-radius:8px; overflow:hidden}
+.progress-bar i{display:block; height:100%; width:0; background:#F2923F; transition:width .35s ease}
+.progress p{margin:8px 0 0; font-size:.84rem; color:#C9D6EC}
+.nav{list-style:none; margin:0; padding:0; counter-reset:n}
+.nav li{margin:2px 0}
+.nav button{all:unset; box-sizing:border-box; cursor:pointer; display:grid; grid-template-columns:28px 1fr 18px; gap:8px; align-items:start; width:100%; padding:9px 10px; border-radius:8px; color:#DCE5F4; font-size:.93rem; line-height:1.35}
+.nav button:hover{background:rgba(255,255,255,.07)}
+.nav button[aria-current="true"]{background:#fff; color:#15305A; font-weight:600}
+.nav .num{font-family:var(--mono); font-size:.8rem; opacity:.75; padding-top:1px}
+.nav .tick{font-size:.85rem; color:#F2923F; visibility:hidden}
+.nav li.done .tick{visibility:visible}
+.nav button[aria-current="true"] .tick{color:#E8781A}
+.side-foot{margin-top:22px; font-size:.78rem; color:#AFC0DC; line-height:1.5}
+.side-foot button{all:unset; cursor:pointer; text-decoration:underline; color:#F6B77B}
+/* ---------- main ---------- */
+main{padding:44px clamp(18px,5vw,64px) 80px}
+.chapter{max-width:800px}
+.chapter[hidden]{display:none}
+.kicker{font-family:var(--mono); font-size:.8rem; color:var(--orange); margin:0 0 6px}
+h2{font-size:clamp(1.7rem,3.2vw,2.3rem); line-height:1.15; margin:0 0 18px; color:var(--navy); letter-spacing:-.02em}
+h3{font-size:1.22rem; margin:38px 0 10px; color:var(--navy); line-height:1.3}
+h4{font-size:1.02rem; margin:24px 0 6px}
+p{margin:0 0 14px; max-width:72ch}
+.lead{font-size:1.1rem; color:var(--muted)}
+.docs{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 26px}
+.docs a{font-size:.85rem; text-decoration:none; border:1px solid var(--line); background:var(--surface); padding:5px 11px; border-radius:20px; color:var(--navy-2)}
+.docs a:hover{border-color:var(--orange); color:var(--orange)}
+/* code */
+figure.code{position:relative; margin:16px 0 22px; background:var(--code-bg); border-radius:10px; overflow:hidden; border:1px solid var(--code-line)}
+figure.code figcaption{font-family:var(--mono); font-size:.76rem; color:#9FB2D2; padding:8px 14px; border-bottom:1px solid var(--code-line); background:rgba(255,255,255,.03)}
+figure.code pre{margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:.84rem; line-height:1.6; color:var(--code-ink); tab-size:2}
+figure.code pre code{background:none; padding:0; color:inherit; font-size:inherit}
+.copy{position:absolute; top:6px; right:8px; font:500 .72rem var(--sans); color:#BFD0EA; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:6px; padding:3px 9px; cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+.t-com{color:#7D8FAD; font-style:italic}.t-str{color:#F6B77B}.t-key{color:#9CC5FF}.t-num{color:#F9D27A}
+.t-kw{color:#FF9D5C}.t-lit{color:#F9D27A}.t-type{color:#7FD6C2}.t-fn{color:#B6CCFF}
+/* callouts: problem -> why -> solution -> when */
+.fix{background:var(--surface); border:1px solid var(--line); border-left:5px solid var(--orange); border-radius:10px; padding:16px 20px 6px; margin:20px 0 24px}
+.fix h4{margin:0 0 10px; color:var(--orange)}
+.fix p{font-size:.96rem}
+.fix b{color:var(--navy)}
+.note{background:var(--tsc-soft); border-radius:10px; padding:14px 18px 2px; margin:18px 0 22px; font-size:.96rem}
+.note b{color:var(--navy)}
+/* widgets shared */
+.widget{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; margin:22px 0 28px}
+.widget h4{margin:0 0 4px; font-size:1.05rem; color:var(--navy)}
+.widget .hint{font-size:.9rem; color:var(--muted); margin:0 0 14px}
+.seg{display:inline-flex; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:3px; gap:2px; flex-wrap:wrap}
+.seg button{border:0; background:transparent; font:600 .9rem var(--sans); color:var(--muted); padding:7px 14px; border-radius:8px; cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--navy); color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#0C1524}}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#0C1524}
+/* js/ts toggle */
+.editor{margin-top:14px; background:var(--code-bg); border-radius:10px; overflow-x:auto; font-family:var(--mono); font-size:.83rem; line-height:1.65; color:var(--code-ink); padding:12px 0}
+.editor .ln{display:grid; grid-template-columns:38px 1fr; white-space:pre; padding-right:16px}
+.editor .ln > span:first-child{color:#51658A; text-align:right; padding-right:12px; user-select:none}
+.editor .err > span:last-child{text-decoration:underline wavy #FF6B5E; text-underline-offset:4px}
+.editor .msg{display:block; white-space:normal; margin:2px 16px 6px 50px; font-family:var(--sans); font-size:.8rem; color:#FFD2CC; background:rgba(255,107,94,.14); border-left:3px solid #FF6B5E; padding:4px 10px; border-radius:0 6px 6px 0}
+.editor-note{font-size:.92rem; margin:12px 0 0; color:var(--muted)}
+/* return type quiz */
+.rt-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px}
+.rt{border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--paper)}
+.rt .m{font-family:var(--mono); font-size:.88rem; font-weight:600; margin:0 0 10px; color:var(--navy)}
+.rt .opts{display:flex; flex-wrap:wrap; gap:6px}
+.rt .opts button{font:500 .78rem var(--mono); border:1px solid var(--line); background:var(--surface); color:var(--ink); padding:4px 8px; border-radius:6px; cursor:pointer}
+.rt .opts button.right{background:var(--ok-soft); border-color:var(--ok); color:var(--ok)}
+.rt .opts button.wrong{background:var(--bad-soft); border-color:var(--bad); color:var(--bad); text-decoration:line-through}
+.rt .fb{font-size:.84rem; margin:10px 0 0; line-height:1.5}
+.rt .fb[hidden]{display:none}
+.score{font-size:.9rem; margin:14px 0 0; color:var(--muted)}
+/* utility builder */
+.ub{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.2fr); gap:18px; margin-top:14px}
+.ub fieldset{border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin:0}
+.ub legend{font-size:.85rem; color:var(--muted); padding:0 6px}
+.ub label{display:flex; gap:8px; align-items:center; font-family:var(--mono); font-size:.85rem; padding:4px 0; cursor:pointer}
+.ub label.off{opacity:.45; cursor:default}
+.ub-out figure.code{margin:0}
+.ub-say{font-size:.9rem; margin:10px 0 0}
+/* tsconfig */
+.legend{display:flex; flex-wrap:wrap; gap:14px; font-size:.86rem; margin:0 0 12px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.legend i{width:12px; height:12px; border-radius:3px; display:inline-block}
+.tsc-wrap{display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); gap:16px; align-items:start}
+.json{background:var(--code-bg); color:var(--code-ink); font-family:var(--mono); font-size:.82rem; line-height:1.75; padding:14px 12px; border-radius:10px; overflow-x:auto; white-space:pre}
+.json button{all:unset; cursor:pointer; border-radius:4px; padding:0 3px; margin:0 -3px}
+.json button.pw{box-shadow:inset 0 -2px 0 var(--pw); color:#FFC48C}
+.json button.tsc{box-shadow:inset 0 -2px 0 var(--tsc); color:#A9C6FF}
+.json button:hover,.json button[aria-pressed="true"]{background:rgba(255,255,255,.12)}
+.json button:focus-visible{outline:2px solid var(--orange)}
+.explain{border:1px solid var(--line); border-radius:10px; padding:14px 16px; background:var(--paper); font-size:.93rem; min-height:160px}
+.explain .tag{display:inline-block; font-size:.74rem; font-weight:600; padding:2px 8px; border-radius:10px; margin-bottom:8px}
+.explain .tag.pw{background:var(--orange-soft); color:var(--orange)}
+.explain .tag.tsc{background:var(--tsc-soft); color:var(--tsc)}
+.explain h5{font-family:var(--mono); font-size:.92rem; margin:0 0 6px; color:var(--navy)}
+.explain p{margin:0 0 8px}
+/* find the bug */
+.bug{border:1px solid var(--line); border-radius:12px; margin:14px 0; overflow:hidden; background:var(--surface)}
+.bug-head{display:flex; justify-content:space-between; gap:10px; align-items:center; padding:10px 14px; border-bottom:1px solid var(--line)}
+.bug-head b{font-size:.95rem}
+.bug-head .st{font-size:.8rem; color:var(--muted)}
+.bug-head .st.ok{color:var(--ok); font-weight:600}
+.bug-code{background:var(--code-bg); padding:8px 0; overflow-x:auto}
+.bug-code button{all:unset; box-sizing:border-box; display:block; min-width:100%; width:max-content; white-space:pre; font-family:var(--mono); font-size:.82rem; line-height:1.7; color:var(--code-ink); padding:0 16px; cursor:pointer}
+.bug-code button:hover{background:rgba(255,255,255,.06)}
+.bug-code button.hit{background:rgba(76,192,138,.2); box-shadow:inset 3px 0 0 #4CC08A}
+.bug-code button.miss{background:rgba(255,107,94,.16); box-shadow:inset 3px 0 0 #FF6B5E}
+.bug-code button:focus-visible{outline:2px solid var(--orange); outline-offset:-2px}
+.bug-body{padding:12px 16px 4px; font-size:.93rem}
+.bug-body[hidden]{display:none}
+.bug-body figure.code{margin:8px 0 12px}
+.linkbtn{border:0; background:none; color:var(--navy-2); font:500 .82rem var(--sans); text-decoration:underline; cursor:pointer; padding:0}
+/* pager */
+.pager{display:flex; justify-content:space-between; gap:12px; margin-top:48px; padding-top:22px; border-top:1px solid var(--line); flex-wrap:wrap}
+.pager button{font:600 .95rem var(--sans); border:1px solid var(--line); background:var(--surface); color:var(--navy); padding:11px 18px; border-radius:10px; cursor:pointer}
+.pager button.primary{background:var(--orange); border-color:var(--orange); color:#fff}
+.pager button:disabled{visibility:hidden}
+.done-btn{font:500 .85rem var(--sans); border:0; background:none; color:var(--muted); text-decoration:underline; cursor:pointer}
+
+/* runner topic additions */
+.editor .mark > span:last-child{background:rgba(242,146,63,.10)}
+.editor .msg.tip{color:#FFE2C4; background:rgba(242,146,63,.14); border-left-color:#F2923F}
+.tree{background:var(--code-bg); border-radius:10px; padding:10px 6px; display:flex; flex-direction:column; gap:1px}
+.tree button{all:unset; box-sizing:border-box; cursor:pointer; font-family:var(--mono); font-size:.82rem; color:var(--code-ink); padding:5px 10px; border-radius:6px}
+.tree button.later{color:#8193B2; font-style:italic}
+.tree button.ext{margin-top:8px; border-top:1px dashed #2A3D60; border-radius:0; padding-top:9px}
+.tree button:hover,.tree button[aria-pressed="true"]{background:rgba(255,255,255,.1)}
+.tree button:focus-visible{outline:2px solid var(--orange)}
+.json button.run{box-shadow:inset 0 -2px 0 var(--pw); color:#FFC48C}
+.json button.use{box-shadow:inset 0 -2px 0 var(--tsc); color:#A9C6FF}
+.json button.proj{box-shadow:inset 0 -2px 0 var(--ok); color:#8FE0B7}
+.explain .tag.run{background:var(--orange-soft); color:var(--orange)}
+.explain .tag.use{background:var(--tsc-soft); color:var(--tsc)}
+.explain .tag.proj{background:var(--ok-soft); color:var(--ok)}
+.cli-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px 14px; margin-bottom:12px}
+.cli-grid label,.sim-controls label{display:flex; flex-direction:column; gap:4px; font-size:.82rem; color:var(--muted)}
+.cli-grid input,.cli-grid select,.sim-controls select{font:500 .9rem var(--sans); color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:7px 9px}
+.cli-flags{display:flex; flex-wrap:wrap; gap:6px 16px; margin-bottom:6px}
+.cli-flags label{font-family:var(--mono); font-size:.84rem; display:flex; gap:6px; align-items:center; cursor:pointer}
+.cli-explain p{font-size:.92rem; margin:0 0 6px}
+.sim-controls{display:flex; flex-wrap:wrap; gap:12px 18px; align-items:flex-end; margin-bottom:14px}
+.sim-controls label.chk{flex-direction:row; align-items:center; gap:6px; font-family:var(--mono); color:var(--ink); padding-bottom:8px; cursor:pointer}
+.sim-row{display:grid; grid-template-columns:78px 1fr; align-items:center; gap:8px; margin:6px 0}
+.sim-w{font-size:.78rem; color:var(--muted)}
+.sim-track{position:relative; height:34px; background:var(--paper); border:1px solid var(--line); border-radius:8px; overflow:hidden}
+.sim-blk{position:absolute; top:3px; bottom:3px; background:var(--c); color:#fff; font-size:.7rem; line-height:26px; padding:0 5px; border-radius:5px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; border-right:2px solid var(--surface); transition:left .35s ease,width .35s ease}
+.sim-blk.failed{background:repeating-linear-gradient(45deg,var(--bad),var(--bad) 6px,#9E2C22 6px,#9E2C22 12px)}
+.sim-blk.skipped{background:#8E99AB; text-align:center}
+.sim-blk.restart{background:transparent; color:var(--bad); text-align:center; font-weight:700; border:0}
+.sim-legend{display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; margin:10px 0 0; color:var(--muted)}
+.sim-legend span{display:inline-flex; align-items:center; gap:5px}
+.sim-legend i{width:11px; height:11px; border-radius:3px; display:inline-block}
+.sim-legend i.lg-fail{background:var(--bad)} .sim-legend i.lg-skip{background:#8E99AB}
+.sim-total{font-size:.9rem; margin:10px 0 0}
+.sim-say{font-size:.94rem; margin:8px 0 0}
+.hooks{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:14px}
+.hooks-src{background:var(--code-bg); color:var(--code-ink); font-family:var(--mono); font-size:.8rem; line-height:1.75; padding:10px 0; border-radius:10px; overflow-x:auto; white-space:pre}
+.hooks-src div{padding:0 12px}
+.hooks-src div.on{background:rgba(242,146,63,.22); box-shadow:inset 3px 0 0 #F2923F}
+.hooks-log{margin:0; padding:10px 14px 10px 34px; background:var(--paper); border:1px solid var(--line); border-radius:10px; font-size:.88rem}
+.hooks-log li{margin:0 0 6px}
+.hooks-log li.empty{list-style:none; margin-left:-20px; color:var(--muted)}
+#traceSeg button{font-family:var(--mono); font-size:.78rem}
+.runs{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:14px 0 10px}
+.run{border:1px solid var(--line); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:4px; background:var(--paper)}
+.run.fail{border-left:4px solid var(--bad)} .run.pass{border-left:4px solid var(--ok)}
+.run .res{font-size:.82rem; color:var(--muted)}
+.run .tr{font-size:.88rem; font-weight:600}
+.run .tr.kept{color:var(--ok)} .run .tr.dropped{color:var(--bad)} .run .tr.none{color:var(--muted); font-weight:500}
+@media (max-width:900px){.hooks,.runs{grid-template-columns:1fr}}
+
+
+/* reporting additions */
+.term{background:var(--code-bg); color:var(--code-ink); font-family:var(--mono); font-size:.78rem; line-height:1.6; padding:14px 16px; border-radius:10px; overflow-x:auto; min-height:220px; margin:0; white-space:pre}
+.c-r{color:#FF7B70}.c-y{color:#F6C26B}.c-g{color:#5FD39A}
+.hr{border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--paper)}
+.hr-chips{display:flex; flex-wrap:wrap; gap:6px; padding:10px; border-bottom:1px solid var(--line); background:var(--surface)}
+.chip{font:500 .82rem var(--sans); border:1px solid var(--line); background:var(--paper); color:var(--ink); padding:4px 10px; border-radius:16px; cursor:pointer}
+.chip b{font-weight:700; margin-left:3px}
+.chip[aria-pressed="true"]{background:var(--navy); color:#fff; border-color:var(--navy)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .chip[aria-pressed="true"]{color:#0C1524}}
+:root[data-theme="dark"] .chip[aria-pressed="true"]{color:#0C1524}
+.hr-body{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}
+.hr-list{border-right:1px solid var(--line); padding:6px 0}
+.hr-file{font:600 .76rem var(--mono); color:var(--muted); padding:8px 12px 4px}
+.hr-test{all:unset; box-sizing:border-box; display:grid; grid-template-columns:12px 1fr auto; gap:8px; align-items:center; width:100%; padding:7px 12px; font-size:.84rem; cursor:pointer}
+.hr-test:hover{background:var(--surface)}
+.hr-test:focus-visible{outline:2px solid var(--orange); outline-offset:-2px}
+.hr-test .dot,.hr-detail .st{border-radius:50%}
+.hr-test .dot{width:10px; height:10px; background:var(--ok)}
+.hr-test.failed .dot{background:var(--bad)} .hr-test.flaky .dot{background:#D9A21B} .hr-test.skipped .dot{background:#8E99AB}
+.hr-test em{font-style:normal; font-size:.7rem; background:var(--tsc-soft); color:var(--tsc); padding:1px 6px; border-radius:8px}
+.hr-test .du{font-size:.76rem; color:var(--muted)}
+.hr-detail{padding:12px 14px; font-size:.86rem; min-height:220px}
+.hr-detail h5{font-size:.95rem; margin:0 0 8px; color:var(--navy)}
+.hr-detail .st{border-radius:8px; font-size:.72rem; padding:1px 7px; margin-left:4px; color:#fff; background:var(--ok)}
+.hr-detail .st.failed{background:var(--bad)} .hr-detail .st.flaky{background:#D9A21B} .hr-detail .st.skipped{background:#8E99AB}
+.hr-sec{font-weight:600; margin:10px 0 4px; color:var(--navy)}
+.hr-err{background:var(--code-bg); color:#FFD2CC; font-family:var(--mono); font-size:.74rem; padding:10px; border-radius:8px; overflow-x:auto; margin:0; white-space:pre}
+.hr-step{display:grid; grid-template-columns:minmax(0,1fr) 90px 40px; gap:8px; align-items:center; font-size:.8rem; padding:2px 0}
+.hr-step .bar{height:6px; background:var(--line); border-radius:4px; overflow:hidden}
+.hr-step .bar i{display:block; height:100%; background:var(--orange)}
+.hr-att{margin:2px 0}
+.mut{color:var(--muted); font-size:.8rem; font-weight:400}
+.hr-hint{color:var(--muted)}
+.pipe-label{font-size:.85rem; font-weight:600; color:var(--navy); margin:12px 0 6px}
+.pipe-row{display:flex; flex-wrap:wrap; gap:8px}
+.pipe-box{flex:1 1 180px; border:1px solid var(--line); border-left:4px solid var(--orange); background:var(--paper); border-radius:8px; padding:8px 10px; display:flex; flex-direction:column; gap:4px; font-size:.84rem}
+.pipe-box.wide{flex-basis:100%}
+.pipe-box code{background:transparent; padding:0; font-size:.76rem; word-break:break-word}
+#lifeLog code{background:var(--tsc-soft)}
+@media (max-width:900px){.hr-body{grid-template-columns:1fr}.hr-list{border-right:0; border-bottom:1px solid var(--line)}}
+
+
+/* locators additions */
+.rt-grid.wide{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.rt .m code{white-space:normal; word-break:break-word}
+.rt .opts button{white-space:normal; text-align:left}
+.rr{display:grid; gap:12px}
+.rr-page{display:flex; flex-wrap:wrap; align-items:center; gap:10px; background:var(--paper); border:1px dashed var(--line); border-radius:10px; padding:14px}
+.rr-lbl{font-size:.78rem; color:var(--muted); width:100%}
+.rr-btn{font:600 .9rem var(--sans); background:var(--navy); color:#fff; border:0; border-radius:8px; padding:8px 16px}
+.rr-node{font-family:var(--mono); font-size:.8rem; color:var(--ok)}
+.rr-old{font-family:var(--mono); font-size:.8rem; color:var(--bad); text-decoration:line-through}
+.rr-cols{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.rr-col{border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--paper)}
+.rr-col b{font-family:var(--mono); font-size:.76rem; display:block; margin-bottom:8px; color:var(--navy); word-break:break-word}
+.rr-col p{font-size:.88rem; margin:0}
+.ok{color:var(--ok)} .bad{color:var(--bad)} .wait{color:#C98A0B}
+.sim-controls input[type="text"]{font:500 .9rem var(--mono); color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:7px 9px}
+.tx-dom{display:grid; gap:6px; margin:8px 0 12px}
+.tx-el{border:1px solid var(--line); border-radius:8px; padding:7px 10px; font-size:.86rem; background:var(--paper); white-space:pre-wrap}
+.tx-el.hit{border-color:var(--orange); background:var(--orange-soft); box-shadow:inset 3px 0 0 var(--orange)}
+.tx-el code{background:transparent; padding:0; color:var(--muted)}
+.fl{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:14px; align-items:start}
+.fl figure.code{margin:0}
+.fl-list{list-style:none; margin:0; padding:0; display:grid; gap:8px}
+.fl-list li{border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--paper); display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:.88rem}
+.fl-list li.hit{border-color:var(--orange); background:var(--orange-soft); box-shadow:inset 3px 0 0 var(--orange)}
+.fl-list .badge{font-size:.7rem; background:var(--ok); color:#fff; padding:1px 7px; border-radius:8px}
+.fl-list .oos{font-size:.74rem; color:var(--bad)}
+.fl-btn{margin-left:auto; font-size:.76rem; font-weight:600; border:1px solid var(--line); border-radius:6px; padding:3px 9px; background:var(--surface)}
+.fl-btn.hit{border-color:var(--orange); background:var(--orange); color:#fff}
+.act{display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr); gap:16px}
+.act-state{display:flex; flex-direction:column; gap:8px; border:1px solid var(--line); border-radius:10px; padding:12px; background:var(--paper)}
+.act-state label,.act-main > label{display:flex; flex-direction:column; gap:4px; font-size:.82rem; color:var(--muted)}
+.act-state label.chk{flex-direction:row; align-items:center; gap:7px; color:var(--ink); font-size:.88rem; cursor:pointer}
+.act-state select,.act-main select{font:500 .9rem var(--mono); color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:7px 9px}
+.act-checks{margin:12px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.ac-row{display:flex; justify-content:space-between; gap:10px; padding:7px 12px; font-size:.88rem; border-top:1px solid var(--line)}
+.ac-row:first-child{border-top:0}
+.ac-row.off{color:var(--muted)} .ac-row.off b{font-weight:400; font-size:.8rem}
+.act-res{font-size:.94rem; border-left:4px solid var(--orange); padding:4px 0 4px 12px; margin:0}
+@media (max-width:900px){.rr-cols,.fl,.act{grid-template-columns:1fr}}
+
+
+/* pom additions */
+.editor .mark > span:last-child{background:rgba(242,146,63,.14)}
+.editor .msg.tip{color:#FFE2C4; background:rgba(242,146,63,.14); border-left-color:#F2923F}
+.tree{background:var(--code-bg); border-radius:10px; padding:10px 6px; display:flex; flex-direction:column; gap:1px}
+.tree button{all:unset; box-sizing:border-box; cursor:pointer; font-family:var(--mono); font-size:.82rem; color:var(--code-ink); padding:5px 10px; border-radius:6px}
+.tree button:hover,.tree button[aria-pressed="true"]{background:rgba(255,255,255,.1)}
+.tree button:focus-visible{outline:2px solid var(--orange)}
+.json button.use{box-shadow:inset 0 -2px 0 var(--orange); color:#FFC48C}
+.cmp{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:16px; align-items:start}
+.cmp-page{border:1px solid var(--line); border-radius:12px; padding:12px; background:var(--paper); display:flex; flex-direction:column; gap:10px}
+.cmp-r{font:500 .86rem var(--sans); color:var(--ink); background:var(--surface); border:1px dashed var(--line); border-radius:8px; padding:8px 10px; cursor:pointer; text-align:left}
+.cmp-r:hover{border-color:var(--orange)}
+.cmp-r[aria-pressed="true"]{border:2px solid var(--orange); background:var(--orange-soft)}
+.cmp-head{display:flex; gap:8px} .cmp-head .hd{flex:1} .cmp-head .cnt b{background:var(--orange); color:#fff; border-radius:8px; padding:0 6px; font-size:.75rem}
+.cmp-cards{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.cmp-card{border:1px solid var(--line); border-radius:10px; padding:8px; display:flex; flex-direction:column; gap:6px; background:var(--surface)}
+.cmp-card .ttl{font-weight:600} .cmp-card .add{background:var(--navy); color:#fff; border-style:solid}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .cmp-card .add{color:#0C1524}}
+:root[data-theme="dark"] .cmp-card .add{color:#0C1524}
+.explain figure.code{margin:8px 0 0}
+@media (max-width:900px){.cmp{grid-template-columns:1fr}}
+
+/* final quiz */
+.qz-top{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px}
+.qz-count{font-family:var(--mono); font-size:.82rem; color:var(--orange)}
+.qz-bar{height:6px; background:var(--paper); border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-bottom:18px}
+.qz-bar i{display:block; height:100%; width:0; background:var(--orange); transition:width .3s ease}
+.qz-q{font-size:1.08rem; font-weight:600; margin:0 0 12px; color:var(--ink)}
+.qz-opts{display:grid; gap:8px; margin:14px 0}
+.qz-opts button{text-align:left; font:500 .95rem var(--sans); line-height:1.45; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:11px 14px; cursor:pointer}
+.qz-opts button:hover:not(:disabled){border-color:var(--navy-2)}
+.qz-opts button:disabled{cursor:default}
+.qz-opts button.right{background:var(--ok-soft); border-color:var(--ok); color:var(--ok)}
+.qz-opts button.wrong{background:var(--bad-soft); border-color:var(--bad); color:var(--bad)}
+.qz-opts code{background:transparent; padding:0}
+.qz-fb{border-left:4px solid var(--line); padding:4px 0 4px 14px; margin:6px 0 14px; font-size:.94rem}
+.qz-fb.ok{border-color:var(--ok)} .qz-fb.no{border-color:var(--bad)}
+.qz-fb[hidden]{display:none}
+.qz-actions{display:flex; gap:10px; flex-wrap:wrap}
+.qz-actions button{font:600 .92rem var(--sans); border:1px solid var(--line); background:var(--surface); color:var(--navy); padding:10px 16px; border-radius:10px; cursor:pointer}
+.qz-actions button.primary{background:var(--orange); border-color:var(--orange); color:#fff}
+.qz-result{font-size:2.4rem; font-weight:700; color:var(--navy); margin:0; letter-spacing:-.02em}
+.qz-review{list-style:none; padding:0; margin:16px 0}
+.qz-review li{border-top:1px solid var(--line); padding:10px 0; font-size:.93rem}
+.qz-review .linkbtn{margin-left:4px}
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .side{position:sticky; top:0; height:auto; z-index:5; padding:12px 14px 10px; padding-top:calc(12px + env(safe-area-inset-top,0px)); margin-top:calc(-1 * env(safe-area-inset-top,0px))}
+  .brand{font-size:1rem}.brand span{display:none}
+  .progress{margin:8px 0}
+  .nav{display:flex; overflow-x:auto; gap:4px; padding-bottom:2px}
+  .nav li{flex:0 0 auto}
+  .nav button{grid-template-columns:auto auto auto; white-space:nowrap; padding:6px 10px; font-size:.82rem}
+  .side-foot{display:none}
+  main{padding-top:28px}
+  .ub,.tsc-wrap{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="side" aria-label="Зміст">
+  <div class="side-tools">
+    <a class="home" href="../index.html">На головну</a>
+    <div class="theme-switch" role="group" aria-label="Тема оформлення">
+      <button type="button" data-theme-set="auto" aria-pressed="true">Авто</button>
+      <button type="button" data-theme-set="light" aria-pressed="false">Світла</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Темна</button>
+    </div>
+  </div>
+  <p class="brand">Page Object Model Basics<span>@playwright/test 1.63<br>TypeScript 7.0, strict</span></p>
+  <div class="progress" aria-live="polite">
+    <div class="progress-bar"><i id="progressFill"></i></div>
+    <p id="progressText">0 з 12 розділів пройдено</p>
+  </div>
+  <ol class="nav" id="nav"></ol>
+  <div class="side-foot">Прогрес зберігається лише у вашому браузері. <button type="button" id="resetProgress">Скинути прогрес</button></div>
+</aside>
+<main id="main">
+<!-- ================= 1 ================= -->
+<section class="chapter" id="s1" data-title="Навіщо Page Object Model">
+<p class="kicker">Розділ 1 з 12</p>
+<h2>Навіщо Page Object Model</h2>
+<p class="lead">Коли тестів десятки, ті самі локатори й послідовності дій повторюються у багатьох файлах. Page Object Model збирає знання про сторінку в одному класі, а тести говорять мовою застосунку: «увійти», «додати в кошик».</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/pom" target="_blank" rel="noopener">Документація → Page object models</a>
+  <a href="https://playwright.dev/docs/best-practices" target="_blank" rel="noopener">Документація → Best Practices</a>
+</div>
+<p>Документація описує page object як представлення частини вебзастосунку. В інтернет-магазині це можуть бути головна сторінка, каталог і сторінка оформлення замовлення. За документацією, page objects дають дві переваги. Вони <b>спрощують написання</b> тестів, бо створюють API вищого рівня, що відповідає вашому застосунку. І вони <b>спрощують підтримку</b>, бо селектори зібрано в одному місці, а код можна перевикористати замість повторювати.</p>
+<p>POM — не функція Playwright, а патерн організації коду. Playwright нічого не вимагає від ваших класів: page object — звичайний TypeScript-клас, який усередині використовує <code>page</code>.</p>
+
+<div class="widget" id="impactWidget">
+  <h4>Що буде, коли зміниться інтерфейс?</h4>
+  <p class="hint">Три тести логіну без POM і з POM. Натисніть «Змінити UI»: розробники перейменували підпис поля Email на «Email address». Підсвічено рядки, які доведеться правити.</p>
+  <div class="seg" role="group" aria-label="Підхід">
+    <button type="button" data-m="raw" aria-pressed="true">Без POM</button>
+    <button type="button" data-m="pom" aria-pressed="false">З POM</button>
+  </div>
+  <div class="qz-actions" style="margin:12px 0"><button type="button" class="primary" id="impactChange">Змінити UI</button><button type="button" id="impactReset">Скинути</button></div>
+  <div id="impactCode"></div>
+  <p class="sim-say" id="impactSay"></p>
+</div>
+<div class="fix">
+  <h4>POM — не обов'язкова церемонія</h4>
+  <p><b>Проблема.</b> Інколи POM сприймають як правило «на кожну сторінку клас, на кожну кнопку метод», навіть для двох тестів.</p>
+  <p><b>Чому.</b> Патерн окупається, коли сторінкою користуються кілька тестів і інтерфейс змінюється. Для одноразової перевірки він лише додає шар коду.</p>
+  <p><b>Рішення.</b> Виносьте в page object те, що повторюється: локатори, які використовуються більше ніж в одному тесті, і послідовності дій з бізнес-змістом.</p>
+  <p><b>Коли.</b> Щойно той самий локатор чи сценарій з'являється вдруге.</p>
+</div>
+</section>
+
+<!-- ================= 2 ================= -->
+<section class="chapter" id="s2" data-title="Анатомія page object" hidden>
+<p class="kicker">Розділ 2 з 12</p>
+<h2>Анатомія page object</h2>
+<p class="lead">Мінімальний page object має чотири частини: посилання на <code>page</code>, поля-локатори, конструктор, який їх ініціалізує, і асинхронні методи-дії.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/pom#implementation" target="_blank" rel="noopener">Документація → Implementation</a>
+  <a href="https://playwright.dev/docs/api/class-locator" target="_blank" rel="noopener">Документація → Locator</a>
+</div>
+<div class="widget" id="anatWidget">
+  <h4>Розберіть клас на частини</h4>
+  <p class="hint">Натисніть на виділену частину коду, щоб побачити пояснення.</p>
+  <div class="tsc-wrap">
+    <div class="json" id="anatCode"></div>
+    <div class="explain" id="anatExplain" aria-live="polite"><p>Оберіть частину класу ліворуч.</p></div>
+  </div>
+</div>
+<script type="text/x-code" data-file="pages/LoginPage.ts">
+import type { Locator, Page } from '@playwright/test';
+
+export class LoginPage {
+  readonly page: Page;
+  readonly emailInput: Locator;
+  readonly passwordInput: Locator;
+  readonly signInButton: Locator;
+  readonly errorAlert: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.emailInput = page.getByLabel('Email');
+    this.passwordInput = page.getByLabel('Password');
+    this.signInButton = page.getByRole('button', { name: 'Sign in' });
+    this.errorAlert = page.getByRole('alert');
+  }
+
+  async goto(): Promise<void> {
+    await this.page.goto('/login');
+  }
+
+  async login(email: string, password: string): Promise<void> {
+    await this.emailInput.fill(email);
+    await this.passwordInput.fill(password);
+    await this.signInButton.click();
+  }
+}
+</script>
+<script type="text/x-code" data-file="tests/login.spec.ts">
+import { test, expect } from '@playwright/test';
+import { LoginPage } from '../pages/LoginPage';
+
+test('shows an error for a wrong password', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  await loginPage.goto();
+  await loginPage.login('user@example.com', 'wrong-password');
+  await expect(loginPage.errorAlert).toHaveText('Invalid email or password');
+});
+</script>
+<p>Ініціалізувати локатори в конструкторі безпечно: як ми бачили в темі про локатори, створення локатора нічого не шукає на сторінці. Тому page object можна створити ще до <code>goto()</code>. Поля мають модифікатор <code>readonly</code>, щоб тест не міг випадково підмінити локатор. А поле <code>page</code> публічне, щоб тест за потреби мав доступ до самої сторінки, як у прикладі з документації.</p>
+<div class="note"><p><b>Скорочений запис.</b> У документації Playwright трапляється форма <code>constructor(public readonly page: Page) {}</code>: TypeScript сам оголошує поле й присвоює значення. Це те саме, що три рядки в прикладі вище. Для навчання явний запис зрозуміліший.</p></div>
+</section>
+
+<!-- ================= 3 ================= -->
+<section class="chapter" id="s3" data-title="Локатори в page object" hidden>
+<p class="kicker">Розділ 3 з 12</p>
+<h2>Локатори в page object</h2>
+<p class="lead">У page object діють ті самі правила вибору локаторів, що й у тестах: спершу ролі, підписи й текст, потім test id, і лише в крайньому разі CSS. Зібрані в одному місці, вони стають ще ціннішими.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/locators" target="_blank" rel="noopener">Документація → Locators</a>
+  <a href="https://playwright.dev/docs/best-practices#use-locators" target="_blank" rel="noopener">Документація → Use locators</a>
+</div>
+<p>Приклад на сторінці документації про POM написано через <code>page.locator('a', { hasText: 'Get started' })</code> і CSS-ланцюжки. Він ілюструє структуру класу, а не вибір локаторів. Для самих локаторів орієнтуйтеся на розділ Best Practices: ролі та явні контракти з розробниками.</p>
+<h3>Три форми локатора</h3>
+<p><b>Поле</b> підходить для елементів, які на сторінці одні: поле Email, кнопка Sign in. <b>Метод з параметром</b> потрібен, коли елемент визначається даними: картка конкретного товару, рядок таблиці з конкретним замовленням. <b>Похідний локатор</b> будується від іншого: кнопка всередині картки знаходиться від локатора картки, а не від кореня сторінки.</p>
+<script type="text/x-code" data-file="pages/CatalogPage.ts">
+import type { Locator, Page } from '@playwright/test';
+
+export class CatalogPage {
+  readonly page: Page;
+  readonly searchInput: Locator;
+  readonly productCards: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.searchInput = page.getByPlaceholder('Search products');
+    this.productCards = page.getByTestId('product-card');
+  }
+
+  productCard(name: string): Locator {
+    return this.productCards.filter({ hasText: name });
+  }
+
+  addToCartButton(name: string): Locator {
+    return this.productCard(name).getByRole('button', { name: 'Add to cart' });
+  }
+
+  async goto(): Promise<void> {
+    await this.page.goto('/catalog');
+  }
+
+  async search(query: string): Promise<void> {
+    await this.searchInput.fill(query);
+    await this.searchInput.press('Enter');
+  }
+
+  async addToCart(name: string): Promise<void> {
+    await this.addToCartButton(name).click();
+  }
+}
+</script>
+<p>Метод <code>productCard(name)</code> повертає <code>Locator</code>, а не <code>Promise</code>: він лише будує локатор і нічого не чекає. Тому він синхронний і без <code>async</code>. Тест може одразу перевірити картку: <code>await expect(catalog.productCard('Wireless Mouse')).toBeVisible()</code>.</p>
+</section>
+
+<!-- ================= 4 ================= -->
+<section class="chapter" id="s4" data-title="Методи-дії" hidden>
+<p class="kicker">Розділ 4 з 12</p>
+<h2>Методи-дії</h2>
+<p class="lead">Метод page object описує, що робить користувач, а не які елементи він натискає. Саме це дає «API вищого рівня» з документації.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/pom#introduction" target="_blank" rel="noopener">Документація → POM introduction</a>
+  <a href="https://playwright.dev/docs/input" target="_blank" rel="noopener">Документація → Actions</a>
+</div>
+<p>Порівняйте <code>await loginPage.login(email, password)</code> з трьома рядками <code>fill</code>, <code>fill</code>, <code>click</code>. Перший варіант читається як сценарій, і коли форма логіну зміниться (наприклад, додасться поле «Remember me»), правка буде в одному методі. Назва методу — дієслово з предметної області: <code>login</code>, <code>search</code>, <code>addToCart</code>, <code>checkout</code>. Назви на кшталт <code>clickButton</code> чи <code>fillInput2</code> лише переносять технічні деталі з тесту в клас.</p>
+<p>Кожен метод з діями Playwright асинхронний і повертає <code>Promise</code>. Явний тип повернення, наприклад <code>Promise&lt;void&gt;</code>, робить контракт видимим: у місці виклику одразу зрозуміло, що потрібен <code>await</code>.</p>
+<h3>Перехід на іншу сторінку</h3>
+<p>Якщо дія веде на іншу сторінку, метод може повернути її page object. Тоді тест не створює новий об'єкт вручну, а продовжує роботу з тим, що повернув метод.</p>
+<script type="text/x-code" data-file="pages/CartPage.ts">
+import type { Locator, Page } from '@playwright/test';
+import { CheckoutPage } from './CheckoutPage';
+
+export class CartPage {
+  readonly page: Page;
+  readonly items: Locator;
+  readonly total: Locator;
+  readonly checkoutButton: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.items = page.getByRole('listitem');
+    this.total = page.getByTestId('cart-total');
+    this.checkoutButton = page.getByRole('button', { name: 'Checkout' });
+  }
+
+  async goto(): Promise<void> {
+    await this.page.goto('/cart');
+  }
+
+  async proceedToCheckout(): Promise<CheckoutPage> {
+    await this.checkoutButton.click();
+    await this.page.waitForURL('**/checkout');
+    return new CheckoutPage(this.page);
+  }
+}
+</script>
+<p><code>CheckoutPage</code> побудований за тим самим шаблоном. Його код є в розділі 7.</p>
+<div class="widget" id="nameWidget">
+  <h4>Хороший метод чи ні?</h4>
+  <p class="hint">Оцініть кожну сигнатуру методу page object.</p>
+  <div class="rt-grid wide" id="nameGrid"></div>
+  <p class="score" id="nameScore" aria-live="polite"></p>
+</div>
+</section>
+
+<!-- ================= 5 ================= -->
+<section class="chapter" id="s5" data-title="Assertions: тест чи page object" hidden>
+<p class="kicker">Розділ 5 з 12</p>
+<h2>Assertions: у тесті чи в page object</h2>
+<p class="lead">Найчастіше питання про POM — де писати <code>expect</code>. Практична відповідь: перевірки результату сценарію живуть у тесті, а page object дає для них локатори.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/pom#implementation" target="_blank" rel="noopener">Документація → POM implementation</a>
+  <a href="https://playwright.dev/docs/test-assertions" target="_blank" rel="noopener">Документація → Assertions</a>
+</div>
+<p>Тест — це історія: дія, дія, перевірка результату. Коли <code>expect</code> захований у page object, тест читається як «зроби щось», і вже не видно, що саме він перевіряє. До того ж той самий метод потрібен і в позитивному, і в негативному сценарії, а вбудована перевірка робить один з них неможливим.</p>
+<p>Водночас документація показує <code>expect</code> усередині методу: у прикладі <code>PlaywrightDevPage.getStarted()</code> після кліку йде <code>await expect(this.gettingStartedHeader).toBeVisible()</code>. Така перевірка не про результат тесту, а про те, що дія завершилася і сторінка готова до наступного кроку. Це розумний компроміс: внутрішні перевірки стану в методах допустимі, а перевірки того, заради чого написано тест, лишаються в тесті.</p>
+<script type="text/x-code" data-file="tests/cart.spec.ts">
+import { test, expect } from '@playwright/test';
+import { CatalogPage } from '../pages/CatalogPage';
+import { CartPage } from '../pages/CartPage';
+
+test('adds two products to the cart', async ({ page }) => {
+  const catalog = new CatalogPage(page);
+  const cart = new CartPage(page);
+
+  await catalog.goto();
+  await catalog.addToCart('Wireless Mouse');
+  await catalog.addToCart('USB-C Cable');
+  await cart.goto();
+
+  await expect(cart.items).toHaveCount(2);      // the point of the test: visible in the test
+  await expect(cart.total).toHaveText('$34.98');
+});
+</script>
+<div class="widget" id="whereWidget">
+  <h4>Де має бути ця перевірка?</h4>
+  <p class="hint">Для кожної ситуації оберіть найкраще місце.</p>
+  <div class="rt-grid wide" id="whereGrid"></div>
+  <p class="score" id="whereScore" aria-live="polite"></p>
+</div>
+</section>
+
+<!-- ================= 6 ================= -->
+<section class="chapter" id="s6" data-title="Компоненти" hidden>
+<p class="kicker">Розділ 6 з 12</p>
+<h2>Компоненти</h2>
+<p class="lead">Шапка сайту, картка товару, модальне вікно повторюються на багатьох сторінках. Їх виносять в окремі класи-компоненти й підключають у page objects. Так одна частина інтерфейсу описана рівно один раз.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/locators#matching-inside-a-locator" target="_blank" rel="noopener">Документація → Matching inside a locator</a>
+  <a href="https://playwright.dev/docs/pom" target="_blank" rel="noopener">Документація → Page object models</a>
+</div>
+<p>Компонент відрізняється від сторінки тим, що отримує в конструкторі не <code>page</code>, а кореневий <code>Locator</code>, і шукає всі свої елементи всередині нього. Тому той самий клас <code>ProductCard</code> працює з будь-якою карткою на будь-якій сторінці.</p>
+<div class="widget" id="compWidget">
+  <h4>Хто відповідає за цю частину сторінки?</h4>
+  <p class="hint">Натисніть на частину макета каталогу, щоб побачити, який клас нею керує і як до неї звертається тест.</p>
+  <div class="cmp">
+    <div class="cmp-page" id="cmpPage"></div>
+    <div class="explain" id="cmpExplain" aria-live="polite"><p>Оберіть частину сторінки.</p></div>
+  </div>
+</div>
+<script type="text/x-code" data-file="components/ProductCard.ts">
+import type { Locator } from '@playwright/test';
+
+export class ProductCard {
+  readonly root: Locator;
+  readonly title: Locator;
+  readonly price: Locator;
+  readonly addToCartButton: Locator;
+
+  constructor(root: Locator) {
+    this.root = root;
+    this.title = root.getByRole('heading');
+    this.price = root.getByTestId('price');
+    this.addToCartButton = root.getByRole('button', { name: 'Add to cart' });
+  }
+
+  async addToCart(): Promise<void> {
+    await this.addToCartButton.click();
+  }
+}
+</script>
+<script type="text/x-code" data-file="components/HeaderComponent.ts">
+import type { Locator, Page } from '@playwright/test';
+
+export class HeaderComponent {
+  readonly root: Locator;
+  readonly cartLink: Locator;
+  readonly cartCount: Locator;
+
+  constructor(page: Page) {
+    this.root = page.getByRole('banner');
+    this.cartLink = this.root.getByRole('link', { name: 'Cart' });
+    this.cartCount = this.root.getByTestId('cart-count');
+  }
+
+  async openCart(): Promise<void> {
+    await this.cartLink.click();
+  }
+}
+</script>
+<script type="text/x-code" data-file="pages/CatalogPage.ts (з компонентами)">
+import type { Locator, Page } from '@playwright/test';
+import { HeaderComponent } from '../components/HeaderComponent';
+import { ProductCard } from '../components/ProductCard';
+
+export class CatalogPage {
+  readonly page: Page;
+  readonly header: HeaderComponent;
+  readonly productCards: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.header = new HeaderComponent(page);
+    this.productCards = page.getByTestId('product-card');
+  }
+
+  product(name: string): ProductCard {
+    return new ProductCard(this.productCards.filter({ hasText: name }));
+  }
+
+  async goto(): Promise<void> {
+    await this.page.goto('/catalog');
+  }
+}
+</script>
+<script type="text/x-code" data-file="tests/catalog.spec.ts">
+test('cart counter grows after adding a product', async ({ page }) => {
+  const catalog = new CatalogPage(page);
+  await catalog.goto();
+  await catalog.product('Wireless Mouse').addToCart();
+  await expect(catalog.header.cartCount).toHaveText('1');
+});
+</script>
+</section>
+
+<!-- ================= 7 ================= -->
+<section class="chapter" id="s7" data-title="BasePage: наслідування і композиція" hidden>
+<p class="kicker">Розділ 7 з 12</p>
+<h2>BasePage: наслідування і композиція</h2>
+<p class="lead">Спільне для всіх сторінок можна винести в базовий клас. Але базовий клас — найпоширеніше місце, де POM перетворюється на звалище, тому в ньому має бути лише справді спільне.</p>
+<div class="docs">
+  <a href="https://www.typescriptlang.org/docs/handbook/2/classes.html#abstract-classes-and-members" target="_blank" rel="noopener">Документація → Abstract classes (TypeScript)</a>
+  <a href="https://playwright.dev/docs/api/class-page#page-wait-for-load-state" target="_blank" rel="noopener">Документація → waitForLoadState</a>
+</div>
+<p>Абстрактний <code>BasePage</code> зазвичай містить посилання на <code>page</code>, абстрактну адресу сторінки та метод <code>goto()</code>, який нею користується. <code>abstract</code> гарантує, що кожна сторінка оголосить свою адресу: якщо забути, <code>tsc</code> повідомить про помилку. Модифікатор <code>protected</code> робить поле видимим для нащадків і прихованим від тестів.</p>
+<script type="text/x-code" data-file="pages/BasePage.ts">
+import type { Page } from '@playwright/test';
+
+export abstract class BasePage {
+  protected readonly page: Page;
+
+  constructor(page: Page) {
+    this.page = page;
+  }
+
+  abstract get path(): string;
+
+  async goto(): Promise<void> {
+    await this.page.goto(this.path);
+  }
+}
+</script>
+<script type="text/x-code" data-file="pages/CheckoutPage.ts">
+import type { Locator, Page } from '@playwright/test';
+import { BasePage } from './BasePage';
+import { HeaderComponent } from '../components/HeaderComponent';
+
+export interface ShippingAddress {
+  fullName: string;
+  street: string;
+  city: string;
+}
+
+export class CheckoutPage extends BasePage {
+  readonly header: HeaderComponent;
+  readonly fullNameInput: Locator;
+  readonly streetInput: Locator;
+  readonly cityInput: Locator;
+  readonly placeOrderButton: Locator;
+  readonly confirmation: Locator;
+
+  constructor(page: Page) {
+    super(page);
+    this.header = new HeaderComponent(page);
+    this.fullNameInput = page.getByLabel('Full name');
+    this.streetInput = page.getByLabel('Street');
+    this.cityInput = page.getByLabel('City');
+    this.placeOrderButton = page.getByRole('button', { name: 'Place order' });
+    this.confirmation = page.getByRole('heading', { name: 'Thank you for your order' });
+  }
+
+  get path(): string {
+    return '/checkout';
+  }
+
+  async fillShipping(address: ShippingAddress): Promise<void> {
+    await this.fullNameInput.fill(address.fullName);
+    await this.streetInput.fill(address.street);
+    await this.cityInput.fill(address.city);
+  }
+
+  async placeOrder(): Promise<void> {
+    await this.placeOrderButton.click();
+  }
+}
+</script>
+<p>Шапка тут підключена не наслідуванням, а композицією: сторінка <i>має</i> шапку, а не <i>є</i> нею. Це правило зручно застосовувати й далі. Наслідування описує, чим сторінка є (будь-яка сторінка вміє відкриватися за адресою). Композиція описує, з чого сторінка складається (шапка, картки, модальні вікна).</p>
+<div class="fix">
+  <h4>Що не варто класти в BasePage</h4>
+  <p><b>Проблема.</b> У базовий клас поступово переїжджають «корисні» методи: <code>waitForPageLoad()</code> з <code>waitForLoadState('networkidle')</code>, <code>clickElement(selector)</code>, <code>getText(selector)</code>, <code>sleep(ms)</code>.</p>
+  <p><b>Чому.</b> <code>networkidle</code> у документації позначено як discouraged для тестування, а обгортки над <code>click</code> чи <code>textContent</code> з рядком-селектором повертають у код CSS-селектори й ручне читання тексту замість web-first assertions. До того ж клас, що вміє все, перестає бути зрозумілим.</p>
+  <p><b>Рішення.</b> Тримайте в BasePage лише те, що справді спільне для всіх сторінок. Готовність сторінки перевіряйте assertion на видимий елемент, а спільні частини інтерфейсу виносьте в компоненти.</p>
+  <p><b>Коли додавати метод у BasePage.</b> Коли він потрібен кожній сторінці і не залежить від конкретної розмітки.</p>
+</div>
+</section>
+
+<!-- ================= 8 ================= -->
+<section class="chapter" id="s8" data-title="Page objects як фікстури" hidden>
+<p class="kicker">Розділ 8 з 12</p>
+<h2>Page objects як фікстури</h2>
+<p class="lead">Створювати page objects у кожному тесті через <code>new</code> незручно. Документація про фікстури показує саме POM як головний приклад: page object стає фікстурою, і тест просто оголошує, що він йому потрібен.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-fixtures#with-fixtures" target="_blank" rel="noopener">Документація → With fixtures</a>
+  <a href="https://playwright.dev/docs/test-fixtures#creating-a-fixture" target="_blank" rel="noopener">Документація → Creating a fixture</a>
+</div>
+<div class="widget" id="fxWidget">
+  <h4>Хуки проти фікстур</h4>
+  <p class="hint">Той самий набір тестів, як у документації: спершу через beforeEach/afterEach, потім через фікстуру.</p>
+  <div class="seg" role="group" aria-label="Підхід">
+    <button type="button" data-m="hooks" aria-pressed="true">beforeEach / afterEach</button>
+    <button type="button" data-m="fixture" aria-pressed="false">Фікстура</button>
+  </div>
+  <div class="editor" id="fxEditor" aria-live="polite"></div>
+  <p class="editor-note" id="fxNote"></p>
+</div>
+<p>Документація перелічує переваги фікстур над хуками. Фікстури інкапсулюють підготовку і прибирання в одному місці. Вони перевикористовуються між файлами. Вони створюються на вимогу: раннер піднімає лише ті фікстури, які згадав тест. Вони комбінуються і можуть залежати одна від одної. І вони звільняють від <code>describe</code>-блоків, що існують лише заради спільного <code>beforeEach</code>.</p>
+<script type="text/x-code" data-file="fixtures/pages.ts">
+import { test as base } from '@playwright/test';
+import { LoginPage } from '../pages/LoginPage';
+import { CatalogPage } from '../pages/CatalogPage';
+import { CartPage } from '../pages/CartPage';
+
+type Pages = {
+  loginPage: LoginPage;
+  catalogPage: CatalogPage;
+  cartPage: CartPage;
+};
+
+export const test = base.extend<Pages>({
+  loginPage: async ({ page }, use) => {
+    await use(new LoginPage(page));
+  },
+  catalogPage: async ({ page }, use) => {
+    await use(new CatalogPage(page));
+  },
+  cartPage: async ({ page }, use) => {
+    await use(new CartPage(page));
+  },
+});
+
+export { expect } from '@playwright/test';
+</script>
+<script type="text/x-code" data-file="tests/cart.spec.ts">
+import { test, expect } from '../fixtures/pages';
+
+test('adds a product to the cart', async ({ catalogPage, cartPage }) => {
+  await catalogPage.goto();
+  await catalogPage.addToCart('Wireless Mouse');
+  await cartPage.goto();
+  await expect(cartPage.items).toHaveCount(1);
+});
+</script>
+<p>Назви фікстур, за документацією, мають починатися з літери або підкреслення і містити лише літери, цифри й підкреслення. Детально фікстури, їхній scope і порядок виконання розбираються в окремій темі.</p>
+</section>
+
+<!-- ================= 9 ================= -->
+<section class="chapter" id="s9" data-title="Структура проєкту" hidden>
+<p class="kicker">Розділ 9 з 12</p>
+<h2>Структура проєкту</h2>
+<p class="lead">Playwright не диктує, де лежать page objects. Але домовленість про структуру важлива: нова людина в команді має з першого погляду розуміти, де шукати сторінку, компонент чи фікстуру.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/test-configuration" target="_blank" rel="noopener">Документація → Configuration (testDir)</a>
+  <a href="https://playwright.dev/docs/test-typescript#tsconfigjson" target="_blank" rel="noopener">Документація → tsconfig paths</a>
+</div>
+<div class="widget" id="treeWidget">
+  <h4>Одна з поширених структур</h4>
+  <p class="hint">Натисніть на каталог чи файл, щоб побачити, що в ньому лежить і чому.</p>
+  <div class="tsc-wrap">
+    <div class="tree" id="tree"></div>
+    <div class="explain" id="treeExplain" aria-live="polite"><p>Оберіть елемент ліворуч.</p></div>
+  </div>
+</div>
+<p>Page objects, компоненти й фікстури лежать поза <code>testDir</code>, тож раннер не намагається зібрати їх як тести. Щоб імпорти не перетворювалися на <code>../../../pages/LoginPage</code>, зручні path aliases з <code>tsconfig.json</code>, які Playwright підтримує без додаткових пакетів (тема про TypeScript для Playwright).</p>
+<script type="text/x-code" data-lang="json" data-file="tsconfig.json (фрагмент)">
+{
+  "compilerOptions": {
+    "paths": {
+      "@pages/*": ["./pages/*"],
+      "@components/*": ["./components/*"],
+      "@fixtures/*": ["./fixtures/*"]
+    }
+  }
+}
+</script>
+</section>
+
+<!-- ================= 10 ================= -->
+<section class="chapter" id="s10" data-title="Тестові дані і типи" hidden>
+<p class="kicker">Розділ 10 з 12</p>
+<h2>Тестові дані і типи</h2>
+<p class="lead">Коли метод приймає п'ять рядків поспіль, їх легко переплутати. Об'єкт з інтерфейсом робить виклик самодокументованим, і TypeScript перевіряє, що нічого не забуто.</p>
+<div class="docs">
+  <a href="https://www.typescriptlang.org/docs/handbook/2/objects.html" target="_blank" rel="noopener">Документація → Object Types (TypeScript)</a>
+  <a href="https://www.typescriptlang.org/docs/handbook/utility-types.html" target="_blank" rel="noopener">Документація → Utility Types</a>
+</div>
+<p>Порівняйте <code>fillShipping('John Doe', '1 Main St', 'Springfield')</code> з <code>fillShipping({ fullName: 'John Doe', street: '1 Main St', city: 'Springfield' })</code>. У другому варіанті видно, що де, порядок полів неважливий, а додавання нового поля в інтерфейс одразу підсвітить усі місця, де його не передано. Дані для тестів зберігають в окремих файлах і типізують тими самими інтерфейсами, що й методи page object.</p>
+<script type="text/x-code" data-file="test-data/users.ts">
+export interface Credentials {
+  email: string;
+  password: string;
+}
+
+export const validUser: Credentials = { email: 'buyer@example.com', password: 'secret-password' };
+export const lockedUser: Credentials = { email: 'locked@example.com', password: 'secret-password' };
+</script>
+<script type="text/x-code" data-file="pages/LoginPage.ts (метод з об'єктом)">
+async login(credentials: Credentials): Promise<void> {
+  await this.emailInput.fill(credentials.email);
+  await this.passwordInput.fill(credentials.password);
+  await this.signInButton.click();
+}
+</script>
+<script type="text/x-code" data-file="tests/checkout.spec.ts">
+import { test, expect } from '../fixtures/pages';
+import { validUser } from '../test-data/users';
+import { CheckoutPage, type ShippingAddress } from '../pages/CheckoutPage';
+
+const address: ShippingAddress = { fullName: 'John Doe', street: '1 Main St', city: 'Springfield' };
+
+test('places an order', async ({ loginPage, catalogPage, cartPage }) => {
+  await loginPage.goto();
+  await loginPage.login(validUser);
+  await catalogPage.goto();
+  await catalogPage.addToCart('Wireless Mouse');
+  await cartPage.goto();
+
+  const checkout: CheckoutPage = await cartPage.proceedToCheckout();
+  await checkout.fillShipping(address);
+  await checkout.placeOrder();
+
+  await expect(checkout.confirmation).toBeVisible();
+});
+</script>
+</section>
+
+<!-- ================= 11 ================= -->
+<section class="chapter" id="s11" data-title="Типові помилки" hidden>
+<p class="kicker">Розділ 11 з 12</p>
+<h2>Типові помилки</h2>
+<p class="lead">Більшість проблем з POM з'являються не одразу, а через кілька місяців, коли класи розростаються. Ці помилки варто впізнавати рано.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/best-practices" target="_blank" rel="noopener">Документація → Best Practices</a>
+  <a href="https://playwright.dev/docs/pom" target="_blank" rel="noopener">Документація → Page object models</a>
+</div>
+<p>Найчастіше трапляються такі помилки. Методи, що повертають прочитаний текст для порівняння в тесті, замість локатора для web-first assertion. Перевірки результату, сховані в page object. CSS-селектори в полях замість ролей і підписів. Забутий <code>await</code> перед методом page object. Методи з назвами за механікою (<code>clickButton</code>). Утилітні методи в BasePage з <code>networkidle</code> і паузами. Page object, що зберігає стан між тестами. І фікстура без виклику <code>use</code>.</p>
+<div class="widget" id="bugWidget">
+  <h4>Знайди помилку</h4>
+  <p class="hint">У кожному фрагменті один проблемний рядок. Натисніть на нього, щоб перевірити себе.</p>
+  <div id="bugList"></div>
+  <p class="score" id="bugScore" aria-live="polite"></p>
+</div>
+</section>
+
+<!-- ================= 12 ================= -->
+<section class="chapter" id="s12" data-title="Шпаргалка" hidden>
+<p class="kicker">Розділ 12 з 12</p>
+<h2>Шпаргалка</h2>
+<p class="lead">Усе основне на одному екрані. Після шпаргалки — підсумковий квіз для самоперевірки.</p>
+<div class="docs">
+  <a href="https://playwright.dev/docs/pom" target="_blank" rel="noopener">Документація → Page object models</a>
+  <a href="https://playwright.dev/docs/test-fixtures" target="_blank" rel="noopener">Документація → Fixtures</a>
+</div>
+<script type="text/x-code" data-file="Шаблон page object">
+import type { Locator, Page } from '@playwright/test';
+
+export class SomePage {
+  readonly page: Page;
+  readonly mainButton: Locator;                          // single element: a field
+
+  constructor(page: Page) {
+    this.page = page;
+    this.mainButton = page.getByRole('button', { name: 'Save' });
+  }
+
+  row(name: string): Locator {                           // element defined by data: a method
+    return this.page.getByRole('row').filter({ hasText: name });
+  }
+
+  async goto(): Promise<void> {
+    await this.page.goto('/some-path');
+  }
+
+  async save(): Promise<void> {                          // user intent, not mechanics
+    await this.mainButton.click();
+  }
+}
+</script>
+<script type="text/x-code" data-file="Компонент і фікстура">
+export class Card {
+  constructor(readonly root: Locator) {}                 // component: scoped to a root locator
+  get title(): Locator { return this.root.getByRole('heading'); }
+}
+
+export const test = base.extend<{ somePage: SomePage }>({
+  somePage: async ({ page }, use) => {
+    const somePage = new SomePage(page);
+    await somePage.goto();                               // setup
+    await use(somePage);                                 // the test runs here
+  },
+});
+</script>
+<p>Чотири правила на пам'ять. Page object описує частину застосунку і містить її локатори та дії, названі мовою користувача. Він повертає локатори, а тест перевіряє результат через web-first assertions. Спільні частини інтерфейсу — компоненти, а не методи BasePage. Page objects підключаються в тести через фікстури.</p>
+</section>
+
+<!-- ================= QUIZ ================= -->
+<section class="chapter" id="quiz" data-title="Підсумковий квіз" data-num="✎" data-count="no" hidden>
+<p class="kicker">Самоперевірка</p>
+<h2>Підсумковий квіз</h2>
+<p class="lead">15 питань за всіма розділами. Після кожної відповіді побачите пояснення, а в кінці — список тем, які варто повторити.</p>
+<div class="widget" id="quizWidget" aria-live="polite"></div>
+</section>
+
+<nav class="pager" aria-label="Навігація між розділами">
+  <button type="button" id="prevBtn">Попередній розділ</button>
+  <button type="button" class="done-btn" id="doneBtn">Позначити як пройдений</button>
+  <button type="button" class="primary" id="nextBtn">Наступний розділ</button>
+</nav>
+</main>
+</div>
+<script>
+(function(){
+'use strict';
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const KW = new Set('import from export const let var async await function return if else throw new class extends implements interface type readonly private protected public abstract get set as in of typeof keyof void this super default try catch require'.split(' '));
+const LIT = new Set(['null','undefined','true','false']);
+const PRIM = new Set(['string','number','boolean','unknown','any','never','object']);
+
+function hl(src, lang){
+  if (lang === 'sh' || lang === 'yaml'){
+    return src.split('\n').map((l) => {
+      const i = l.indexOf('#');
+      if (i === -1) return esc(l);
+      return esc(l.slice(0,i)) + '<span class="t-com">' + esc(l.slice(i)) + '</span>';
+    }).join('\n');
+  }
+  const re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|('(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"|`(?:\\.|[^`\\])*`)|(\b\d[\d_]*(?:\.\d+)?\b)|([A-Za-z_$][\w$]*)/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(src))){
+    out += esc(src.slice(last, m.index));
+    last = re.lastIndex;
+    const t = m[0];
+    if (m[1]) out += '<span class="t-com">' + esc(t) + '</span>';
+    else if (m[2]){
+      const isKey = lang === 'json' && /^\s*:/.test(src.slice(last));
+      out += '<span class="' + (isKey ? 't-key' : 't-str') + '">' + esc(t) + '</span>';
+    }
+    else if (m[3]) out += '<span class="t-num">' + t + '</span>';
+    else if (KW.has(t)) out += '<span class="t-kw">' + t + '</span>';
+    else if (LIT.has(t)) out += '<span class="t-lit">' + t + '</span>';
+    else if (PRIM.has(t) || /^[A-Z]/.test(t)) out += '<span class="t-type">' + t + '</span>';
+    else if (src[last] === '(' || src[last] === '<') out += '<span class="t-fn">' + t + '</span>';
+    else out += esc(t);
+  }
+  return out + esc(src.slice(last));
+}
+function dedent(src){
+  const lines = src.replace(/^\n+/, '').replace(/\s+$/, '').split('\n');
+  const ind = Math.min(...lines.filter((l) => l.trim()).map((l) => l.match(/^ */)[0].length));
+  return lines.map((l) => l.slice(ind)).join('\n');
+}
+function codeFigure(src, lang, file){
+  const fig = document.createElement('figure');
+  fig.className = 'code';
+  fig.innerHTML = (file ? '<figcaption>' + esc(file) + '</figcaption>' : '') +
+    '<pre><code>' + hl(src, lang) + '</code></pre>' +
+    '<button type="button" class="copy">Копіювати</button>';
+  const btn = fig.querySelector('.copy');
+  btn.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(src); btn.textContent = 'Скопійовано'; }
+    catch (e) {
+      const r = document.createRange(); r.selectNodeContents(fig.querySelector('pre'));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      btn.textContent = 'Виділено: Ctrl+C';
+    }
+    setTimeout(() => { btn.textContent = 'Копіювати'; }, 1600);
+  });
+  return fig;
+}
+$$('script[type="text/x-code"]').forEach((s) => {
+  s.replaceWith(codeFigure(dedent(s.textContent), s.dataset.lang || 'ts', s.dataset.file || ''));
+});
+
+/* ---------- navigation + progress ---------- */
+const chapters = $$('.chapter');
+const nav = $('#nav');
+const KEY = 'pw-pom-progress';
+let done = new Set();
+try { const raw = localStorage.getItem(KEY); if (raw) done = new Set(JSON.parse(raw)); } catch (e) {}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify([...done])); } catch (e) {} }
+
+chapters.forEach((c, i) => {
+  const li = document.createElement('li');
+  li.innerHTML = '<button type="button" data-id="' + c.id + '"><span class="num">' + (i + 1) + '</span><span>' + esc(c.dataset.title) + '</span><span class="tick" aria-hidden="true">✓</span></button>';
+  nav.appendChild(li);
+});
+let current = 0;
+const counted = chapters.filter((c) => c.dataset.count !== 'no');
+function renderProgress(){
+  $$('#nav li').forEach((li, i) => li.classList.toggle('done', done.has(chapters[i].id)));
+  const n = counted.filter((c) => done.has(c.id)).length;
+  $('#progressFill').style.width = (n / counted.length * 100) + '%';
+  $('#progressText').textContent = n + ' з ' + counted.length + ' розділів пройдено';
+  $('#doneBtn').textContent = done.has(chapters[current].id) ? 'Розділ пройдено ✓' : 'Позначити як пройдений';
+}
+function show(i, focus){
+  current = Math.max(0, Math.min(chapters.length - 1, i));
+  chapters.forEach((c, k) => { c.hidden = k !== current; });
+  $$('#nav button').forEach((b, k) => b.setAttribute('aria-current', k === current ? 'true' : 'false'));
+  $('#prevBtn').disabled = current === 0;
+  $('#nextBtn').textContent = current === chapters.length - 1 ? 'Завершити' : (chapters[current + 1].id === 'quiz' ? 'До підсумкового квізу' : 'Наступний розділ');
+  $('#doneBtn').hidden = chapters[current].dataset.count === 'no';
+  const activeBtn = $$('#nav button')[current];
+  if (activeBtn && activeBtn.scrollIntoView && window.matchMedia('(max-width:900px)').matches) activeBtn.scrollIntoView({ inline: 'center', block: 'nearest' });
+  try { if (location.protocol !== 'about:' && history.replaceState) history.replaceState(null, '', '#' + chapters[current].id); } catch (e) { /* sandboxed preview: URL cannot change */ }
+  renderProgress();
+  if (focus) { window.scrollTo(0, 0); chapters[current].querySelector('h2').setAttribute('tabindex', '-1'); chapters[current].querySelector('h2').focus({ preventScroll: true }); }
+}
+nav.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  show(chapters.findIndex((c) => c.id === b.dataset.id), true);
+});
+$('#prevBtn').addEventListener('click', () => show(current - 1, true));
+$('#nextBtn').addEventListener('click', () => {
+  done.add(chapters[current].id); save();
+  if (current < chapters.length - 1) show(current + 1, true); else renderProgress();
+});
+$('#doneBtn').addEventListener('click', () => {
+  const id = chapters[current].id;
+  if (done.has(id)) done.delete(id); else done.add(id);
+  save(); renderProgress();
+});
+$('#resetProgress').addEventListener('click', () => { done.clear(); save(); renderProgress(); });
+window.__showChapter = (id) => show(chapters.findIndex((c) => c.id === id), true);
+let startHash = ''; try { startHash = location.hash; } catch (e) {}
+const startIdx = chapters.findIndex((c) => '#' + c.id === startHash);
+show(startIdx >= 0 ? startIdx : 0, false);
+
+/* ---------- generic card quiz (per-item options allowed) ---------- */
+function cardQuiz(gridId, scoreId, items, opts){
+  const state = {};
+  const grid = $('#' + gridId);
+  function score(){
+    const answered = Object.keys(state).length;
+    const right = Object.values(state).filter(Boolean).length;
+    $('#' + scoreId).textContent = answered ? 'Правильно з першої спроби: ' + right + ' з ' + answered + ' (усього ' + items.length + ')' : '';
+  }
+  items.forEach((r, idx) => {
+    const card = document.createElement('div');
+    card.className = 'rt';
+    card.innerHTML = '<p class="m">' + r.m + '</p><div class="opts" role="group">' +
+      (r.opts || opts).map((o) => '<button type="button" data-o="' + esc(o) + '">' + esc(o) + '</button>').join('') + '</div><p class="fb" hidden></p>';
+    card.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b || card.dataset.solved) return;
+      const fb = card.querySelector('.fb');
+      const ok = b.dataset.o === r.a;
+      if (!(idx in state)) state[idx] = ok;
+      if (ok){
+        b.classList.add('right'); card.dataset.solved = '1';
+        fb.innerHTML = '<b>Так.</b> ' + r.why + (r.link ? ' <a href="' + r.link + '" target="_blank" rel="noopener">Документація</a>' : '');
+      } else { b.classList.add('wrong'); fb.textContent = 'Ні, спробуйте інший варіант.'; }
+      fb.hidden = false; score();
+    });
+    grid.appendChild(card);
+  });
+}
+const code = (s) => '<code>' + esc(s) + '</code>';
+function annotatedEditor(target, lines, marks, cls){
+  $(target).innerHTML = lines.map((l, i) => {
+    const n = marks[i];
+    return '<div class="ln' + (n ? ' ' + (cls || 'mark') : '') + '"><span>' + (i + 1) + '</span><span>' + (hl(l, 'ts') || ' ') + '</span></div>' +
+      (n && typeof n === 'string' ? '<span class="msg tip">' + esc(n) + '</span>' : '');
+  }).join('');
+}
+
+/* ---------- 1. change impact ---------- */
+const RAW = [
+  "test('signs in', async ({ page }) => {",
+  "  await page.goto('/login');",
+  "  await page.getByLabel('Email').fill('buyer@example.com');",
+  "  await page.getByLabel('Password').fill('secret-password');",
+  "  await page.getByRole('button', { name: 'Sign in' }).click();",
+  "  await expect(page.getByRole('heading', { name: 'Welcome' })).toBeVisible();",
+  "});",
+  "",
+  "test('shows an error for a wrong password', async ({ page }) => {",
+  "  await page.goto('/login');",
+  "  await page.getByLabel('Email').fill('buyer@example.com');",
+  "  await page.getByLabel('Password').fill('wrong');",
+  "  await page.getByRole('button', { name: 'Sign in' }).click();",
+  "  await expect(page.getByRole('alert')).toBeVisible();",
+  "});",
+  "",
+  "test('blocks a locked account', async ({ page }) => {",
+  "  await page.goto('/login');",
+  "  await page.getByLabel('Email').fill('locked@example.com');",
+  "  await page.getByLabel('Password').fill('secret-password');",
+  "  await page.getByRole('button', { name: 'Sign in' }).click();",
+  "  await expect(page.getByRole('alert')).toHaveText(/locked/i);",
+  "});"
+];
+const POM = [
+  "// pages/LoginPage.ts",
+  "this.emailInput = page.getByLabel('Email');",
+  "this.passwordInput = page.getByLabel('Password');",
+  "this.signInButton = page.getByRole('button', { name: 'Sign in' });",
+  "",
+  "// tests/login.spec.ts",
+  "test('signs in', async ({ loginPage, page }) => {",
+  "  await loginPage.goto();",
+  "  await loginPage.login(validUser);",
+  "  await expect(page.getByRole('heading', { name: 'Welcome' })).toBeVisible();",
+  "});",
+  "",
+  "test('shows an error for a wrong password', async ({ loginPage }) => {",
+  "  await loginPage.goto();",
+  "  await loginPage.login({ ...validUser, password: 'wrong' });",
+  "  await expect(loginPage.errorAlert).toBeVisible();",
+  "});",
+  "",
+  "test('blocks a locked account', async ({ loginPage }) => {",
+  "  await loginPage.goto();",
+  "  await loginPage.login(lockedUser);",
+  "  await expect(loginPage.errorAlert).toHaveText(/locked/i);",
+  "});"
+];
+let impMode = 'raw', impChanged = false;
+function renderImpact(){
+  const src = impMode === 'raw' ? RAW : POM;
+  const lines = impChanged ? src.map((l) => l.replace("getByLabel('Email')", "getByLabel('Email address')")) : src;
+  const marks = {}; let n = 0;
+  if (impChanged) src.forEach((l, i) => { if (l.includes("getByLabel('Email')")) { marks[i] = true; n++; } });
+  const box = $('#impactCode'); box.innerHTML = '<div class="editor" id="impEd"></div>';
+  annotatedEditor('#impEd', lines, marks, 'mark');
+  $('#impactSay').textContent = !impChanged
+    ? (impMode === 'raw' ? 'Кожен тест сам знає, як знайти поля форми. Локатори повторюються в усіх трьох тестах.' : 'Локатори описано один раз у LoginPage. Тести говорять мовою дій: goto, login.')
+    : (impMode === 'raw' ? 'Довелося правити ' + n + ' рядки в трьох тестах. У реальному наборі таких місць можуть бути десятки, і одне легко пропустити.' : 'Довелося правити ' + n + ' рядок у LoginPage. Жоден тест не змінився.');
+  $$('#impactWidget .seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === impMode)));
+}
+$$('#impactWidget .seg button').forEach((b) => b.addEventListener('click', () => { impMode = b.dataset.m; renderImpact(); }));
+$('#impactChange').addEventListener('click', () => { impChanged = true; renderImpact(); });
+$('#impactReset').addEventListener('click', () => { impChanged = false; renderImpact(); });
+renderImpact();
+
+/* ---------- 2. anatomy ---------- */
+const ANAT = {
+  imp:['Імпорт лише типів', 'import type бере з Playwright тільки типи Page і Locator. Після трансформації такий імпорт зникає, бо в рантаймі ці значення не потрібні.'],
+  cls:['Клас експортується', 'Page object — звичайний клас TypeScript. Назва за сторінкою чи частиною застосунку: LoginPage, CatalogPage.'],
+  page:['Поле page', 'Посилання на вкладку браузера, через яку клас виконує всі дії. readonly не дає замінити його після створення.'],
+  fields:['Поля-локатори', 'Тип Locator. Тест може звертатися до них напряму для web-first assertions, наприклад expect(loginPage.errorAlert).toBeVisible().'],
+  ctor:['Конструктор', 'Приймає page від тесту або фікстури і створює всі локатори. Це безпечно навіть до goto(): створення локатора нічого не шукає на сторінці.'],
+  loc:['Вибір локатора', 'Ролі, підписи й текст — за пріоритетом з Best Practices. Якщо підпис поля зміниться, правка буде лише тут.'],
+  goto:['Метод goto()', 'Знає адресу сторінки. Відносний шлях доповнюється baseURL з конфігу.'],
+  act:['Метод-дія', 'Назва описує намір користувача, а не механіку. Явний Promise<void> показує, що в місці виклику потрібен await.']
+};
+(function renderAnat(){
+  const B = (k, label) => '<button type="button" class="use" data-k="' + k + '">' + label + '</button>';
+  $('#anatCode').innerHTML =
+    B('imp', "import type { Locator, Page } from '@playwright/test';") + '\n\n' +
+    B('cls', 'export class LoginPage') + ' {\n  ' +
+    B('page', 'readonly page: Page;') + '\n  ' +
+    B('fields', 'readonly emailInput: Locator;') + '\n  readonly passwordInput: Locator;\n  readonly signInButton: Locator;\n\n  ' +
+    B('ctor', 'constructor(page: Page)') + ' {\n    this.page = page;\n    this.emailInput = ' + B('loc', "page.getByLabel('Email')") + ';\n    this.passwordInput = page.getByLabel(\'Password\');\n    this.signInButton = page.getByRole(\'button\', { name: \'Sign in\' });\n  }\n\n  ' +
+    B('goto', 'async goto(): Promise<void>') + ' {\n    await this.page.goto(\'/login\');\n  }\n\n  ' +
+    B('act', 'async login(email: string, password: string): Promise<void>') + ' {\n    await this.emailInput.fill(email);\n    await this.passwordInput.fill(password);\n    await this.signInButton.click();\n  }\n}';
+  $('#anatCode').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    $$('#anatCode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    const [t, d] = ANAT[b.dataset.k];
+    $('#anatExplain').innerHTML = '<h5>' + esc(t) + '</h5><p>' + esc(d) + '</p>';
+  });
+})();
+
+/* ---------- 4. method names ---------- */
+const POMDOC = 'https://playwright.dev/docs/pom';
+cardQuiz('nameGrid', 'nameScore', [
+  { m: code('async login(credentials: Credentials): Promise<void>'), a:'добре', why:'Дія з предметної області, дані одним типізованим об\'єктом.', link:POMDOC },
+  { m: code('async clickSubmitButton(): Promise<void>'), a:'погано', why:'Назва описує механіку. Краще submitOrder() чи інша назва за наміром користувача.', link:POMDOC },
+  { m: code('async getErrorText(): Promise<string | null>'), a:'погано', why:'Тест порівнюватиме знімок тексту замість web-first assertion. Краще віддати локатор errorAlert.', link:'https://playwright.dev/docs/best-practices#use-web-first-assertions' },
+  { m: code('productCard(name: string): Locator'), a:'добре', why:'Будує локатор за даними. Синхронний, бо нічого не чекає.', link:'https://playwright.dev/docs/locators#filter-by-text' },
+  { m: code('async fillInput(selector: string, value: string): Promise<void>'), a:'погано', why:'Обгортка над fill з рядком-селектором повертає в тести CSS і нічого не каже про застосунок.', link:'https://playwright.dev/docs/locators' },
+  { m: code('async proceedToCheckout(): Promise<CheckoutPage>'), a:'добре', why:'Дія веде на іншу сторінку і повертає її page object.', link:POMDOC },
+  { m: code('async loginAndCheckDashboard(): Promise<void>'), a:'погано', why:'Ховає перевірку результату в метод. Негативний сценарій з тим самим логіном вже не написати.', link:POMDOC }
+], ['добре', 'погано']);
+
+/* ---------- 5. where to assert ---------- */
+cardQuiz('whereGrid', 'whereScore', [
+  { m:'Після входу з\'являється привітання з ім\'ям користувача', a:'у тесті', why:'Це результат сценарію, заради якого написано тест.', link:POMDOC },
+  { m:'При неправильному паролі видно повідомлення про помилку', a:'у тесті', why:'Результат негативного сценарію. Page object дає локатор errorAlert.', link:POMDOC },
+  { m:'openMenu() має дочекатися, що меню розгорнулося, перш ніж повернути керування', a:'у page object', why:'Внутрішня перевірка готовності, як expect(...).toBeVisible() у методі getStarted() з прикладу документації.', link:POMDOC + '#implementation' },
+  { m:'У кошику рівно 2 товари', a:'у тесті', why:'Очікуваний результат конкретного тесту.', link:POMDOC },
+  { m:'proceedToCheckout() має переконатися, що відкрилася сторінка оформлення, перш ніж повернути CheckoutPage', a:'у page object', why:'Метод гарантує, що повернутий об\'єкт відповідає відкритій сторінці.', link:POMDOC },
+  { m:'Ціна товару зі знижкою дорівнює $45', a:'у тесті', why:'Бізнес-правило, яке і є метою перевірки.', link:POMDOC }
+], ['у тесті', 'у page object']);
+
+/* ---------- 6. components map ---------- */
+const CMP = {
+  header:['HeaderComponent', 'Шапка однакова на всіх сторінках, тож її описано окремим компонентом з коренем page.getByRole(\'banner\'). Сторінки підключають її композицією.', 'catalog.header'],
+  count:['HeaderComponent.cartCount', 'Лічильник кошика належить шапці, а не каталогу. Тест звертається через компонент.', "await expect(catalog.header.cartCount).toHaveText('1')"],
+  search:['CatalogPage.searchInput', 'Пошук є лише в каталозі, тому це поле самої сторінки.', "await catalog.search('mouse')"],
+  card:['ProductCard', 'Компонент з коренем у конкретній картці: catalog.product(name) фільтрує картки за назвою й обгортає результат у ProductCard.', "catalog.product('Wireless Mouse')"],
+  price:['ProductCard.price', 'Ціна шукається всередині кореня картки, тож у двох карток не буде плутанини.', "await expect(catalog.product('Wireless Mouse').price).toHaveText('$29.99')"],
+  btn:['ProductCard.addToCartButton', 'Кнопка всередині картки. Метод addToCart() компонента клікає саме її.', "await catalog.product('Wireless Mouse').addToCart()"]
+};
+(function renderCmp(){
+  const R = (k, cls, label) => '<button type="button" class="cmp-r ' + cls + '" data-k="' + k + '">' + label + '</button>';
+  $('#cmpPage').innerHTML =
+    '<div class="cmp-head">' + R('header', 'hd', '🛍 Shop · Catalog · Deals') + R('count', 'cnt', '🛒 Cart <b>1</b>') + '</div>' +
+    R('search', 'srch', '🔍 Search products') +
+    '<div class="cmp-cards">' +
+      '<div class="cmp-card">' + R('card', 'ttl', 'Wireless Mouse') + R('price', 'pr', '$29.99') + R('btn', 'add', 'Add to cart') + '</div>' +
+      '<div class="cmp-card">' + R('card', 'ttl', 'USB-C Cable') + R('price', 'pr', '$4.99') + R('btn', 'add', 'Add to cart') + '</div>' +
+    '</div>';
+  $('#cmpPage').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    $$('#cmpPage button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.k === b.dataset.k)));
+    const [t, d, c] = CMP[b.dataset.k];
+    $('#cmpExplain').innerHTML = '<h5>' + esc(t) + '</h5><p>' + esc(d) + '</p>';
+    $('#cmpExplain').appendChild(codeFigure(c, 'ts', 'У тесті'));
+  });
+})();
+
+/* ---------- 8. hooks vs fixture ---------- */
+const FX = {
+  hooks:{ lines:[
+    "test.describe('todo tests', () => {",
+    "  let todoPage: TodoPage;",
+    "",
+    "  test.beforeEach(async ({ page }) => {",
+    "    todoPage = new TodoPage(page);",
+    "    await todoPage.goto();",
+    "    await todoPage.addToDo('item1');",
+    "    await todoPage.addToDo('item2');",
+    "  });",
+    "",
+    "  test.afterEach(async () => {",
+    "    await todoPage.removeAll();",
+    "  });",
+    "",
+    "  test('should add an item', async () => {",
+    "    await todoPage.addToDo('my item');",
+    "  });",
+    "",
+    "  test('should remove an item', async () => {",
+    "    await todoPage.remove('item1');",
+    "  });",
+    "});"
+  ], marks:{ 0:'describe існує лише заради спільних хуків.', 1:'Змінна поза тестами: її присвоюють у хуку, а тести покладаються на те, що хук уже спрацював.', 10:'Прибирання відірване від підготовки: їх легко розсинхронізувати.' },
+  note:'Підготовка і прибирання розкидані по двох хуках, а тести залежать від змінної поза ними.' },
+  fixture:{ lines:[
+    "const test = base.extend<{ todoPage: TodoPage }>({",
+    "  todoPage: async ({ page }, use) => {",
+    "    const todoPage = new TodoPage(page);",
+    "    await todoPage.goto();",
+    "    await todoPage.addToDo('item1');",
+    "    await todoPage.addToDo('item2');",
+    "    await use(todoPage);",
+    "    await todoPage.removeAll();",
+    "  },",
+    "});",
+    "",
+    "test('should add an item', async ({ todoPage }) => {",
+    "  await todoPage.addToDo('my item');",
+    "});",
+    "",
+    "test('should remove an item', async ({ todoPage }) => {",
+    "  await todoPage.remove('item1');",
+    "});"
+  ], marks:{ 6:'Тут виконується тест. Усе вище — підготовка, усе нижче — прибирання, в одному місці.', 11:'Тест просто оголошує, що йому потрібен todoPage. Фікстура створюється лише для тих тестів, що її просять.' },
+  note:'Так виглядає приклад у документації: підготовка, тест і прибирання в одній функції, без describe і без змінних поза тестами.' }
+};
+function renderFx(m){
+  annotatedEditor('#fxEditor', FX[m].lines, FX[m].marks, 'mark');
+  $('#fxNote').textContent = FX[m].note;
+  $$('#fxWidget .seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+}
+$$('#fxWidget .seg button').forEach((b) => b.addEventListener('click', () => renderFx(b.dataset.m)));
+renderFx('hooks');
+
+/* ---------- 9. project tree ---------- */
+const TREE = [
+  { p:'pages/', d:0, t:'Page objects: по класу на сторінку чи великий розділ застосунку. Тут же BasePage.' },
+  { p:'BasePage.ts', d:1, t:'Абстрактна база: page, абстрактний path, goto(). Нічого більше.' },
+  { p:'LoginPage.ts', d:1, t:'Сторінка входу: поля форми, кнопка, повідомлення про помилку, метод login().' },
+  { p:'CatalogPage.ts', d:1, t:'Каталог: пошук, картки товарів через компонент ProductCard, шапка через HeaderComponent.' },
+  { p:'components/', d:0, t:'Частини інтерфейсу, що повторюються: шапка, картка, модальне вікно. Кожен компонент працює від свого кореневого локатора.' },
+  { p:'HeaderComponent.ts', d:1, t:'Шапка з посиланням на кошик і лічильником.' },
+  { p:'ProductCard.ts', d:1, t:'Картка товару: назва, ціна, кнопка Add to cart.' },
+  { p:'fixtures/', d:0, t:'Розширений test з page objects як фікстурами. Тести імпортують test і expect звідси.' },
+  { p:'pages.ts', d:1, t:'base.extend<Pages>({ ... }) і повторний експорт expect.' },
+  { p:'test-data/', d:0, t:'Типізовані дані для тестів: користувачі, адреси, товари. Без логіки.' },
+  { p:'tests/', d:0, t:'Лише тести (testDir). Кожен тест — сценарій з дій page objects і перевірок результату.' },
+  { p:'playwright.config.ts', d:0, t:'testDir: \'./tests\', baseURL та інші налаштування запуску.' },
+  { p:'tsconfig.json', d:0, t:'Path aliases @pages/*, @components/*, @fixtures/*, які Playwright підтримує без додаткових пакетів.' }
+];
+(function renderTree(){
+  $('#tree').innerHTML = TREE.map((n, i) => '<button type="button" data-i="' + i + '" style="padding-left:' + (10 + n.d * 22) + 'px">' + (n.p.endsWith('/') ? '📁 ' : '📄 ') + esc(n.p) + '</button>').join('');
+  $('#tree').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const n = TREE[Number(b.dataset.i)];
+    $$('#tree button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    $('#treeExplain').innerHTML = '<h5>' + esc(n.p) + '</h5><p>' + esc(n.t) + '</p>';
+  });
+})();
+
+/* ---------- 11. find the bug ---------- */
+const BUGS = [
+  { title:'Текст помилки', lang:'ts', bug:1,
+    lines:["async getErrorText(): Promise<string | null> {", "  return await this.errorAlert.textContent();", "}", "// test: expect(await loginPage.getErrorText()).toBe('Invalid email or password');"],
+    why:'Метод читає знімок тексту, і тест порівнює його звичайним toBe без повторних спроб. Якщо повідомлення з\'являється з затримкою, тест нестабільний.',
+    fix:"// page object: just expose the locator\nreadonly errorAlert: Locator;\n// test:\nawait expect(loginPage.errorAlert).toHaveText('Invalid email or password');" },
+  { title:'Логін з перевіркою', lang:'ts', bug:4,
+    lines:["async login(credentials: Credentials): Promise<void> {", "  await this.emailInput.fill(credentials.email);", "  await this.passwordInput.fill(credentials.password);", "  await this.signInButton.click();", "  await expect(this.page.getByRole('heading', { name: 'Welcome' })).toBeVisible();", "}"],
+    why:'Перевірка успішного входу схована в методі. Тест з неправильним паролем тепер неможливий: login() упаде раніше, ніж тест перевірить помилку.',
+    fix:"// remove the assertion from login();\n// the test that expects success checks the heading itself" },
+  { title:'Кнопка входу', lang:'ts', bug:0,
+    lines:["this.signInButton = page.locator('#root > div > form > button.btn-primary');"],
+    why:'CSS-ланцюжок прив\'язаний до верстки. Page object збирає локатори в одному місці, але сам їх стійкішими не робить.',
+    fix:"this.signInButton = page.getByRole('button', { name: 'Sign in' });" },
+  { title:'Тест входу', lang:'ts', bug:2,
+    lines:["test('signs in', async ({ loginPage, page }) => {", "  await loginPage.goto();", "  loginPage.login(validUser);", "  await expect(page.getByRole('heading', { name: 'Welcome' })).toBeVisible();", "});"],
+    why:'Без await тест не чекає завершення логіну, а помилка всередині методу загубиться. Best Practices радять правило ESLint no-floating-promises саме для таких випадків.',
+    fix:"  await loginPage.login(validUser);" },
+  { title:'Базовий клас', lang:'ts', bug:3,
+    lines:["export abstract class BasePage {", "  constructor(protected readonly page: Page) {}", "  async waitForPageLoad(): Promise<void> {", "    await this.page.waitForLoadState('networkidle');", "  }", "}"],
+    why:'networkidle у документації позначено як discouraged для тестування. Готовність сторінки перевіряють assertion на видимий елемент.',
+    fix:"// remove waitForPageLoad(); in a page method or a test:\nawait expect(this.header.root).toBeVisible();" },
+  { title:'Стан у page object', lang:'ts', bug:1,
+    lines:["export class CartPage {", "  static addedItems: string[] = [];", "  async add(name: string): Promise<void> {", "    await this.page.getByRole('button', { name: `Add ${name}` }).click();", "    CartPage.addedItems.push(name);", "  }", "}"],
+    why:'Статичне поле живе, доки живе воркер, і переходить з тесту в тест. Тести стають залежними від порядку виконання.',
+    fix:"// keep no state in page objects; read the state from the page:\nawait expect(cartPage.items).toHaveCount(1);" },
+  { title:'Фікстура каталогу', lang:'ts', bug:3,
+    lines:["export const test = base.extend<{ catalogPage: CatalogPage }>({", "  catalogPage: async ({ page }, use) => {", "    const catalogPage = new CatalogPage(page);", "    await catalogPage.goto();", "  },", "});"],
+    why:'Фікстура не викликає use(), тож тест так і не отримає catalogPage. Значення фікстури передається в тест саме через await use(...).',
+    fix:"    await catalogPage.goto();\n    await use(catalogPage);" },
+  { title:'Метод для кошика', lang:'ts', bug:0,
+    lines:["async clickButton(name: string): Promise<void> {", "  await this.page.getByRole('button', { name }).click();", "}", "// test: await cartPage.clickButton('Checkout');"],
+    why:'Метод описує механіку і приймає будь-яку назву кнопки. Тест знову сам вирішує, що натискати, а page object нічого не знає про застосунок.',
+    fix:"async proceedToCheckout(): Promise<CheckoutPage> {\n  await this.checkoutButton.click();\n  await this.page.waitForURL('**/checkout');\n  return new CheckoutPage(this.page);\n}" }
+];
+
+const solved = new Set();
+function bugScore(){ $('#bugScore').textContent = 'Знайдено: ' + solved.size + ' з ' + BUGS.length; }
+BUGS.forEach((b, i) => {
+  const box = document.createElement('div');
+  box.className = 'bug';
+  box.innerHTML = '<div class="bug-head"><b>' + (i + 1) + '. ' + esc(b.title) + '</b><span class="st">Натисніть на рядок</span></div>' +
+    '<div class="bug-code" role="group" aria-label="Рядки коду">' +
+    b.lines.map((l, k) => '<button type="button" data-k="' + k + '">' + (hl(l, b.lang) || ' ') + '</button>').join('') +
+    '</div><div class="bug-body" hidden></div>' +
+    '<div style="padding:0 16px 12px"><button type="button" class="linkbtn reveal">Показати відповідь</button></div>';
+  const body = box.querySelector('.bug-body');
+  function reveal(found){
+    box.querySelectorAll('.bug-code button')[b.bug].classList.add('hit');
+    body.innerHTML = '<p>' + b.why + '</p>';
+    body.appendChild(codeFigure(b.fix, b.lang, 'Виправлення'));
+    body.hidden = false;
+    const st = box.querySelector('.st');
+    st.textContent = found ? 'Знайдено' : 'Відповідь показано'; st.classList.toggle('ok', found);
+    box.querySelector('.reveal').parentElement.hidden = true;
+    box.dataset.done = '1';
+  }
+  box.querySelector('.bug-code').addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if (!btn || box.dataset.done) return;
+    const k = Number(btn.dataset.k);
+    if (k === b.bug){ solved.add(i); reveal(true); bugScore(); }
+    else { btn.classList.add('miss'); box.querySelector('.st').textContent = 'Цей рядок коректний, шукайте далі'; }
+  });
+  box.querySelector('.reveal').addEventListener('click', () => reveal(false));
+  $('#bugList').appendChild(box);
+});
+bugScore();
+
+
+
+
+/* ---------- final quiz ---------- */
+const P = 'https://playwright.dev/docs/pom';
+const F = 'https://playwright.dev/docs/test-fixtures';
+const QUIZ = [
+  { sec:'s1', q:'Які дві переваги page objects називає документація?', opts:['Швидший запуск і менше пам\'яті', 'Простіше писати тести (API вищого рівня) і простіше підтримувати (селектори в одному місці)', 'Паралельність і повтори', 'Автоматична генерація тестів'], a:1, why:'Саме ці дві переваги наведено у вступі до сторінки про POM.', link:P },
+  { sec:'s1', q:'Що таке page object з погляду Playwright?', opts:['Спеціальний тип, який треба реєструвати в конфігу', 'Звичайний клас, що використовує page; патерн, а не функція фреймворку', 'Вбудована фікстура', 'Окремий пакет'], a:1, why:'Playwright нічого не вимагає від класу.', link:P },
+  { sec:'s2', q:'Чому локатори можна створювати в конструкторі ще до goto()?', opts:['Конструктор сам викликає goto()', 'Створення локатора нічого не шукає на сторінці', 'Playwright кешує DOM', 'Не можна, треба після goto()'], a:1, why:'Локатор шукає елемент лише під час дії чи перевірки.', link:'https://playwright.dev/docs/locators' },
+  { sec:'s2', q:'Навіщо модифікатор <code>readonly</code> на полях-локаторах?', opts:['Щоб локатор не міг змінитися після створення об\'єкта', 'Щоб прискорити пошук', 'Щоб приховати поле від тестів', 'Це вимога Playwright'], a:0, why:'Тест може читати поле для перевірок, але не замінити його.', link:'https://www.typescriptlang.org/docs/handbook/2/classes.html#readonly' },
+  { sec:'s3', q:'Коли локатор оформлюють методом з параметром, а не полем?', opts:['Завжди', 'Коли елемент визначається даними, наприклад картка конкретного товару', 'Коли елемент невидимий', 'Коли використовується CSS'], a:1, why:'productCard(name) будує локатор для потрібної картки.', link:'https://playwright.dev/docs/locators#filter-by-text' },
+  { sec:'s3', q:'Що має повертати <code>productCard(name: string)</code>?', opts:['Promise&lt;Locator&gt;', 'Locator, синхронно', 'Promise&lt;string&gt;', 'ElementHandle'], a:1, why:'Метод лише будує локатор і нічого не чекає.', link:'https://playwright.dev/docs/api/class-locator' },
+  { sec:'s4', q:'Яка назва методу краща?', opts:['clickAddButton()', 'addToCart(name)', 'button3Click()', 'doAction()'], a:1, why:'Назва описує намір користувача, а не механіку.', link:P },
+  { sec:'s4', q:'Що доречно повернути з методу, після якого відкривається інша сторінка?', opts:['Нічого', 'Page object нової сторінки', 'URL рядком', 'Масив локаторів'], a:1, why:'Тест продовжує роботу з повернутим об\'єктом.', link:P },
+  { sec:'s5', q:'Де має бути перевірка результату, заради якого написано тест?', opts:['У page object', 'У тесті', 'У BasePage', 'У фікстурі'], a:1, why:'Тест має показувати, що він перевіряє. Page object дає для цього локатори.', link:P },
+  { sec:'s5', q:'Навіщо в методі <code>getStarted()</code> з документації стоїть <code>expect(...).toBeVisible()</code>?', opts:['Щоб перевірити результат тесту', 'Щоб дочекатися, що дія завершилась і сторінка готова до наступного кроку', 'Щоб зробити скриншот', 'Помилково'], a:1, why:'Це внутрішня перевірка готовності, а не мета тесту.', link:P + '#implementation' },
+  { sec:'s6', q:'Що зазвичай приймає в конструкторі компонент на кшталт ProductCard?', opts:['page', 'Кореневий Locator', 'CSS-рядок', 'BrowserContext'], a:1, why:'Компонент шукає свої елементи всередині кореня, тож працює з будь-якою карткою.', link:'https://playwright.dev/docs/locators#matching-inside-a-locator' },
+  { sec:'s7', q:'Що з цього не варто класти в BasePage?', opts:['Посилання на page', 'Абстрактний path', 'waitForPageLoad() з networkidle', 'goto()'], a:2, why:'networkidle у документації — discouraged для тестування.', link:'https://playwright.dev/docs/api/class-page#page-wait-for-load-state' },
+  { sec:'s7', q:'Як підключити шапку до сторінки?', opts:['Наслідуванням: CatalogPage extends HeaderComponent', 'Композицією: поле header = new HeaderComponent(page)', 'Копіюванням локаторів', 'Через глобальну змінну'], a:1, why:'Сторінка має шапку, а не є нею.', link:P },
+  { sec:'s8', q:'Що означає «фікстури створюються на вимогу»?', opts:['Їх треба створювати вручну', 'Раннер піднімає лише ті фікстури, які згадав тест', 'Вони створюються один раз на прогін', 'Вони працюють лише з CLI'], a:1, why:'Одна з переваг фікстур над хуками за документацією.', link:F + '#with-fixtures' },
+  { sec:'s8', q:'Що обов\'язково робить фікстура page object?', opts:['Повертає значення через return', 'Викликає await use(значення)', 'Викликає expect', 'Відкриває нову вкладку'], a:1, why:'Код до use — підготовка, після — прибирання.', link:F + '#creating-a-fixture' }
+];
+
+const QKEY = 'pw-pom-quiz-best';
+const qz = $('#quizWidget');
+let order = [], qi = 0, qScore = 0, missed = [];
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function sectionTitle(id){ const c = $('#' + id); return c ? c.dataset.title : ''; }
+function sectionNum(id){ return chapters.findIndex((c) => c.id === id) + 1; }
+function startQuiz(){ order = QUIZ.map((q) => ({ q, perm: shuffle(q.opts.map((_, i) => i)) })); qi = 0; qScore = 0; missed = []; renderQ(); }
+function renderQ(){
+  const { q, perm } = order[qi];
+  qz.innerHTML =
+    '<div class="qz-top"><span class="qz-count">Питання ' + (qi + 1) + ' з ' + order.length + '</span><span class="qz-count">Правильно: ' + qScore + '</span></div>' +
+    '<div class="qz-bar"><i style="width:' + (qi / order.length * 100) + '%"></i></div>' +
+    '<p class="qz-q">' + q.q + '</p>' +
+    '<div class="qz-opts" role="group" aria-label="Варіанти відповіді">' + perm.map((i) => '<button type="button" data-i="' + i + '">' + q.opts[i] + '</button>').join('') + '</div>' +
+    '<div class="qz-fb" hidden></div>' +
+    '<div class="qz-actions"><button type="button" class="primary qz-next" hidden>' + (qi === order.length - 1 ? 'Показати результат' : 'Наступне питання') + '</button></div>';
+  qz.querySelector('.qz-opts').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const pickedI = Number(b.dataset.i), ok = pickedI === q.a;
+    $$('.qz-opts button', qz).forEach((x) => { x.disabled = true; if (Number(x.dataset.i) === q.a) x.classList.add('right'); });
+    if (!ok) { b.classList.add('wrong'); missed.push(q); } else qScore++;
+    const fb = qz.querySelector('.qz-fb');
+    fb.className = 'qz-fb ' + (ok ? 'ok' : 'no');
+    fb.innerHTML = '<p><b>' + (ok ? 'Правильно.' : 'Не зовсім.') + '</b> ' + q.why + '</p><p><a href="' + q.link + '" target="_blank" rel="noopener">Документація →</a></p>';
+    fb.hidden = false;
+    const nx = qz.querySelector('.qz-next'); nx.hidden = false; nx.focus();
+  });
+  qz.querySelector('.qz-next').addEventListener('click', () => { qi++; if (qi < order.length) renderQ(); else renderResult(); });
+}
+function renderResult(){
+  let best = 0;
+  try { best = Number(localStorage.getItem(QKEY)) || 0; if (qScore > best) { best = qScore; localStorage.setItem(QKEY, String(best)); } } catch (e) { best = Math.max(best, qScore); }
+  done.add('quiz'); save(); renderProgress();
+  const pct = Math.round(qScore / order.length * 100);
+  const verdict = pct >= 85 ? 'Матеріал засвоєно. Можна переходити до наступної теми курсу.'
+    : pct >= 60 ? 'Основа є, але кілька тем варто повторити за списком нижче.'
+    : 'Варто повернутися до розділів зі списку нижче і пройти квіз ще раз.';
+  const secs = [...new Set(missed.map((q) => q.sec))];
+  qz.innerHTML =
+    '<p class="qz-count">Результат</p><p class="qz-result">' + qScore + ' з ' + order.length + '</p>' +
+    '<p>' + verdict + ' Найкращий результат: ' + best + ' з ' + order.length + '.</p>' +
+    (missed.length ? '<h4 style="margin-top:18px">Помилки</h4><ul class="qz-review">' +
+      missed.map((q) => '<li>' + q.q + '<br><span style="color:var(--muted)">Правильна відповідь: ' + q.opts[q.a] + '</span></li>').join('') + '</ul>' +
+      '<p>Повторити розділи: ' + secs.map((id) => '<button type="button" class="linkbtn" data-go="' + id + '">' + sectionNum(id) + '. ' + esc(sectionTitle(id)) + '</button>').join(', ') + '</p>' : '') +
+    '<div class="qz-actions"><button type="button" class="primary qz-restart">Пройти ще раз</button></div>';
+  qz.querySelector('.qz-restart').addEventListener('click', startQuiz);
+  $$('[data-go]', qz).forEach((b) => b.addEventListener('click', () => window.__showChapter(b.dataset.go)));
+}
+startQuiz();
+})();
+</script>
+<script>
+(function(){
+  var KEY = 'pw-course-theme';
+  var root = document.documentElement;
+  var buttons = document.querySelectorAll('[data-theme-set]');
+  function current(){
+    try { return localStorage.getItem(KEY) || 'auto'; } catch (e) { return 'auto'; }
+  }
+  function paint(v){
+    if (v === 'light' || v === 'dark') root.setAttribute('data-theme', v);
+    else root.removeAttribute('data-theme');
+    buttons.forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.themeSet === v)); });
+  }
+  paint(current());
+  buttons.forEach(function(b){
+    b.addEventListener('click', function(){
+      var v = b.dataset.themeSet;
+      try { localStorage.setItem(KEY, v); } catch (e) {}
+      paint(v);
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -14,30 +14,29 @@
 <title>Теоретичні матеріали курсу Playwright</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&display=swap&subset=cyrillic" rel="stylesheet">
 <style>
 :root{
-  --bg:#F3F6FB; --surface:#FFFFFF; --surface-2:#E7EDF6; --ink:#18212F; --muted:#566278; --line:#D9E0EB;
-  --navy:#15305A; --navy-ink:#FFFFFF; --accent:#E8781A; --accent-ink:#C45E08; --accent-soft:#FDEBD8;
-  --font:"IBM Plex Sans", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --bg:#F3F5F9; --surface:#FFFFFF; --surface-2:#EAEFF7; --ink:#15213A; --muted:#55627B; --line:#D6DDEA;
+  --navy:#14284B; --navy-ink:#FFFFFF; --accent:#E8740C; --accent-ink:#B45400; --accent-soft:#FDEBD8;
+  --font:"Onest", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
   box-sizing:border-box;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#0C1524; --surface:#132038; --surface-2:#1A2B4A; --ink:#E6ECF5; --muted:#9BA8BE; --line:#26365A;
-    --navy:#0F1A2E; --navy-ink:#E6ECF5; --accent:#F2923F; --accent-ink:#F6B77B; --accent-soft:#3A2814;
+    --bg:#0A1426; --surface:#101E37; --surface-2:#17284A; --ink:#E6ECF6; --muted:#9CA9C2; --line:#24375C;
+    --navy:#0E1D38; --navy-ink:#E6ECF6; --accent:#FF9A3C; --accent-ink:#FFB068; --accent-soft:#3A2814;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0C1524; --surface:#132038; --surface-2:#1A2B4A; --ink:#E6ECF5; --muted:#9BA8BE; --line:#26365A;
-  --navy:#0F1A2E; --navy-ink:#E6ECF5; --accent:#F2923F; --accent-ink:#F6B77B; --accent-soft:#3A2814;
+  --bg:#0A1426; --surface:#101E37; --surface-2:#17284A; --ink:#E6ECF6; --muted:#9CA9C2; --line:#24375C;
+  --navy:#0E1D38; --navy-ink:#E6ECF6; --accent:#FF9A3C; --accent-ink:#FFB068; --accent-soft:#3A2814;
   color-scheme:dark;
 }
 *,*::before,*::after{box-sizing:inherit}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased;transition:background-color .2s ease,color .2s ease}
-.topbar,.card{transition:background-color .2s ease,color .2s ease,border-color .2s ease}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased}
 a{color:var(--accent-ink)}
 code{font-size:.9em;background:var(--surface-2);padding:.08em .35em;border-radius:4px}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
@@ -58,7 +57,6 @@ h2{font-size:1.25rem;margin:36px 0 12px;letter-spacing:-.01em}
 .card strong{display:block;font-size:1.02rem}
 .card span{display:block;margin-top:4px;color:var(--muted);font-size:.95rem}
 .note{color:var(--muted);font-size:.95rem}
-@media (prefers-reduced-motion:reduce){*{transition:none !important}}
 </style>
 </head>
 <body>
@@ -91,15 +89,31 @@ h2{font-size:1.25rem;margin:36px 0 12px;letter-spacing:-.01em}
     </a>
     <a class="card" href="topic-03/playwright-reporting.html">
       <strong>Тема 03. Reporting у Playwright</strong>
-      <span>Репортери, підключення, вивід у терміналі, HTML-звіт і трейси.</span>
+      <span>Репортери, HTML-звіт, трейси, артефакти і те, як події прогону стають звітом.</span>
     </a>
     <a class="card" href="topic-04/playwright-locators-auto-waiting.html">
-      <strong>Тема 04. Locators і Auto-waiting</strong>
-      <span>Локатори, пріоритет getByRole і автоочікування дій.</span>
+      <strong>Тема 04. Locators і auto-waiting</strong>
+      <span>Локатор як спосіб знайти елемент, автоочікування і стійкість до перемальовування.</span>
     </a>
-    <a class="card" href="topic-07/playwright-fixtures.html">
-      <strong>Тема 07. Фікстури в Playwright Test</strong>
+    <a class="card" href="topic-05/Page%20Object%20Model%20Basics%20у%20Playwright.html">
+      <strong>Тема 05. Page Object Model: основи</strong>
+      <span>Класи сторінок, локатори й дії в одному місці, щоб тести говорили мовою застосунку.</span>
+    </a>
+    <a class="card" href="topic-06/Component%20Object%20Model%20у%20Playwright%20+%20TypeScript.html">
+      <strong>Тема 06. Component Object Model</strong>
+      <span>Компоненти з кореневим локатором, вкладені об'єкти і повторне використання в тестах.</span>
+    </a>
+    <a class="card" href="topic-07/Advanced%20POM%20Patterns%20—%20Fluent%20API,%20BasePage,%20Lazy%20Locators,%20Inheritance.html">
+      <strong>Тема 07. Advanced POM Patterns</strong>
+      <span>Fluent API, BasePage, lazy locators і наслідування page objects.</span>
+    </a>
+    <a class="card" href="topic-08/playwright-fixtures.html">
+      <strong>Тема 08. Фікстури в Playwright Test</strong>
       <span>Вбудовані та кастомні фікстури: область життя, опції, воркери й проєкти.</span>
+    </a>
+    <a class="card" href="topic-09/parameterized-tests.html">
+      <strong>Тема 09. Параметризовані тести</strong>
+      <span>Один сценарій на багатьох даних: цикл у тесті, projects і змінні середовища.</span>
     </a>
   </div>
   <p class="note">Інші теми з’являться тут у міру того, як будуть готові конспекти.</p>

@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('pw-course-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Advanced POM Patterns — Fluent API, BasePage, Lazy Locators, Inheritance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy-900:#14203A; --navy-700:#1F3A68; --navy-500:#3A5A93; --orange:#E8772E; --orange-soft:#FCE9DC;
+  --bg:#F5F7FB; --surface:#FFFFFF; --text:#1E2638; --muted:#5A6479; --line:#DCE2EC;
+  --code-bg:#15203A; --code-text:#E4E9F3;
+  --tip-bg:#E8EEF8; --tip-line:#3A5A93;
+  --warn-bg:#FFF4DB; --warn-line:#C98A00;
+  --anti-bg:#FBE7E5; --anti-line:#C2413A;
+  --good-bg:#E4F4EB; --good-line:#2F8A5B;
+  --ver-bg:#FCE9DC; --ver-line:#E8772E;
+  --focus:#E8772E;
+  --sans:"Commissioner", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1628; --surface:#16213A; --text:#E3E8F2; --muted:#9AA6BD; --line:#2A3858;
+    --code-bg:#0A1122; --code-text:#E4E9F3;
+    --tip-bg:#1A2A4A; --warn-bg:#3A2F12; --anti-bg:#3B1C1C; --good-bg:#15332A; --ver-bg:#3A2616;
+    --orange-soft:#3A2616; --navy-700:#8FB0E8; --navy-900:#DCE6F7;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1628; --surface:#16213A; --text:#E3E8F2; --muted:#9AA6BD; --line:#2A3858;
+  --code-bg:#0A1122; --code-text:#E4E9F3;
+  --tip-bg:#1A2A4A; --warn-bg:#3A2F12; --anti-bg:#3B1C1C; --good-bg:#15332A; --ver-bg:#3A2616;
+  --orange-soft:#3A2616; --navy-700:#8FB0E8; --navy-900:#DCE6F7;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-behavior:smooth;scroll-padding-top:calc(env(safe-area-inset-top,0px) + 24px)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:var(--navy-700);text-underline-offset:3px}
+a:hover{color:var(--orange)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--orange-soft);padding:.1em .35em;border-radius:4px}
+
+/* progress */
+.progress{position:fixed;top:0;left:0;right:0;height:4px;z-index:50;padding-top:env(safe-area-inset-top,0px);box-sizing:content-box;pointer-events:none}
+.progress span{display:block;height:4px;width:0;background:var(--orange)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:280px minmax(0,1fr);max-width:1280px;margin:0 auto}
+.sidebar{position:sticky;top:env(safe-area-inset-top,0px);height:100vh;overflow-y:auto;padding:28px 20px 40px 24px;border-right:1px solid var(--line)}
+.brand{font-weight:800;font-size:15px;color:var(--navy-900);line-height:1.3;margin:0 0 4px}
+.brand-sub{font-size:13px;color:var(--muted);margin:0 0 20px}
+.nav ol{list-style:none;margin:0;padding:0;counter-reset:n}
+.nav li{counter-increment:n}
+.nav a{display:flex;gap:10px;padding:6px 10px;border-radius:8px;font-size:14.5px;color:var(--muted);text-decoration:none;line-height:1.35}
+.nav a::before{content:counter(n);min-width:1.4em;font-variant-numeric:tabular-nums;color:var(--line);font-weight:700}
+.nav a:hover{color:var(--text);background:var(--surface)}
+.nav a.active{color:var(--navy-900);background:var(--surface);box-shadow:inset 3px 0 0 var(--orange);font-weight:600}
+.nav a.active::before{color:var(--orange)}
+.side-tools{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.home{font-size:14px;font-weight:600;color:var(--navy-700);text-decoration:none}
+.home:hover{color:var(--orange)}
+.theme-switch{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;gap:2px;background:var(--surface)}
+.theme-switch button{appearance:none;border:0;background:transparent;color:var(--text);font:inherit;font-size:12px;padding:4px 8px;border-radius:999px;cursor:pointer}
+.theme-switch button[aria-pressed="true"]{background:var(--orange);color:#1B0E00;font-weight:600}
+.btn{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:7px 12px;border-radius:8px;cursor:pointer}
+.btn:hover{border-color:var(--orange)}
+.btn-primary{background:var(--navy-700);color:#fff;border-color:var(--navy-700)}
+:root[data-theme="dark"] .btn-primary{color:#0E1628}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn-primary{color:#0E1628}}
+
+main{padding:0 48px 96px;min-width:0}
+.content{max-width:780px}
+
+/* hero */
+.hero{padding:56px 0 40px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.hero-kicker{font-size:15px;color:var(--muted);margin:0 0 14px}
+.hero h1{font-size:clamp(34px,5.4vw,56px);line-height:1.04;letter-spacing:-.02em;font-weight:800;margin:0 0 22px;color:var(--navy-900)}
+.hero-chain{font-family:var(--mono);font-size:clamp(13px,1.7vw,15.5px);background:var(--code-bg);color:var(--code-text);border-radius:12px;padding:18px 20px;margin:0 0 26px;overflow-x:auto;line-height:1.75}
+.hero-chain .k{color:#8FB6FF}.hero-chain .m{color:#FFB27A}.hero-chain .s{color:#9FDDB0}.hero-chain .c{color:#7F8AA3}
+.meta{display:flex;flex-wrap:wrap;gap:10px 26px;font-size:15px;color:var(--muted);margin:0 0 22px}
+.meta b{color:var(--text);font-weight:600}
+.goals{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 22px}
+.goals h2{font-size:17px;margin:0 0 8px;color:var(--navy-900)}
+.goals ul{margin:0;padding-left:20px}
+.goals li{margin:4px 0}
+
+/* sections */
+section{padding:44px 0 8px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+h2.sec{font-size:clamp(26px,3.2vw,32px);line-height:1.15;letter-spacing:-.01em;margin:0 0 18px;color:var(--navy-900);font-weight:800}
+h3{font-size:21px;line-height:1.3;margin:34px 0 10px;color:var(--navy-900)}
+h4{font-size:17px;margin:24px 0 6px;color:var(--navy-700)}
+p{margin:0 0 14px}
+.lead{font-size:18.5px}
+.flow{display:grid;gap:4px;margin:18px 0}
+.flow-step{display:grid;grid-template-columns:128px 1fr;gap:14px;padding:12px 0;border-top:1px dashed var(--line)}
+.flow-step:first-child{border-top:0}
+.flow-step > span{font-weight:700;color:var(--orange);font-size:15px}
+.flow-step p{margin:0}
+
+/* callouts */
+.callout{border-left:4px solid;border-radius:0 10px 10px 0;padding:12px 16px 12px 16px;margin:18px 0;font-size:16px}
+.callout p:last-child{margin-bottom:0}
+.callout .t{font-weight:700;display:block;margin-bottom:4px}
+.tip{background:var(--tip-bg);border-color:var(--tip-line)}
+.warn{background:var(--warn-bg);border-color:var(--warn-line)}
+.anti{background:var(--anti-bg);border-color:var(--anti-line)}
+.good{background:var(--good-bg);border-color:var(--good-line)}
+.ver{background:var(--ver-bg);border-color:var(--ver-line)}
+
+/* code */
+.code{position:relative;margin:16px 0 20px;border-radius:12px;background:var(--code-bg);overflow:hidden}
+.code-head{display:flex;justify-content:space-between;align-items:center;padding:8px 12px 8px 16px;font-family:var(--mono);font-size:12.5px;color:#9AA6BD;border-bottom:1px solid #26324F}
+.code-copy{font:inherit;font-size:12.5px;color:#DCE3F1;background:#22304F;border:1px solid #33446A;border-radius:6px;padding:4px 10px;cursor:pointer}
+.code-copy:hover{border-color:var(--orange)}
+.code pre{margin:0;padding:16px 18px;overflow-x:auto}
+.code pre code{background:none;padding:0;font-size:14px;line-height:1.65;color:var(--code-text);white-space:pre;display:block}
+.code.bad{box-shadow:inset 4px 0 0 var(--anti-line)}
+.code.ok{box-shadow:inset 4px 0 0 var(--good-line)}
+/* hljs tokens */
+.hljs-keyword,.hljs-built_in{color:#8FB6FF}
+.hljs-title,.hljs-title.function_{color:#FFB27A}
+.hljs-title.class_,.hljs-type{color:#F5D67B}
+.hljs-string,.hljs-template-string{color:#9FDDB0}
+.hljs-number,.hljs-literal{color:#F29FB8}
+.hljs-comment{color:#7F8AA3;font-style:italic}
+.hljs-attr,.hljs-property{color:#BFD1F5}
+.hljs-params{color:#E4E9F3}
+.hljs-meta{color:#C9A6FF}
+.hljs-subst{color:#E4E9F3}
+
+/* details */
+details.spoiler{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:12px 0}
+details.spoiler > summary{cursor:pointer;padding:11px 16px;font-weight:600;list-style:none;display:flex;gap:10px;align-items:center}
+details.spoiler > summary::-webkit-details-marker{display:none}
+details.spoiler > summary::before{content:"+";display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--orange-soft);color:var(--orange);font-weight:800}
+details.spoiler[open] > summary::before{content:"−"}
+details.spoiler > .body{padding:4px 16px 12px}
+
+/* anti-patterns */
+.ap{margin:28px 0 8px;padding-top:6px}
+.ap h3{margin-top:0}
+.ap .why{margin:10px 0}
+
+/* debug */
+.err{margin:22px 0}
+.err-msg{font-family:var(--mono);font-size:14px;background:var(--code-bg);color:#FF9E9E;padding:12px 16px;border-radius:10px;overflow-x:auto;white-space:pre}
+.err dl{margin:10px 0 0;display:grid;grid-template-columns:120px 1fr;gap:6px 14px}
+.err dt{font-weight:700;color:var(--navy-700)}
+.err dd{margin:0}
+
+/* tree */
+.tree{font-family:var(--mono);font-size:14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px;white-space:pre;overflow-x:auto;line-height:1.6}
+
+/* quiz */
+.q{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:18px 20px;margin:18px 0}
+.q-type{font-size:13.5px;color:var(--muted);margin:0 0 6px}
+.q-prompt{font-weight:600;margin:0 0 10px}
+.q-opts{display:grid;gap:8px;margin:10px 0}
+.q-opt{display:flex;gap:10px;align-items:flex-start;text-align:left;font:inherit;font-size:16px;line-height:1.45;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);cursor:pointer;width:100%}
+.q-opt:hover:not([disabled]){border-color:var(--navy-500)}
+.q-opt input{margin-top:4px;accent-color:var(--orange)}
+.q-opt .letter{font-weight:700;color:var(--muted);min-width:1.2em}
+.q-opt.correct{border-color:var(--good-line);background:var(--good-bg)}
+.q-opt.wrong{border-color:var(--anti-line);background:var(--anti-bg)}
+.q-opt.missed{border-color:var(--good-line);border-style:dashed}
+.q-opt[disabled]{cursor:default}
+.q-why{font-size:14.5px;color:var(--muted);display:none;margin-top:4px}
+.q.done .q-why{display:block}
+.q-result{margin-top:10px;font-weight:600;display:none}
+.q.done .q-result{display:block}
+.q-result.ok{color:var(--good-line)}.q-result.no{color:var(--anti-line)}
+.score{position:sticky;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);background:var(--navy-700);color:#fff;border-radius:12px;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px;font-weight:600}
+:root[data-theme="dark"] .score{color:#0E1628}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .score{color:#0E1628}}
+.score .btn{font-size:13px}
+
+/* cheatsheet */
+.cheat{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:10px}
+.cheat > div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.cheat h4{margin:0 0 6px;color:var(--orange)}
+.cheat ul{margin:0;padding-left:18px;font-size:15px}
+.cheat li{margin:3px 0}
+
+/* glossary & links */
+dl.gloss{display:grid;grid-template-columns:minmax(150px,220px) 1fr;gap:10px 20px;margin:0}
+dl.gloss dt{font-weight:700}
+dl.gloss dt i{display:block;font-weight:400;font-style:normal;color:var(--muted);font-size:14px;font-family:var(--mono)}
+dl.gloss dd{margin:0}
+.links h3{margin-top:26px}
+.links ul{padding-left:20px}
+.links li{margin:8px 0}
+
+.bridge{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--orange);border-radius:0 12px 12px 0;padding:16px 20px;margin:24px 0}
+footer{padding:36px 0 0;color:var(--muted);font-size:14px}
+
+/* mobile */
+.mobile-bar{display:none}
+@media (max-width: 960px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:fixed;inset:0 auto 0 0;width:min(86vw,320px);background:var(--bg);z-index:40;transform:translateX(-102%);transition:transform .2s ease;padding-top:calc(env(safe-area-inset-top,0px) + 24px);box-shadow:0 0 40px rgba(0,0,0,.25)}
+  .sidebar.open{transform:none}
+  main{padding:0 20px 80px}
+  .mobile-bar{display:flex;position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 20px;justify-content:space-between;align-items:center;gap:10px}
+  .mobile-bar span{font-weight:700;font-size:14px;color:var(--navy-900);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .flow-step{grid-template-columns:1fr;gap:2px}
+  .err dl{grid-template-columns:1fr}
+  dl.gloss{grid-template-columns:1fr;gap:2px 0}
+  dl.gloss dd{margin-bottom:10px}
+  .hero{padding-top:28px}
+}
+@media (prefers-reduced-motion: reduce){.sidebar{transition:none}}
+</style>
+</head>
+<body>
+<div class="progress" aria-hidden="true"><span id="progress"></span></div>
+
+<div class="mobile-bar">
+  <button class="btn" id="navToggle" aria-expanded="false" aria-controls="sidebar">☰ Зміст</button>
+  <span id="mobileTitle">Advanced POM Patterns</span>
+  <div class="theme-switch" role="group" aria-label="Тема оформлення">
+    <button type="button" data-theme-set="auto" aria-pressed="true">Авто</button>
+    <button type="button" data-theme-set="light" aria-pressed="false">Світла</button>
+    <button type="button" data-theme-set="dark" aria-pressed="false">Темна</button>
+  </div>
+</div>
+
+<div class="layout">
+<aside class="sidebar" id="sidebar" aria-label="Навігація по конспекту">
+  <p class="brand">Playwright + TypeScript</p>
+  <p class="brand-sub">Тема 07 · Advanced POM Patterns</p>
+  <nav class="nav">
+    <ol>
+      <li><a href="#intro">Цілі та передумови</a></li>
+      <li><a href="#motivation">Навіщо це все</a></li>
+      <li><a href="#lazy">Lazy locators</a></li>
+      <li><a href="#basepage">BasePage</a></li>
+      <li><a href="#inheritance">Наслідування</a></li>
+      <li><a href="#fluent">Fluent API</a></li>
+      <li><a href="#examples">Практичні приклади</a></li>
+      <li><a href="#antipatterns">Антипатерни</a></li>
+      <li><a href="#debug">Помилки та дебаг</a></li>
+      <li><a href="#practice">Спробуй сам</a></li>
+      <li><a href="#quiz">Квіз</a></li>
+      <li><a href="#cheatsheet">Шпаргалка</a></li>
+      <li><a href="#interview">Співбесіда</a></li>
+      <li><a href="#glossary">Глосарій</a></li>
+      <li><a href="#links">Корисні посилання</a></li>
+    </ol>
+  </nav>
+  <div class="side-tools">
+    <a class="home" href="../index.html">На головну</a>
+    <div class="theme-switch" role="group" aria-label="Тема оформлення">
+      <button type="button" data-theme-set="auto" aria-pressed="true">Авто</button>
+      <button type="button" data-theme-set="light" aria-pressed="false">Світла</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Темна</button>
+    </div>
+  </div>
+</aside>
+
+<main>
+<div class="content">
+
+<!-- ============ HERO ============ -->
+<header class="hero" id="intro">
+  <p class="hero-kicker">Тема 07 курсу «Playwright + TypeScript»</p>
+  <h1>Advanced POM Patterns: Fluent API, BasePage, Lazy Locators, Inheritance</h1>
+  <div class="hero-chain" aria-label="Приклад тесту, до якого ми прийдемо"><span class="k">const</span> catalog = <span class="k">await new</span> <span class="m">CatalogPage</span>(page).<span class="m">open</span>();
+<span class="k">await</span> catalog.<span class="m">addToCart</span>(<span class="s">'Desk lamp'</span>);
+<span class="k">const</span> cart = <span class="k">await</span> catalog.<span class="m">goToCart</span>();   <span class="c">// тип: CartPage — IDE знає, де ми</span>
+<span class="k">await</span> <span class="m">expect</span>(cart.<span class="m">itemRow</span>(<span class="s">'Desk lamp'</span>)).<span class="m">toBeVisible</span>();</div>
+  <div class="meta">
+    <span>Час опрацювання: <b>≈ 2,5–3 години</b></span>
+    <span>Рівень: <b>середній</b></span>
+    <span>Версії: <b>Playwright 1.63, TypeScript 7.0</b> (вересень 2026)</span>
+    <span>Домен прикладів: <b>абстрактний інтернет-магазин</b></span>
+  </div>
+  <div class="goals">
+    <h2>Після цієї теми ви зможете…</h2>
+    <ul>
+      <li>пояснити, чому локатори Playwright «ліниві», і безпечно оголошувати їх у конструкторі page object-а;</li>
+      <li>спроєктувати абстрактний <code>BasePage</code> зі спільним контрактом (<code>open()</code>, <code>expectLoaded()</code>) і не перетворити його на смітник;</li>
+      <li>використовувати механіку наслідування TypeScript (<code>abstract</code>, <code>protected</code>, <code>override</code>, поліморфний <code>this</code>) і вирішувати, де краща композиція;</li>
+      <li>будувати Fluent API з урахуванням асинхронності: методи, що повертають <code>Promise&lt;this&gt;</code> або об'єкт наступної сторінки;</li>
+      <li>діагностувати типові помилки ієрархій page object-ів через trace viewer, UI mode і <code>--debug</code>.</li>
+    </ul>
+  </div>
+
+  <h3>Передумови та зв'язок з курсом</h3>
+  <p>Нам знадобляться три речі з попередніх тем: розуміння автоочікування (auto-waiting) і перевірок actionability з теми про локатори, базовий Page Object Model з теми 4 і Component Object Model з теми 5 — зокрема ідея, що компонент отримує кореневий <code>Locator</code> і шукає всередині нього. Сьогодні ми не вводимо новий інструмент, а «дотягуємо» архітектуру: спільний базовий клас, правила наслідування і зручний для читання API page object-ів. У кінці ви побачите, куди ця архітектура веде далі — до фікстур (fixtures).</p>
+</header>
+
+<!-- ============ MOTIVATION ============ -->
+<section id="motivation">
+  <h2 class="sec">Навіщо це все: три болі зрілого POM</h2>
+  <p class="lead">Уявімо проєкт через пів року після старту: 60 тестів, 14 page object-ів, три людини в команді. Базовий POM з теми 4 вже є, але тести все одно болять.</p>
+  <p>Перший біль — дублювання. Кожна сторінка магазину має однаковий хедер із пошуком і кошиком, тож кожен page object має власну копію локатора кнопки кошика і свій варіант методу <code>goto()</code>. Дизайнери перенесли кошик у бокове меню, і вам треба виправити одне й те саме в дев'яти файлах. Пропустили один — і три тести падають так, ніби зламався застосунок, а не автотести.</p>
+  <p>Другий біль — flaky-тести. Хтось із команди «оптимізував» page object: знайшов елементи один раз у конструкторі й зберіг їх як <code>ElementHandle</code>. Поки React не перемальовує список товарів, усе працює; після чергового ререндеру тест падає з повідомленням, що елемент більше не прикріплений до DOM. Падає раз на десять запусків — найгірший сценарій для довіри до тестів.</p>
+  <p>Третій біль — читабельність. Тест виглядає як <code>await (await (await catalog.search('lamp')).addToCart('lamp')).goToCart()</code>, або, навпаки, як «простирадло» з двадцяти рядків, де тест сам створює <code>new CartPage(page)</code>, бо мусить знати, на яку сторінку потрапив після кліку. Ніхто не хоче такий тест чіпати.</p>
+  <p>Чотири патерни цієї теми відповідають на ці болі: <b>лінивий локатор (lazy locator)</b> прибирає клас помилок «застарілого елемента», <b>базова сторінка (BasePage)</b> і <b>наслідування (inheritance)</b> прибирають дублювання, а <b>Fluent API</b> робить тести читабельними і змушує типи описувати навігацію застосунком.</p>
+</section>
+
+<!-- ============ LAZY ============ -->
+<section id="lazy">
+  <h2 class="sec">Лінивий локатор (lazy locator)</h2>
+  <div class="flow">
+    <div class="flow-step"><span>Проблема</span><p>Елемент «знайдено» в одному стані сторінки, а дію виконують в іншому. Між цими моментами фреймворк перемалював DOM, і збережене посилання вказує на вузол, якого вже немає.</p></div>
+    <div class="flow-step"><span>Чому так</span><p>Сучасні SPA постійно замінюють DOM-вузли: оновлення стану, пагінація, повторний запит до API. Посилання на конкретний вузол (так працює <code>ElementHandle</code>) не «переїжджає» разом з елементом — воно залишається прив'язаним до старого, від'єднаного вузла.</p></div>
+    <div class="flow-step"><span>Рішення</span><p><code>Locator</code> зберігає не вузол, а <i>опис того, як його знайти</i>. Пошук відбувається заново під час кожної дії чи web-first перевірки, разом з автоочікуванням і перевіркою строгості (strictness).</p></div>
+    <div class="flow-step"><span>Коли</span><p>Завжди для взаємодії та перевірок. Знімок стану (<code>count()</code>, <code>all()</code>, <code>textContent()</code>) — лише коли вам справді потрібне значення «тут і зараз», і лише після web-first перевірки.</p></div>
+  </div>
+
+  <h3>Механіка: що відбувається в момент створення локатора</h3>
+  <p>Виклик <code>page.getByRole('button', { name: 'Add to cart' })</code> синхронний і не звертається до браузера взагалі. Він повертає об'єкт, який лише запам'ятовує ланцюжок: «на цій сторінці знайти кнопку з таким доступним ім'ям». Тому його не треба <code>await</code>-ити, і тому його можна створити навіть тоді, коли сторінка ще не відкрита. Справжній пошук стається, коли ви викликаєте асинхронний метод: <code>click()</code>, <code>fill()</code> або <code>expect(locator).toBeVisible()</code>. У цей момент Playwright резолвить локатор, чекає, доки елемент стане придатним до дії, і — якщо DOM змінився між спробами — просто шукає знову.</p>
+  <p>Саме ця лінивість дозволяє оголошувати локатори полями page object-а в конструкторі: конструктор синхронний, сторінка може бути ще порожньою, а локатори все одно коректні, бо вони лише описи.</p>
+
+  <div class="code ok"><div class="code-head"><span>pages/CatalogPage.ts — фрагмент</span></div><script type="text/x-code" data-lang="typescript">
+    export class CatalogPage {
+      readonly page: Page;
+      readonly searchInput: Locator;
+      readonly productCards: Locator;
+
+      constructor(page: Page) {
+        this.page = page;
+        // Жодного звернення до DOM тут не відбувається — це лише описи
+        this.searchInput = page.getByRole('searchbox', { name: 'Search products' });
+        this.productCards = page.getByTestId('product-card');
+      }
+
+      // Параметризований локатор — фабричний метод, теж лінивий
+      productCard(name: string): Locator {
+        return this.productCards.filter({ hasText: name });
+      }
+    }
+  </script></div>
+
+  <h3>Три способи оголосити локатор у page object-і</h3>
+  <p><b>Поле, ініціалізоване в конструкторі</b>, — стандарт для стабільних елементів сторінки: заголовок, поле пошуку, список карток. Саме так побудовано приклад в офіційному гайді Page object models. <b>Фабричний метод</b> на кшталт <code>productCard(name)</code> потрібен, коли локатор залежить від параметра: ви не можете заздалегідь створити поле для кожного товару, але можете повертати звужений локатор на вимогу. <b>Геттер</b> (<code>get firstCard()</code>) технічно працює так само, як метод без аргументів, і створює новий <code>Locator</code> при кожному зверненні; це дешево, але зазвичай не дає переваг над полем, тож використовуйте геттери лише тоді, коли локатор обчислюється з інших полів і ви хочете підкреслити цей зв'язок.</p>
+
+  <div class="callout warn"><span class="t">⚠️ Увага: не всі методи Locator ліниві</span>
+    <p>Методи на кшталт <code>locator.all()</code>, <code>count()</code>, <code>textContent()</code> повертають знімок стану в конкретний момент. Документація прямо попереджає: <code>all()</code> не чекає на появу елементів і повертає те, що є на сторінці зараз. Якщо список ще завантажується, ви отримаєте порожній масив, і цикл <code>for</code> тихо нічого не перевірить. Спочатку зафіксуйте стан web-first перевіркою (<code>await expect(cards).toHaveCount(3)</code>), а вже потім ітеруйте.</p>
+  </div>
+
+  <div class="callout ver"><span class="t">📌 Нове у версіях 1.51–1.63</span>
+    <p>З версії 1.51 <code>locator.filter({ visible: true })</code> відфільтровує лише видимі елементи. З версії 1.53 <code>locator.describe('…')</code> дає локатору зрозумілу назву, яку видно в trace viewer і звітах, — корисно для полів page object-а. З версії 1.63 з'явився <code>locator.visible()</code> — рекомендована заміна CSS-псевдокласу <code>:visible</code>.</p>
+  </div>
+
+  <div class="code ok"><div class="code-head"><span>locator.describe() для читабельного трейсу (з 1.53)</span></div><script type="text/x-code" data-lang="typescript">
+    this.cartBadge = root.getByTestId('cart-count').describe('Cart items counter');
+    // У trace viewer і HTML-звіті дія відобразиться з назвою "Cart items counter",
+    // а не з технічним getByTestId('cart-count')
+  </script></div>
+</section>
+
+<!-- ============ BASEPAGE ============ -->
+<section id="basepage">
+  <h2 class="sec">Базова сторінка (BasePage)</h2>
+  <div class="flow">
+    <div class="flow-step"><span>Проблема</span><p>Кожен page object заново реалізує відкриття сторінки, перевірку «сторінка завантажилась» і доступ до спільних компонентів — хедера, футера, сповіщень.</p></div>
+    <div class="flow-step"><span>Чому так</span><p>Page object-и створювались незалежно, і між ними немає спільного контракту. Кожен автор вирішив по-своєму, як називати метод відкриття і що вважати «завантаженою» сторінкою.</p></div>
+    <div class="flow-step"><span>Рішення</span><p>Абстрактний клас <code>BasePage</code> тримає спільний стан (<code>page</code>, хедер) і спільну поведінку (<code>open()</code>), а специфічні деталі (шлях, ознака завантаження) лишає нащадкам через абстрактні члени.</p></div>
+    <div class="flow-step"><span>Коли</span><p>Коли у вас є хоча б кілька сторінок з однаковою структурою відкриття і спільною «рамкою» інтерфейсу. Не коли хочеться мати одне місце для всіх утиліт проєкту.</p></div>
+  </div>
+
+  <h3>Контракт замість набору утиліт</h3>
+  <p>Найкорисніше, що дає <code>BasePage</code>, — не економія рядків, а <b>контракт</b>: кожна сторінка гарантовано вміє відкриватися за своєю адресою і гарантовано знає, як переконатися, що вона завантажилась. Метод <code>open()</code> описує алгоритм один раз — перейти за шляхом і дочекатися ознаки завантаження, — а конкретні кроки алгоритму (який шлях, який елемент чекати) заповнюють нащадки. Це класичний патерн «шаблонний метод» (Template Method): загальна послідовність у базовому класі, змінні кроки — у підкласах.</p>
+
+  <div class="code ok"><div class="code-head"><span>pages/BasePage.ts</span></div><script type="text/x-code" data-lang="typescript">
+    import { type Page, test } from '@playwright/test';
+    import { HeaderComponent } from '../components/HeaderComponent';
+
+    export abstract class BasePage {
+      protected readonly page: Page;
+      readonly header: HeaderComponent;
+
+      /** Відносний шлях сторінки; повний URL збирається з baseURL у конфігурації */
+      protected abstract readonly path: string;
+
+      constructor(page: Page) {
+        this.page = page;
+        // Компонент з теми 5: отримує кореневий локатор і шукає всередині нього
+        this.header = new HeaderComponent(page.getByRole('banner'));
+      }
+
+      /** Ознака того, що саме ЦЯ сторінка завантажена. Реалізує кожен нащадок. */
+      abstract expectLoaded(): Promise<void>;
+
+      /** Template Method: алгоритм один, кроки — від нащадків */
+      async open(): Promise<this> {
+        await test.step(`Open ${this.path}`, async () => {
+          await this.page.goto(this.path);
+          await this.expectLoaded();
+        }, { box: true });
+        return this;
+      }
+    }
+  </script></div>
+
+  <p>Зверніть увагу на три рішення в цьому коді. Поле <code>page</code> має модифікатор <code>protected</code>: нащадкам воно потрібне, а тестам — ні, бо тест, який лізе в <code>catalog.page</code> повз методи page object-а, руйнує інкапсуляцію. Метод <code>expectLoaded()</code> абстрактний, тож TypeScript не дасть створити сторінку, яка «забула» визначити ознаку завантаження. А <code>page.goto(this.path)</code> з відносним шляхом працює, бо <code>baseURL</code> ви налаштували в <code>playwright.config.ts</code> ще в темі про Test Runner.</p>
+
+  <div class="callout ver"><span class="t">📌 З версії 1.39: test.step з опцією box</span>
+    <p>Якщо <code>expectLoaded()</code> впаде всередині <code>open()</code>, без <code>box: true</code> стек помилки вкаже в надра <code>BasePage.ts</code>. З <code>box: true</code> помилка вказує на рядок тесту, де викликано <code>open()</code>, — саме там, де людині зручно почати розбиратися. <code>test.step</code> також повертає значення, яке повернув колбек, тож крок можна загорнути навколо методу, що щось обчислює.</p>
+  </div>
+
+  <h3>Що належить у BasePage, а що ні</h3>
+  <p>У базовий клас варто класти те, що справді спільне для <i>кожної</i> сторінки: посилання на <code>page</code>, компоненти глобальної «рамки» (хедер, тост-сповіщення), алгоритм відкриття і контракт завантаження. Не належать туди логін (це стан сесії — його розв'язують фікстури і <code>storageState</code> у наступних темах), виклики API, генерація тестових даних, «універсальні» методи на кшталт <code>clickByText()</code> і будь-які явні паузи. Правило перевірки просте: якщо метод має сенс лише для половини сторінок, він не належить базовому класу.</p>
+
+  <div class="callout tip"><span class="t">💡 Порада</span>
+    <p>Тримайте <code>expectLoaded()</code> на одному-двох найбільш характерних елементах сторінки — заголовку <code>h1</code> або унікальному контейнері. Перевіряти в ньому весь вміст сторінки не треба: це ознака завантаження, а не тест-кейс.</p>
+  </div>
+</section>
+
+<!-- ============ INHERITANCE ============ -->
+<section id="inheritance">
+  <h2 class="sec">Наслідування (inheritance) в ієрархії page object-ів</h2>
+  <div class="flow">
+    <div class="flow-step"><span>Проблема</span><p>Спільний код потрібно не лише винести, а й зробити так, щоб нащадки не могли зламати контракт: забути ознаку завантаження, випадково перевизначити не той метод, втратити тип у ланцюжку викликів.</p></div>
+    <div class="flow-step"><span>Чому так</span><p>JavaScript-класи самі по собі нічого не гарантують: перевизначення методу з помилкою в назві просто створить новий метод, а базовий тихо продовжить працювати.</p></div>
+    <div class="flow-step"><span>Рішення</span><p>Модифікатори TypeScript: <code>abstract</code> змушує реалізувати, <code>protected</code> ховає від тестів, <code>override</code> разом з <code>noImplicitOverride</code> ловить помилки перевизначення, а поліморфний тип <code>this</code> зберігає точний тип нащадка.</p></div>
+    <div class="flow-step"><span>Коли</span><p>Для відношення «є» (is-a): <code>CatalogPage</code> <i>є</i> сторінкою. Для відношення «має» (has-a) — хедер, фільтр, модальне вікно — використовуйте композицію компонентів.</p></div>
+  </div>
+
+  <h3>Порядок ініціалізації: чому super(page) має бути першим</h3>
+  <p>У похідному класі конструктор зобов'язаний викликати <code>super(page)</code> до будь-якого звернення до <code>this</code> — TypeScript видасть помилку компіляції, а JavaScript кине <code>ReferenceError</code> під час виконання. Механіка така: об'єкт створює базовий клас, і лише після повернення з <code>super()</code> похідний клас отримує готовий <code>this</code>, у якому вже є <code>this.page</code> і <code>this.header</code>. Звідси практичний наслідок: у нащадку можна будувати локатори на основі <code>this.header</code> або <code>page</code>, бо все базове вже ініціалізовано.</p>
+
+  <div class="code ok"><div class="code-head"><span>pages/CatalogPage.ts</span></div><script type="text/x-code" data-lang="typescript">
+    import { type Page, type Locator, expect } from '@playwright/test';
+    import { BasePage } from './BasePage';
+
+    export class CatalogPage extends BasePage {
+      protected override readonly path = '/catalog';
+      readonly heading: Locator;
+      readonly searchInput: Locator;
+      readonly productCards: Locator;
+
+      constructor(page: Page) {
+        super(page); // спершу базовий клас: this.page і this.header уже готові
+        this.heading = page.getByRole('heading', { name: 'Catalog', level: 1 });
+        this.searchInput = page.getByRole('searchbox', { name: 'Search products' });
+        this.productCards = page.getByTestId('product-card');
+      }
+
+      override async expectLoaded(): Promise<void> {
+        await expect(this.heading).toBeVisible();
+      }
+    }
+  </script></div>
+
+  <h3>override і noImplicitOverride</h3>
+  <p>Ключове слово <code>override</code> (TypeScript 4.3+) повідомляє компілятору: «я свідомо перевизначаю член базового класу». Якщо в базовому класі такого члена немає — наприклад, ви написали <code>expectLoded</code> з помилкою, — компілятор повідомить про це. Опція <code>noImplicitOverride</code> у <code>tsconfig.json</code> робить правило обов'язковим в інший бік: перевизначення без <code>override</code> стає помилкою. Разом вони закривають цілий клас тихих багів, коли нащадок «перевизначив» метод, якого не існує, і базова логіка продовжила працювати непомітно.</p>
+
+  <div class="callout warn"><span class="t">⚠️ Playwright не перевіряє типи під час запуску</span>
+    <p>Playwright транспілює TypeScript-тести і запускає їх навіть за наявності некритичних помилок типів — так описано в розділі документації про TypeScript. Щоб <code>override</code>, <code>abstract</code> і пропущені <code>await</code> справді вас захищали, запускайте перевірку типів окремо (наприклад, <code>npx tsc --noEmit</code> у CI або в pre-commit хуку).</p>
+  </div>
+
+  <h3>Поліморфний this: тип, що «підлаштовується» під нащадка</h3>
+  <p>Метод <code>open()</code> оголошено в <code>BasePage</code>, але повертає він <code>Promise&lt;this&gt;</code>, а не <code>Promise&lt;BasePage&gt;</code>. Тип <code>this</code> у TypeScript означає «тип того об'єкта, на якому викликали метод». Тому <code>await new CatalogPage(page).open()</code> має тип <code>CatalogPage</code>, і IDE одразу підказує <code>search()</code> та <code>addToCart()</code>. Якби повертався <code>BasePage</code>, тест мусив би робити приведення типу (<code>as CatalogPage</code>), а це мовчазна брехня компілятору.</p>
+
+  <h3>Композиція проти наслідування</h3>
+  <p>Наслідування жорстко зв'язує класи: зміна базового класу зачіпає всіх нащадків, а TypeScript дозволяє лише одного батька. Тому ієрархію page object-ів тримають пласкою — зазвичай <code>BasePage</code> і один рівень конкретних сторінок, іноді проміжний клас для групи сторінок зі спільним макетом (наприклад, особистий кабінет з боковим меню). Усе, що з'являється лише на частині сторінок, — фільтр товарів, модальне вікно підтвердження, пагінація — оформлюйте компонентами з теми 5 і підключайте полями. Тест на вибір простий: якщо можна сказати «сторінка каталогу <i>має</i> фільтр», це композиція; якщо «сторінка каталогу <i>є</i> сторінкою магазину», це наслідування.</p>
+
+  <div class="callout good"><span class="t">✅ Краща практика</span>
+    <p>Дві-три сходинки ієрархії — максимум. Якщо вам хочеться створити <code>ProductPage → ElectronicsProductPage → LaptopProductPage</code>, найімовірніше, відмінності між ними — це дані, а не поведінка, і їх краще передати параметром.</p>
+  </div>
+</section>
+
+<!-- ============ FLUENT ============ -->
+<section id="fluent">
+  <h2 class="sec">Fluent API в асинхронному світі</h2>
+  <div class="flow">
+    <div class="flow-step"><span>Проблема</span><p>Тест мусить сам знати, на якій сторінці він опинився після кліку, і сам створювати <code>new CartPage(page)</code>. Знання про навігацію застосунком розмазане по тестах.</p></div>
+    <div class="flow-step"><span>Чому так</span><p>Методи page object-ів нічого не повертають (<code>Promise&lt;void&gt;</code>), тож типи не несуть інформації, куди веде дія. Класичний Fluent API з Selenium Java (<code>page.search().addToCart()</code>) переносять «в лоб», але в Playwright кожна дія асинхронна.</p></div>
+    <div class="flow-step"><span>Рішення</span><p>Метод, що лишає користувача на тій самій сторінці, повертає <code>Promise&lt;this&gt;</code>; метод, що переводить на іншу сторінку, повертає <code>Promise&lt;НаступнаСторінка&gt;</code>. Кожен крок — окремий <code>await</code>. Для синхронних об'єктів даних — повноцінний Fluent Builder.</p></div>
+    <div class="flow-step"><span>Коли</span><p>Коли в застосунку є зрозумілі переходи між сторінками. Не варто повертати <code>this</code> з методів, що повертають дані, і не варто заради «ланцюжка» жертвувати одним <code>await</code> на рядок.</p></div>
+  </div>
+
+  <h3>Чому «класичний» ланцюжок не працює</h3>
+  <p>Асинхронний метод завжди повертає <code>Promise</code>, навіть якщо всередині написано <code>return this</code>. Тому <code>catalog.search('lamp').addToCart('lamp')</code> не скомпілюється: у <code>Promise&lt;CatalogPage&gt;</code> немає методу <code>addToCart</code>. Щоб отримати сам об'єкт, проміс треба дочекатися, і ланцюжок перетворюється на вкладені дужки або на <code>.then()</code>:</p>
+
+  <div class="code bad"><div class="code-head"><span>❌ Технічно працює, читати неможливо</span></div><script type="text/x-code" data-lang="typescript">
+    const cart = await (await (await catalog.search('Desk lamp')).addToCart('Desk lamp')).goToCart();
+
+    // або так — не краще
+    const cart2 = await catalog
+      .search('Desk lamp')
+      .then((p) => p.addToCart('Desk lamp'))
+      .then((p) => p.goToCart());
+  </script></div>
+
+  <p>Тому в Playwright цінність Fluent API не в синтаксисі ланцюжка, а в <b>типах, які описують карту переходів</b>. Коли <code>goToCart()</code> повертає <code>Promise&lt;CartPage&gt;</code>, тест більше не вирішує, який page object створити, — він просто отримує правильний, і IDE показує лише ті дії, які доступні на поточній сторінці.</p>
+
+  <div class="code ok"><div class="code-head"><span>✅ Один await на крок, типи ведуть тест</span></div><script type="text/x-code" data-lang="typescript">
+    const catalog = await new CatalogPage(page).open();   // CatalogPage
+    await catalog.search('Desk lamp');                    // лишаємось на CatalogPage
+    await catalog.addToCart('Desk lamp');                 // лишаємось на CatalogPage
+    const cart = await catalog.goToCart();                // тепер CartPage
+    await expect(cart.itemRow('Desk lamp')).toBeVisible();
+  </script></div>
+
+  <h3>Метод переходу: хто відповідає за «прибуття»</h3>
+  <p>Метод, що повертає нову сторінку, бере на себе відповідальність переконатися, що перехід справді відбувся: клікнути, створити об'єкт наступної сторінки і дочекатися його <code>expectLoaded()</code>. Якщо цього не зробити, тест отримає об'єкт <code>CartPage</code>, коли браузер ще показує каталог, і перша ж дія впаде з незрозумілою помилкою про відсутній елемент.</p>
+
+  <div class="code ok"><div class="code-head"><span>pages/CatalogPage.ts — методи з Fluent API</span></div><script type="text/x-code" data-lang="typescript">
+    async search(query: string): Promise<this> {
+      await this.searchInput.fill(query);
+      await this.searchInput.press('Enter');
+      return this;
+    }
+
+    async addToCart(productName: string): Promise<this> {
+      await this.productCard(productName)
+        .getByRole('button', { name: 'Add to cart' })
+        .click();
+      return this;
+    }
+
+    async goToCart(): Promise<CartPage> {
+      await this.header.cartLink.click();
+      const cart = new CartPage(this.page);
+      await cart.expectLoaded(); // перехід підтверджено до того, як тест отримає об'єкт
+      return cart;
+    }
+  </script></div>
+
+  <h3>Fluent Builder: де ланцюжок справді доречний</h3>
+  <p>Там, де немає асинхронності, класичний Fluent API працює повною мірою. Типовий приклад — будівник (Builder) об'єкта даних: набір фільтрів каталогу збирається синхронно, кожен метод повертає <code>this</code>, а фінальний <code>build()</code> віддає незмінний типізований об'єкт. Page object отримує вже готові дані одним параметром.</p>
+
+  <div class="code ok"><div class="code-head"><span>test-data/ProductFilterBuilder.ts</span></div><script type="text/x-code" data-lang="typescript">
+    export interface ProductFilter {
+      readonly category?: string;
+      readonly minPrice?: number;
+      readonly maxPrice?: number;
+      readonly inStockOnly: boolean;
+    }
+
+    export class ProductFilterBuilder {
+      private filter: ProductFilter = { inStockOnly: false };
+
+      inCategory(category: string): this {
+        this.filter = { ...this.filter, category };
+        return this;
+      }
+
+      priceBetween(min: number, max: number): this {
+        this.filter = { ...this.filter, minPrice: min, maxPrice: max };
+        return this;
+      }
+
+      inStockOnly(): this {
+        this.filter = { ...this.filter, inStockOnly: true };
+        return this;
+      }
+
+      build(): ProductFilter {
+        return { ...this.filter };
+      }
+    }
+  </script></div>
+
+  <div class="callout tip"><span class="t">💡 Де межа між темами</span>
+    <p>Builder тут — лише спосіб зручно зібрати аргумент для методу page object-а. Як генерувати набори таких даних і запускати один тест на багатьох наборах, ми розберемо в темі про параметризацію та data-driven testing.</p>
+  </div>
+</section>
+
+<!-- ============ EXAMPLES ============ -->
+<section id="examples">
+  <h2 class="sec">Практичні приклади: збираємо міні-фреймворк</h2>
+  <p>Зберемо всі чотири патерни в одну узгоджену структуру. Приклади йдуть від фундаменту (компонент і база) до тесту, який лише викликає методи й перевіряє результат.</p>
+  <div class="tree">tests/
+  cart.spec.ts
+pages/
+  BasePage.ts
+  CatalogPage.ts
+  CartPage.ts
+components/
+  HeaderComponent.ts
+test-data/
+  ProductFilterBuilder.ts
+playwright.config.ts        // baseURL, trace: 'on-first-retry'</div>
+
+  <h3>Приклад 1. Компонент хедера</h3>
+  <p>Демонструє композицію: хедер не є сторінкою, тому він не наслідує <code>BasePage</code>, а отримує кореневий локатор і будує свої локатори відносно нього — так само, як у темі 5.</p>
+  <div class="code ok"><div class="code-head"><span>components/HeaderComponent.ts</span></div><script type="text/x-code" data-lang="typescript">
+    import type { Locator } from '@playwright/test';
+
+    export class HeaderComponent {
+      readonly root: Locator;
+      readonly cartLink: Locator;
+      readonly cartBadge: Locator;
+
+      constructor(root: Locator) {
+        this.root = root;
+        this.cartLink = root.getByRole('link', { name: 'Cart' });
+        this.cartBadge = root.getByTestId('cart-count').describe('Cart items counter');
+      }
+    }
+  </script></div>
+
+  <h3>Приклад 2. Сторінка кошика з переходом назад</h3>
+  <p>Демонструє фабричний метод локатора, метод, що лишає користувача на сторінці (<code>Promise&lt;this&gt;</code>), і метод переходу. Імпорт <code>CatalogPage</code> тут безпечний, хоча <code>CatalogPage</code> теж імпортує <code>CartPage</code>: обидва класи звертаються один до одного лише всередині методів, тобто вже після того, як модулі повністю завантажились.</p>
+  <div class="code ok"><div class="code-head"><span>pages/CartPage.ts</span></div><script type="text/x-code" data-lang="typescript">
+    import { type Page, type Locator, expect } from '@playwright/test';
+    import { BasePage } from './BasePage';
+    import { CatalogPage } from './CatalogPage';
+
+    export class CartPage extends BasePage {
+      protected override readonly path = '/cart';
+      readonly heading: Locator;
+      readonly rows: Locator;
+      readonly totalPrice: Locator;
+      readonly continueShoppingLink: Locator;
+
+      constructor(page: Page) {
+        super(page);
+        this.heading = page.getByRole('heading', { name: 'Your cart', level: 1 });
+        this.rows = page.getByRole('row');
+        this.totalPrice = page.getByTestId('cart-total');
+        this.continueShoppingLink = page.getByRole('link', { name: 'Continue shopping' });
+      }
+
+      override async expectLoaded(): Promise<void> {
+        await expect(this.heading).toBeVisible();
+      }
+
+      itemRow(productName: string): Locator {
+        return this.rows.filter({ hasText: productName });
+      }
+
+      async removeItem(productName: string): Promise<this> {
+        await this.itemRow(productName).getByRole('button', { name: 'Remove' }).click();
+        return this;
+      }
+
+      async continueShopping(): Promise<CatalogPage> {
+        await this.continueShoppingLink.click();
+        const catalog = new CatalogPage(this.page);
+        await catalog.expectLoaded();
+        return catalog;
+      }
+    }
+  </script></div>
+
+  <h3>Приклад 3. Кроки з параметрами для звіту</h3>
+  <p>Демонструє, як зробити дії page object-а читабельними у trace viewer і HTML-звіті. Кожен бізнес-крок загорнуто в <code>test.step</code>; опція <code>box</code> переносить помилку на рядок тесту, а <code>subtitle</code> і <code>params</code> відображаються поруч із назвою кроку.</p>
+  <div class="callout ver"><span class="t">📌 З версії 1.63: subtitle і params у test.step</span>
+    <p>Опції <code>subtitle</code> і <code>params</code> з'явилися в Playwright 1.63; на старіших версіях залиште лише <code>box: true</code>.</p>
+  </div>
+  <div class="code ok"><div class="code-head"><span>pages/CatalogPage.ts — addToCart з кроком</span></div><script type="text/x-code" data-lang="typescript">
+    async addToCart(productName: string): Promise<this> {
+      await test.step('Add product to cart', async () => {
+        await this.productCard(productName)
+          .getByRole('button', { name: 'Add to cart' })
+          .click();
+      }, { box: true, subtitle: productName, params: { product: productName } });
+      return this;
+    }
+  </script></div>
+
+  <h3>Приклад 4. Метод, що приймає об'єкт від Fluent Builder</h3>
+  <p>Демонструє зв'язку синхронного будівника й асинхронного page object-а. Метод розбирає типізований об'єкт і виконує лише ті дії, які в ньому задано.</p>
+  <div class="code ok"><div class="code-head"><span>pages/CatalogPage.ts — applyFilter</span></div><script type="text/x-code" data-lang="typescript">
+    async applyFilter(filter: ProductFilter): Promise<this> {
+      if (filter.category !== undefined) {
+        await this.page.getByRole('combobox', { name: 'Category' }).selectOption(filter.category);
+      }
+      if (filter.minPrice !== undefined) {
+        await this.page.getByLabel('Min price').fill(String(filter.minPrice));
+      }
+      if (filter.maxPrice !== undefined) {
+        await this.page.getByLabel('Max price').fill(String(filter.maxPrice));
+      }
+      if (filter.inStockOnly) {
+        await this.page.getByRole('checkbox', { name: 'In stock only' }).check();
+      }
+      await this.page.getByRole('button', { name: 'Apply filters' }).click();
+      return this;
+    }
+  </script></div>
+
+  <h3>Приклад 5. Тест, який лише викликає й перевіряє</h3>
+  <p>Демонструє результат: тест не знає про локатори, не створює сторінки після переходів і не містить службової логіки. Перевірки — web-first і стоять у тесті, де їх видно.</p>
+  <div class="code ok"><div class="code-head"><span>tests/cart.spec.ts</span></div><script type="text/x-code" data-lang="typescript">
+    import { test, expect } from '@playwright/test';
+    import { CatalogPage } from '../pages/CatalogPage';
+    import { ProductFilterBuilder } from '../test-data/ProductFilterBuilder';
+
+    test('added product appears in the cart', async ({ page }) => {
+      const catalog = await new CatalogPage(page).open();
+      await catalog.addToCart('Desk lamp');
+
+      const cart = await catalog.goToCart();
+
+      await expect(cart.itemRow('Desk lamp')).toBeVisible();
+      await expect(cart.header.cartBadge).toHaveText('1');
+    });
+
+    test('filter shows only products within the price range', async ({ page }) => {
+      const filter = new ProductFilterBuilder()
+        .inCategory('Lighting')
+        .priceBetween(10, 50)
+        .inStockOnly()
+        .build();
+
+      const catalog = await new CatalogPage(page).open();
+      await catalog.applyFilter(filter);
+
+      await expect(catalog.productCards).not.toHaveCount(0);
+      await expect(catalog.productCard('Floor lamp XL')).toHaveCount(0);
+    });
+  </script></div>
+
+  <div class="bridge">
+    <p><b>Куди далі.</b> Помітили повторюваний рядок <code>await new CatalogPage(page).open()</code> на початку кожного тесту? Саме це розв'язують фікстури: page object створюється і, за потреби, відкривається до початку тесту, а тест просто отримує готовий <code>catalog</code> в аргументах. Як оголошувати власні фікстури, як працюють області видимості (test і worker) і як вони поєднуються з POM — тема наступного заняття «Fixtures. Advanced».</p>
+  </div>
+</section>
+
+<!-- ============ ANTIPATTERNS ============ -->
+<section id="antipatterns">
+  <h2 class="sec">Антипатерни</h2>
+
+  <div class="ap">
+    <h3>1. Елементи, знайдені «наперед» через ElementHandle</h3>
+    <div class="code bad"><div class="code-head"><span>❌ Погано</span></div><script type="text/x-code" data-lang="typescript">
+      export class CatalogPage {
+        private addButtons: ElementHandle[] = [];
+        constructor(private readonly page: Page) {}
+
+        async init(): Promise<void> {
+          this.addButtons = await this.page.$$('.product-card button');
+        }
+
+        async addFirstToCart(): Promise<void> {
+          await this.addButtons[0].click();
+        }
+      }
+    </script></div>
+    <p class="why"><b>Чому це погано.</b> <code>ElementHandle</code> прив'язаний до конкретного DOM-вузла на момент <code>init()</code>. Після будь-якого ререндеру списку (фільтр, пагінація, прихід даних з API) вузол від'єднується, і клік падає або, що гірше, влучає в застарілий елемент, якого користувач уже не бачить. Результат — flaky-тести, що падають залежно від швидкості мережі. Документація Playwright прямо не рекомендує <code>ElementHandle</code> і радить локатори з web-first перевірками. Крім того, CSS-селектор за класами прив'язаний до верстки, а не до того, що бачить користувач.</p>
+    <div class="code ok"><div class="code-head"><span>✅ Краще</span></div><script type="text/x-code" data-lang="typescript">
+      async addFirstToCart(): Promise<this> {
+        await this.productCards.first().getByRole('button', { name: 'Add to cart' }).click();
+        return this;
+      }
+    </script></div>
+  </div>
+
+  <div class="ap">
+    <h3>2. «Всемогутній» BasePage</h3>
+    <div class="code bad"><div class="code-head"><span>❌ Погано</span></div><script type="text/x-code" data-lang="typescript">
+      export abstract class BasePage {
+        async loginAs(email: string, password: string): Promise<void> { /* ... */ }
+        async createProductViaApi(name: string): Promise<string> { /* ... */ }
+        async clickByText(text: string): Promise<void> { /* ... */ }
+        async waitForPageLoad(): Promise<void> {
+          await this.page.waitForTimeout(3000);
+        }
+        // ... ще 40 методів
+      }
+    </script></div>
+    <p class="why"><b>Чому це погано.</b> Кожна сторінка тепер «вміє» логінитись і створювати товари через API, хоча до її поведінки це не має стосунку. Базовий клас змінюється з будь-якої причини, тож кожна зміна зачіпає всі сторінки й усі тести. <code>clickByText</code> ховає справжній локатор від читача тесту, а <code>waitForTimeout(3000)</code> робить кожне відкриття на три секунди повільнішим і водночас не гарантує готовність: на повільному CI трьох секунд не вистачить, на швидкому — це марнування часу. Документація називає <code>waitForTimeout</code> інструментом лише для налагодження.</p>
+    <div class="code ok"><div class="code-head"><span>✅ Краще</span></div><script type="text/x-code" data-lang="typescript">
+      export abstract class BasePage {
+        protected readonly page: Page;
+        readonly header: HeaderComponent;
+        protected abstract readonly path: string;
+        // ...конструктор як у прикладі вище
+        abstract expectLoaded(): Promise<void>; // готовність = конкретний видимий елемент
+        async open(): Promise<this> { /* goto + expectLoaded */ return this; }
+      }
+      // Логін і підготовка даних — у фікстурах і API-хелперах (наступні теми курсу)
+    </script></div>
+  </div>
+
+  <div class="ap">
+    <h3>3. Метод переходу, що «бреше» типом</h3>
+    <div class="code bad"><div class="code-head"><span>❌ Погано</span></div><script type="text/x-code" data-lang="typescript">
+      async goToCart(): Promise<this> {
+        await this.header.cartLink.click();
+        return this; // браузер уже на /cart, а тип каже, що ми в каталозі
+      }
+    </script></div>
+    <p class="why"><b>Чому це погано.</b> Типи обіцяють, що після виклику доступні методи каталогу. Компілятор мовчить, IDE підказує <code>search()</code>, а під час виконання пошуку на сторінці кошика немає — тест чекає до таймауту і падає з повідомленням про відсутній елемент, яке нічого не говорить про справжню причину. Fluent API, що не відповідає реальній навігації, гірший за його відсутність.</p>
+    <div class="code ok"><div class="code-head"><span>✅ Краще</span></div><script type="text/x-code" data-lang="typescript">
+      async goToCart(): Promise<CartPage> {
+        await this.header.cartLink.click();
+        const cart = new CartPage(this.page);
+        await cart.expectLoaded();
+        return cart;
+      }
+    </script></div>
+  </div>
+
+  <div class="ap">
+    <h3>4. Глибока ієрархія заради дрібних відмінностей</h3>
+    <div class="code bad"><div class="code-head"><span>❌ Погано</span></div><script type="text/x-code" data-lang="typescript">
+      class BasePage { /* ... */ }
+      class ShopPage extends BasePage { /* хедер + футер */ }
+      class ListingPage extends ShopPage { /* пагінація */ }
+      class FilterableListingPage extends ListingPage { /* фільтр */ }
+      class CatalogPage extends FilterableListingPage { /* ... */ }
+      class SalePage extends FilterableListingPage { /* той самий каталог зі знижками */ }
+    </script></div>
+    <p class="why"><b>Чому це погано.</b> Щоб зрозуміти, звідки в <code>SalePage</code> метод <code>nextPage()</code>, треба пройти п'ять файлів. Коли на сторінці розпродажу приберуть фільтр, доведеться перебудовувати всю гілку ієрархії. Пагінація і фільтр — це не «вид сторінки», а блоки, які сторінка <i>має</i>; їх природна форма — компоненти.</p>
+    <div class="code ok"><div class="code-head"><span>✅ Краще</span></div><script type="text/x-code" data-lang="typescript">
+      class CatalogPage extends BasePage {
+        readonly filter: FilterComponent;
+        readonly pagination: PaginationComponent;
+        // ...
+      }
+      class SalePage extends BasePage {
+        readonly pagination: PaginationComponent; // фільтра тут немає — і це видно одразу
+        // ...
+      }
+    </script></div>
+  </div>
+
+  <div class="ap">
+    <h3>5. Перевірки, сховані в методах дій</h3>
+    <div class="code bad"><div class="code-head"><span>❌ Погано</span></div><script type="text/x-code" data-lang="typescript">
+      async addToCart(productName: string): Promise<this> {
+        await this.productCard(productName).getByRole('button', { name: 'Add to cart' }).click();
+        await expect(this.header.cartBadge).toHaveText('1'); // «заодно перевіримо»
+        return this;
+      }
+    </script></div>
+    <p class="why"><b>Чому це погано.</b> Метод працює лише в сценарії «порожній кошик плюс один товар». Тест, що додає другий товар, падає не тому, що застосунок зламався, а тому, що дія містить вшите очікування. Крім того, читач тесту не бачить, що саме перевіряється, — отримуємо приховані перевірки і хибнопадаючі тести. Методи дій виконують дію; очікуваний результат формулює тест.</p>
+    <div class="code ok"><div class="code-head"><span>✅ Краще</span></div><script type="text/x-code" data-lang="typescript">
+      await catalog.addToCart('Desk lamp');
+      await catalog.addToCart('Floor lamp');
+      await expect(catalog.header.cartBadge).toHaveText('2'); // перевірка — у тесті, явно
+    </script></div>
+  </div>
+</section>
+
+<!-- ============ DEBUG ============ -->
+<section id="debug">
+  <h2 class="sec">Типові помилки та дебаг</h2>
+
+  <div class="err">
+    <div class="err-msg">TypeError: Cannot read properties of undefined (reading 'getByRole')</div>
+    <dl>
+      <dt>Симптом</dt><dd>Тест падає одразу при створенні page object-а, ще до першої дії в браузері.</dd>
+      <dt>Причина</dt><dd>Локатор оголошено ініціалізатором поля (<code>readonly payButton = this.page.getByRole(...)</code>) у класі, який <i>не</i> наслідує іншого, а <code>this.page</code> присвоюється в тілі конструктора. За правилами JavaScript ініціалізатори полів такого класу виконуються до тіла конструктора, тож <code>this.page</code> ще <code>undefined</code>. У похідному класі ініціалізатори виконуються одразу після <code>super()</code>, тому там та сама конструкція працює — звідси «незрозуміло, чому в одному класі падає, а в іншому ні».</dd>
+      <dt>Як виправити</dt><dd>Присвоюйте локатори в конструкторі після <code>this.page = page</code> (або після <code>super(page)</code>). Єдиний стиль для всіх page object-ів знімає питання порядку ініціалізації.</dd>
+    </dl>
+  </div>
+
+  <div class="err">
+    <div class="err-msg">TypeError: Class extends value undefined is not a constructor or null</div>
+    <dl>
+      <dt>Симптом</dt><dd>Падає завантаження тестового файлу, жоден тест не стартує.</dd>
+      <dt>Причина</dt><dd>Циклічний імпорт, у якому бере участь <code>extends</code>. Наприклад, <code>BasePage</code> імпортує <code>CartPage</code> (щоб мати спільний метод <code>goToCart()</code>), а <code>CartPage</code> наслідує <code>BasePage</code>. Коли модуль <code>CartPage</code> виконує <code>class CartPage extends BasePage</code>, модуль <code>BasePage</code> ще не завершив ініціалізацію, і на місці батьківського класу — <code>undefined</code>. Взаємні імпорти між «сестрами» (<code>CatalogPage</code> ↔ <code>CartPage</code>) безпечні, доки класи звертаються один до одного лише всередині методів.</dd>
+      <dt>Як виправити</dt><dd>Базовий клас ніколи не повинен імпортувати своїх нащадків. Методи переходу розміщуйте в конкретних сторінках або в компоненті (наприклад, у хедері повертайте локатор, а перехід робіть у сторінці).</dd>
+    </dl>
+  </div>
+
+  <div class="err">
+    <div class="err-msg">Error: strict mode violation: getByRole('link', { name: 'Cart' }) resolved to 2 elements</div>
+    <dl>
+      <dt>Симптом</dt><dd>Локатор з <code>BasePage</code> працював на всіх сторінках, а на новій сторінці падає.</dd>
+      <dt>Причина</dt><dd>Локатор побудовано від <code>page</code>, а не від кореня компонента, і на новій сторінці з'явився другий елемент з тим самим доступним ім'ям (наприклад, посилання «Cart» у футері). Строгість локатора — не помилка Playwright, а попередження, що ви не знаєте, по якому елементу клікнете.</dd>
+      <dt>Як продебажити</dt><dd>Запустіть <code>npx playwright test cart.spec.ts --ui</code>, відкрийте крок і скористайтеся інструментом вибору локатора, щоб побачити обидва збіги. Виправлення — будувати локатори компонента від його <code>root</code> (<code>page.getByRole('banner')</code>), а не від усієї сторінки.</dd>
+    </dl>
+  </div>
+
+  <div class="err">
+    <div class="err-msg">Property 'goToCart' does not exist on type 'Promise&lt;CatalogPage&gt;'. Did you forget to use 'await'?</div>
+    <dl>
+      <dt>Симптом</dt><dd>Червоне підкреслення в IDE або помилка <code>tsc</code> у рядку з ланцюжком.</dd>
+      <dt>Причина</dt><dd>Спроба викликати метод на результаті асинхронного методу без <code>await</code>. Небезпечніший «родич» цієї помилки — <code>catalog.addToCart('x');</code> без <code>await</code> взагалі: TypeScript не скаржиться, дія виконується паралельно з наступними рядками, і тест стає нестабільним.</dd>
+      <dt>Як виправити</dt><dd>Один <code>await</code> на крок. Для промісів без <code>await</code> увімкніть правило ESLint <code>@typescript-eslint/no-floating-promises</code> — його радить розділ Best Practices документації Playwright.</dd>
+    </dl>
+  </div>
+
+  <div class="err">
+    <div class="err-msg">Error: Timed out 5000ms waiting for expect(locator).toBeVisible()
+Locator: getByRole('heading', { name: 'Your cart', level: 1 })</div>
+    <dl>
+      <dt>Симптом</dt><dd>Падає метод переходу (<code>goToCart()</code>), хоча клік пройшов успішно.</dd>
+      <dt>Причина</dt><dd>Або перехід справді не відбувся (клік потрапив не туди, з'явилась модалка), або <code>expectLoaded()</code> цільової сторінки чекає на елемент, якого там немає (змінився текст заголовка). Без <code>box: true</code> стек вказує всередину page object-а, і незрозуміло, з якого тесту все почалося.</dd>
+      <dt>Як продебажити</dt><dd>Увімкніть <code>trace: 'on-first-retry'</code> і відкрийте трейс (<code>npx playwright show-trace</code> або з HTML-звіту): у вкладці знімків DOM видно, на якій сторінці був браузер у момент перевірки. Для покрокового проходження запустіть тест з <code>--debug</code> і зупиніться перед викликом <code>goToCart()</code>.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ============ PRACTICE ============ -->
+<section id="practice">
+  <h2 class="sec">Спробуй сам</h2>
+
+  <h3>Завдання 1. CheckoutPage у спільній ієрархії</h3>
+  <p>У магазині є сторінка оформлення замовлення за адресою <code>/checkout</code> із заголовком «Checkout» (рівень 1), полями з підписами «Full name» і «Address», кнопкою «Place order» і повідомленням з <code>data-testid="order-confirmation"</code>, що з'являється після успішного замовлення. Створіть <code>CheckoutPage</code>, що наслідує <code>BasePage</code>, додайте в <code>CartPage</code> метод переходу <code>proceedToCheckout()</code> (кнопка «Checkout» у кошику) і напишіть тест «користувач оформлює замовлення з одним товаром». Тест має лише викликати методи й перевіряти результат.</p>
+  <details class="spoiler"><summary>Підказка</summary><div class="body">
+    <p>Метод заповнення форми лишає користувача на тій самій сторінці — отже, він повертає <code>Promise&lt;this&gt;</code>. Підтвердження замовлення показується на тій самій сторінці, тож окремий page object для нього не потрібен: достатньо публічного локатора, який тест перевірить через <code>toBeVisible()</code>. Не забудьте <code>override</code> для <code>path</code> і <code>expectLoaded()</code>, а в <code>proceedToCheckout()</code> — дочекатися завантаження нової сторінки.</p>
+  </div></details>
+  <details class="spoiler"><summary>Розв'язок</summary><div class="body">
+    <div class="code ok"><div class="code-head"><span>pages/CheckoutPage.ts</span></div><script type="text/x-code" data-lang="typescript">
+      import { type Page, type Locator, expect, test } from '@playwright/test';
+      import { BasePage } from './BasePage';
+
+      export interface ShippingDetails {
+        readonly fullName: string;
+        readonly address: string;
+      }
+
+      export class CheckoutPage extends BasePage {
+        protected override readonly path = '/checkout';
+        readonly heading: Locator;
+        readonly fullNameInput: Locator;
+        readonly addressInput: Locator;
+        readonly placeOrderButton: Locator;
+        readonly confirmation: Locator;
+
+        constructor(page: Page) {
+          super(page);
+          this.heading = page.getByRole('heading', { name: 'Checkout', level: 1 });
+          this.fullNameInput = page.getByLabel('Full name');
+          this.addressInput = page.getByLabel('Address');
+          this.placeOrderButton = page.getByRole('button', { name: 'Place order' });
+          this.confirmation = page.getByTestId('order-confirmation');
+        }
+
+        override async expectLoaded(): Promise<void> {
+          await expect(this.heading).toBeVisible();
+        }
+
+        async fillShipping(details: ShippingDetails): Promise<this> {
+          await test.step('Fill shipping details', async () => {
+            await this.fullNameInput.fill(details.fullName);
+            await this.addressInput.fill(details.address);
+          }, { box: true });
+          return this;
+        }
+
+        async placeOrder(): Promise<this> {
+          await this.placeOrderButton.click();
+          return this;
+        }
+      }
+    </script></div>
+    <div class="code ok"><div class="code-head"><span>pages/CartPage.ts — новий метод</span></div><script type="text/x-code" data-lang="typescript">
+      // import { CheckoutPage } from './CheckoutPage';
+      async proceedToCheckout(): Promise<CheckoutPage> {
+        await this.page.getByRole('button', { name: 'Checkout' }).click();
+        const checkout = new CheckoutPage(this.page);
+        await checkout.expectLoaded();
+        return checkout;
+      }
+    </script></div>
+    <div class="code ok"><div class="code-head"><span>tests/checkout.spec.ts</span></div><script type="text/x-code" data-lang="typescript">
+      import { test, expect } from '@playwright/test';
+      import { CatalogPage } from '../pages/CatalogPage';
+
+      test('user places an order with one product', async ({ page }) => {
+        const catalog = await new CatalogPage(page).open();
+        await catalog.addToCart('Desk lamp');
+
+        const cart = await catalog.goToCart();
+        const checkout = await cart.proceedToCheckout();
+        await checkout.fillShipping({ fullName: 'Olena Test', address: '1 Test Street' });
+        await checkout.placeOrder();
+
+        await expect(checkout.confirmation).toBeVisible();
+      });
+    </script></div>
+    <p>Зверніть увагу: тест жодного разу не створює сторінку після переходу, а типи змінних <code>cart</code> і <code>checkout</code> виводяться автоматично з методів переходу.</p>
+  </div></details>
+
+  <h3>Завдання 2. Знайдіть і виправте три проблеми</h3>
+  <p>Колега надіслав на рев'ю наведений нижче page object. Знайдіть три проблеми, поясніть механізм кожної (до чого конкретно вона призведе) і перепишіть клас.</p>
+  <div class="code bad"><div class="code-head"><span>pages/WishlistPage.ts — на рев'ю</span></div><script type="text/x-code" data-lang="typescript">
+    export class WishlistPage extends BasePage {
+      protected readonly path = '/wishlist';
+      readonly items = this.page.locator('.wishlist li');
+
+      async expectLodaed(): Promise<void> {
+        await expect(this.page.getByRole('heading', { name: 'Wishlist' })).toBeVisible();
+      }
+
+      async moveAllToCart(): Promise<WishlistPage> {
+        for (const item of await this.items.all()) {
+          await item.getByRole('button', { name: 'Move to cart' }).click();
+        }
+        await this.header.cartLink.click();
+        return this;
+      }
+    }
+  </script></div>
+  <details class="spoiler"><summary>Підказка</summary><div class="body">
+    <p>Подивіться уважно на назву методу завантаження (і на те, що скаже компілятор, якщо ввімкнено <code>noImplicitOverride</code>), на момент, коли викликається <code>all()</code>, і на тип, який повертає останній метод після кліку по кошику.</p>
+  </div></details>
+  <details class="spoiler"><summary>Розв'язок</summary><div class="body">
+    <p><b>Проблема 1 — опечатка в <code>expectLodaed</code>.</b> Абстрактний <code>expectLoaded()</code> не реалізовано, тож клас не скомпілюється (не можна наслідувати абстрактний клас, не реалізувавши абстрактні члени). Якби метод у базі був не абстрактним, опечатка тихо створила б новий метод, і <code>open()</code> викликав би базову реалізацію. Ключове слово <code>override</code> з <code>noImplicitOverride</code> ловить такі випадки одразу.</p>
+    <p><b>Проблема 2 — <code>all()</code> без попередньої перевірки.</b> Якщо список ще завантажується, <code>all()</code> поверне порожній масив і метод «успішно» нічого не зробить. Навіть якщо елементи є, після кожного переміщення список ререндериться, а збережені в масиві локатори <code>nth(i)</code> зсуваються. Надійніше щоразу брати перший елемент, доки список не спорожніє, і перевіряти кількість web-first перевіркою.</p>
+    <p><b>Проблема 3 — метод «бреше» типом.</b> Після кліку по кошику браузер на <code>/cart</code>, а метод повертає <code>WishlistPage</code>. Також CSS-селектор <code>.wishlist li</code> прив'язаний до верстки — краще роль або test id.</p>
+    <div class="code ok"><div class="code-head"><span>pages/WishlistPage.ts — виправлено</span></div><script type="text/x-code" data-lang="typescript">
+      import { type Page, type Locator, expect } from '@playwright/test';
+      import { BasePage } from './BasePage';
+      import { CartPage } from './CartPage';
+
+      export class WishlistPage extends BasePage {
+        protected override readonly path = '/wishlist';
+        readonly heading: Locator;
+        readonly items: Locator;
+
+        constructor(page: Page) {
+          super(page);
+          this.heading = page.getByRole('heading', { name: 'Wishlist', level: 1 });
+          this.items = page.getByTestId('wishlist-item');
+        }
+
+        override async expectLoaded(): Promise<void> {
+          await expect(this.heading).toBeVisible();
+        }
+
+        async moveAllToCart(): Promise<this> {
+          while ((await this.items.count()) > 0) {
+            const before = await this.items.count();
+            await this.items.first().getByRole('button', { name: 'Move to cart' }).click();
+            await expect(this.items).toHaveCount(before - 1); // дочекались ререндеру
+          }
+          return this;
+        }
+
+        async goToCart(): Promise<CartPage> {
+          await this.header.cartLink.click();
+          const cart = new CartPage(this.page);
+          await cart.expectLoaded();
+          return cart;
+        }
+      }
+    </script></div>
+    <p>Ми також розділили «перемістити все» і «перейти в кошик» на два методи: кожен робить одну дію, а тест вирішує, чи потрібен перехід.</p>
+  </div></details>
+</section>
+
+<!-- ============ QUIZ ============ -->
+<section id="quiz">
+  <h2 class="sec">Квіз для самоперевірки</h2>
+  <p>11 питань різних типів. Після відповіді з'являються пояснення до кожного варіанта. Питання з кількома правильними відповідями позначені окремо — оберіть усі потрібні й натисніть «Перевірити».</p>
+  <div id="quizRoot"></div>
+  <div class="score" id="scoreBar" aria-live="polite">
+    <span id="scoreText">Відповідей: 0 з 11</span>
+    <button class="btn" id="quizReset" type="button">Пройти знову</button>
+  </div>
+</section>
+
+<!-- ============ CHEATSHEET ============ -->
+<section id="cheatsheet">
+  <h2 class="sec">Шпаргалка</h2>
+  <div class="cheat">
+    <div><h4>Lazy locators</h4><ul>
+      <li><code>page.getByRole(...)</code> — синхронний, без звернення до DOM</li>
+      <li>Резолвиться при кожній дії та <code>expect</code></li>
+      <li>Поля — для стабільних елементів, фабричні методи — для параметризованих</li>
+      <li><code>all()</code>, <code>count()</code> — знімки; спершу web-first перевірка</li>
+      <li><code>describe()</code> (1.53), <code>filter({ visible: true })</code> (1.51), <code>visible()</code> (1.63)</li>
+    </ul></div>
+    <div><h4>BasePage</h4><ul>
+      <li><code>abstract class</code> + <code>protected readonly page</code></li>
+      <li><code>protected abstract readonly path</code></li>
+      <li><code>abstract expectLoaded(): Promise&lt;void&gt;</code></li>
+      <li><code>open(): Promise&lt;this&gt;</code> — goto + expectLoaded</li>
+      <li>Не класти: логін, API, дані, <code>waitForTimeout</code></li>
+    </ul></div>
+    <div><h4>Наслідування</h4><ul>
+      <li><code>super(page)</code> — першим у конструкторі</li>
+      <li><code>override</code> + <code>noImplicitOverride</code> у tsconfig</li>
+      <li>is-a → <code>extends</code>, has-a → компонент-поле</li>
+      <li>Ієрархія ≤ 2–3 рівнів</li>
+      <li>База не імпортує нащадків (циклічні імпорти)</li>
+    </ul></div>
+    <div><h4>Fluent API</h4><ul>
+      <li>Лишаємось на сторінці → <code>Promise&lt;this&gt;</code></li>
+      <li>Перехід → <code>Promise&lt;NextPage&gt;</code> + <code>expectLoaded()</code></li>
+      <li>Один <code>await</code> на крок, без вкладених дужок</li>
+      <li>Синхронний Builder: методи → <code>this</code>, <code>build()</code> → дані</li>
+    </ul></div>
+    <div><h4>test.step у page object-і</h4><ul>
+      <li><code>test.step(title, body, { box: true })</code> (1.39)</li>
+      <li><code>subtitle</code>, <code>params</code> (1.63)</li>
+      <li>Повертає значення колбека</li>
+    </ul></div>
+    <div><h4>Дебаг</h4><ul>
+      <li><code>npx playwright test --ui</code></li>
+      <li><code>npx playwright test file.spec.ts --debug</code></li>
+      <li><code>trace: 'on-first-retry'</code> → <code>npx playwright show-trace</code></li>
+      <li><code>npx tsc --noEmit</code> — Playwright типи не перевіряє</li>
+      <li>ESLint: <code>@typescript-eslint/no-floating-promises</code></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- ============ INTERVIEW ============ -->
+<section id="interview">
+  <h2 class="sec">Питання для співбесіди (Middle QA Automation)</h2>
+
+  <details class="spoiler"><summary>Чому в Playwright можна створювати локатори в конструкторі page object-а, а в класичному Selenium PageFactory з цим були проблеми?</summary><div class="body">
+    <p>Локатор Playwright — це лінивий опис пошуку, а не посилання на знайдений елемент. Його створення синхронне й не звертається до браузера; пошук відбувається під час кожної дії чи web-first перевірки, разом з автоочікуванням і повторними спробами. Тому стан DOM у момент створення page object-а не має значення. Проблеми виникають, коли замість локатора зберігають конкретний вузол — <code>ElementHandle</code> у Playwright чи знайдений <code>WebElement</code> у Selenium: після ререндеру такий вузол від'єднаний від DOM. Сильна відповідь також згадає, що не всі методи локатора ліниві: <code>all()</code> і <code>count()</code> дають знімок стану.</p>
+  </div></details>
+
+  <details class="spoiler"><summary>Як реалізувати Fluent API, якщо всі дії в Playwright асинхронні? Які компроміси?</summary><div class="body">
+    <p>Асинхронний метод повертає <code>Promise</code>, тож класичний ланцюжок без <code>await</code> неможливий. Практичний підхід: методи, що лишають користувача на сторінці, повертають <code>Promise&lt;this&gt;</code>, а методи переходу — <code>Promise&lt;NextPage&gt;</code>, попередньо дочекавшись завантаження нової сторінки. У тесті — один <code>await</code> на крок. Цінність не в синтаксисі ланцюжка, а в тому, що типи описують навігацію: тест не створює сторінки вручну, IDE показує лише доречні методи, а зміна навігації в застосунку вимагає змін в одному методі переходу. Компроміси: метод переходу бере на себе перевірку «прибуття», а для умовних переходів (наприклад, успіх або помилка) потрібні окремі методи або явне розгалуження. Ланцюжок через <code>.then()</code> чи вкладені <code>await</code> технічно можливий, але погіршує читабельність і стек помилок.</p>
+  </div></details>
+
+  <details class="spoiler"><summary>Що ви покладете в BasePage і чого там точно не буде?</summary><div class="body">
+    <p>У <code>BasePage</code> — лише те, що справді спільне для кожної сторінки: посилання на <code>page</code> (protected), компоненти глобальної рамки інтерфейсу, алгоритм відкриття (<code>open()</code> як Template Method) і абстрактний контракт завантаження (<code>expectLoaded()</code>). Не буде логіну (це стан сесії — фікстури і <code>storageState</code>), API-викликів, генерації даних, «універсальних» обгорток над кліками і явних пауз. Аргумент: базовий клас змінюється разом з усіма нащадками, тому кожен зайвий метод множить ризик регресій і робить ієрархію важкою для розуміння.</p>
+  </div></details>
+
+  <details class="spoiler"><summary>Коли ви оберете композицію замість наслідування для page object-ів?</summary><div class="body">
+    <p>Наслідування — для відношення «є»: сторінка каталогу є сторінкою магазину і повинна мати спільний контракт відкриття. Композиція — для відношення «має»: фільтр, пагінація, модальне вікно, хедер. Композиція дає гнучкість (одна сторінка має фільтр, інша ні), уникає глибоких ієрархій, які важко читати, і дозволяє перевикористовувати блоки між сторінками з різними базовими класами. Практичне правило — не більше двох-трьох рівнів наслідування; усе, що з'являється на частині сторінок, стає компонентом-полем.</p>
+  </div></details>
+
+  <details class="spoiler"><summary>Тест із page object-ами падає з «strict mode violation». Як ви підійдете до діагностики?</summary><div class="body">
+    <p>Повідомлення означає, що локатор знайшов кілька елементів для дії, яка вимагає одного. Спершу — зрозуміти, які саме елементи збіглися: UI mode або trace viewer показують стан DOM, а інструмент вибору локатора підсвічує збіги. Типова причина в POM — локатор компонента побудовано від <code>page</code>, а не від кореня компонента, і на новій сторінці з'явився дубль (наприклад, та сама кнопка в хедері й футері). Виправлення — звузити область пошуку до <code>root</code> компонента або уточнити локатор через <code>filter()</code>. Не варто «лікувати» це через <code>.first()</code> без розуміння, бо тест почне клікати по першому-ліпшому елементу.</p>
+  </div></details>
+</section>
+
+<!-- ============ GLOSSARY ============ -->
+<section id="glossary">
+  <h2 class="sec">Глосарій</h2>
+  <dl class="gloss">
+    <dt>Об'єкт сторінки <i>Page Object</i></dt><dd>Клас, що інкапсулює локатори й дії однієї сторінки застосунку.</dd>
+    <dt>Базова сторінка <i>BasePage</i></dt><dd>Абстрактний батьківський клас зі спільним станом і контрактом для всіх page object-ів.</dd>
+    <dt>Лінивий локатор <i>lazy locator</i></dt><dd>Локатор, що зберігає опис пошуку і резолвиться заново під час кожної дії чи перевірки.</dd>
+    <dt>Дескриптор елемента <i>ElementHandle</i></dt><dd>Посилання на конкретний DOM-вузол; не рекомендований на користь локаторів.</dd>
+    <dt>Строгість <i>strictness</i></dt><dd>Правило, за яким дія над локатором падає, якщо він знаходить більше одного елемента.</dd>
+    <dt>Наслідування <i>inheritance</i></dt><dd>Механізм <code>extends</code>, коли клас отримує стан і поведінку батьківського класу.</dd>
+    <dt>Композиція <i>composition</i></dt><dd>Побудова об'єкта з інших об'єктів-полів (компонентів) замість наслідування.</dd>
+    <dt>Абстрактний член <i>abstract member</i></dt><dd>Властивість чи метод без реалізації, яку зобов'язаний надати нащадок.</dd>
+    <dt>Перевизначення <i>override</i></dt><dd>Заміна реалізації члена базового класу в нащадку; в TS позначається ключовим словом <code>override</code>.</dd>
+    <dt>Поліморфний this <i>polymorphic this type</i></dt><dd>Тип <code>this</code>, що означає тип конкретного об'єкта, на якому викликано метод.</dd>
+    <dt>Шаблонний метод <i>Template Method</i></dt><dd>Патерн: алгоритм у базовому класі, змінні кроки — в нащадках.</dd>
+    <dt>Плавний інтерфейс <i>Fluent API / fluent interface</i></dt><dd>Стиль API, де методи повертають об'єкт для наступного виклику, утворюючи читабельну послідовність.</dd>
+    <dt>Будівник <i>Builder</i></dt><dd>Патерн покрокового збирання об'єкта з фінальним методом <code>build()</code>.</dd>
+    <dt>Web-first перевірка <i>web-first assertion</i></dt><dd>Перевірка <code>expect(locator)</code>, що автоматично чекає, доки умова виконається.</dd>
+    <dt>Циклічний імпорт <i>circular import</i></dt><dd>Ситуація, коли модулі імпортують один одного; небезпечна разом з <code>extends</code>.</dd>
+    <dt>Фікстура <i>fixture</i></dt><dd>Механізм Playwright Test для підготовки та передачі об'єктів у тест; тема наступного заняття.</dd>
+  </dl>
+</section>
+
+<!-- ============ LINKS ============ -->
+<section id="links" class="links">
+  <h2 class="sec">Корисні посилання</h2>
+  <h3>Документація</h3>
+  <ul>
+    <li><a href="https://playwright.dev/docs/pom" target="_blank" rel="noopener">Page object models</a> — офіційний приклад POM з полями-локаторами в конструкторі, від якого відштовхується ця тема.</li>
+    <li><a href="https://playwright.dev/docs/locators" target="_blank" rel="noopener">Locators</a> — чому локатори ліниві й строгі та як будувати ланцюжки і фільтри.</li>
+    <li><a href="https://playwright.dev/docs/best-practices" target="_blank" rel="noopener">Best Practices</a> — user-facing локатори, web-first перевірки і рекомендація щодо лінтингу промісів.</li>
+    <li><a href="https://playwright.dev/docs/test-typescript" target="_blank" rel="noopener">TypeScript у Playwright Test</a> — як Playwright транспілює тести і чому перевірку типів треба запускати окремо.</li>
+    <li><a href="https://playwright.dev/docs/release-notes#version-163" target="_blank" rel="noopener">Release notes, версія 1.63</a> — <code>locator.visible()</code>, <code>subtitle</code> і <code>params</code> у кроках.</li>
+    <li><a href="https://www.typescriptlang.org/docs/handbook/2/classes.html" target="_blank" rel="noopener">TypeScript Handbook: Classes</a> — <code>abstract</code>, <code>protected</code>, <code>override</code>, тип <code>this</code> і порядок ініціалізації.</li>
+    <li><a href="https://www.typescriptlang.org/tsconfig/#noImplicitOverride" target="_blank" rel="noopener">TSConfig: noImplicitOverride</a> — опція, що робить <code>override</code> обов'язковим.</li>
+    <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Public_class_fields" target="_blank" rel="noopener">MDN: Public class fields</a> — коли саме виконуються ініціалізатори полів у базовому та похідному класах.</li>
+  </ul>
+  <h3>Офіційні туторіали та відео</h3>
+  <ul>
+    <li><a href="https://playwright.dev/docs/writing-tests" target="_blank" rel="noopener">Writing tests</a> — базова структура тесту, дії та перевірки, на яку спираються page object-и.</li>
+    <li><a href="https://playwright.dev/docs/test-ui-mode" target="_blank" rel="noopener">UI Mode</a> — покрокове проходження тестів і вибір локаторів під час дебагу ієрархій сторінок.</li>
+    <li><a href="https://playwright.dev/docs/trace-viewer" target="_blank" rel="noopener">Trace viewer</a> — як читати трейс і бачити, на якій сторінці був браузер у момент падіння.</li>
+    <li><a href="https://playwright.dev/docs/debug" target="_blank" rel="noopener">Debugging Tests</a> — режим <code>--debug</code>, Inspector і налагодження у VS Code.</li>
+    <li><a href="https://playwright.dev/community/learn-videos" target="_blank" rel="noopener">Learn Videos</a> — добірка офіційних відеоуроків Playwright.</li>
+    <li><a href="https://playwright.dev/docs/test-fixtures" target="_blank" rel="noopener">Fixtures</a> — прочитайте до наступного заняття: там page object-и потрапляють у тест через фікстури.</li>
+  </ul>
+  <h3>API reference</h3>
+  <ul>
+    <li><a href="https://playwright.dev/docs/api/class-locator" target="_blank" rel="noopener">class Locator</a> — повний перелік методів, зокрема <code>describe()</code>, <code>filter()</code>, <code>visible()</code>, <code>all()</code>.</li>
+    <li><a href="https://playwright.dev/docs/api/class-test#test-step" target="_blank" rel="noopener">test.step()</a> — опції <code>box</code>, <code>timeout</code>, <code>subtitle</code>, <code>params</code> і значення, що повертається.</li>
+    <li><a href="https://playwright.dev/docs/api/class-page#page-goto" target="_blank" rel="noopener">page.goto()</a> — як відносний шлях поєднується з <code>baseURL</code>.</li>
+    <li><a href="https://playwright.dev/docs/api/class-locatorassertions" target="_blank" rel="noopener">LocatorAssertions</a> — web-first перевірки для <code>expectLoaded()</code> і тестів.</li>
+  </ul>
+</section>
+
+<footer>
+  <p>Конспект актуальний для Playwright 1.63 і TypeScript 7.0 (вересень 2026). Приклади використовують абстрактний інтернет-магазин; адреси й назви елементів умовні.</p>
+</footer>
+
+</div>
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+<script>
+(function(){
+  /* ---------- theme ---------- */
+  var THEME_KEY = 'pw-course-theme';
+  var root = document.documentElement;
+  var themeBtns = document.querySelectorAll('[data-theme-set]');
+  function themeNow(){
+    try { return localStorage.getItem(THEME_KEY) || 'auto'; } catch (e) { return 'auto'; }
+  }
+  function applyTheme(v){
+    if (v === 'light' || v === 'dark') root.setAttribute('data-theme', v);
+    else root.removeAttribute('data-theme');
+    themeBtns.forEach(function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-set') === v)); });
+  }
+  applyTheme(themeNow());
+  themeBtns.forEach(function(b){
+    b.addEventListener('click', function(){
+      var v = b.getAttribute('data-theme-set');
+      try { localStorage.setItem(THEME_KEY, v); } catch (e) {}
+      applyTheme(v);
+    });
+  });
+
+  /* ---------- code blocks ---------- */
+  function dedent(s){
+    var lines = s.replace(/^\n+|\s+$/g,'').split('\n');
+    var min = Infinity;
+    lines.forEach(function(l){ if (l.trim()) { var m = l.match(/^ */)[0].length; if (m < min) min = m; } });
+    if (!isFinite(min)) min = 0;
+    return lines.map(function(l){ return l.slice(min); }).join('\n');
+  }
+  document.querySelectorAll('script[type="text/x-code"]').forEach(function(sc){
+    var pre = document.createElement('pre');
+    var code = document.createElement('code');
+    code.className = 'language-' + (sc.getAttribute('data-lang') || 'typescript');
+    code.textContent = dedent(sc.textContent);
+    pre.appendChild(code);
+    sc.parentNode.replaceChild(pre, sc);
+    var box = pre.closest('.code');
+    var head = box && box.querySelector('.code-head');
+    if (head){
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'code-copy'; btn.textContent = 'Копіювати';
+      btn.addEventListener('click', function(){
+        var text = code.textContent;
+        var done = function(){ btn.textContent = 'Скопійовано'; setTimeout(function(){ btn.textContent = 'Копіювати'; }, 1600); };
+        if (navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(text).then(done, function(){ fallback(text); done(); });
+        } else { fallback(text); done(); }
+      });
+      head.appendChild(btn);
+    }
+    if (window.hljs) { try { window.hljs.highlightElement(code); } catch(e){} }
+  });
+  function fallback(text){
+    var ta = document.createElement('textarea'); ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch(e){} document.body.removeChild(ta);
+  }
+
+  /* ---------- nav + progress ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll('.nav a'));
+  var targets = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  var bar = document.getElementById('progress');
+  var mobileTitle = document.getElementById('mobileTitle');
+  function onScroll(){
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+    var idx = 0;
+    for (var i = 0; i < targets.length; i++){
+      if (targets[i] && targets[i].getBoundingClientRect().top < 140) idx = i;
+    }
+    links.forEach(function(a, i){ a.classList.toggle('active', i === idx); });
+    if (mobileTitle && links[idx]) mobileTitle.textContent = links[idx].textContent;
+  }
+  window.addEventListener('scroll', onScroll, { passive:true });
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  var sidebar = document.getElementById('sidebar');
+  var toggle = document.getElementById('navToggle');
+  toggle.addEventListener('click', function(){
+    var open = sidebar.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  links.forEach(function(a){ a.addEventListener('click', function(){
+    sidebar.classList.remove('open'); toggle.setAttribute('aria-expanded','false');
+  }); });
+
+  /* ---------- quiz ---------- */
+  var Q = [
+    { type:'single', kind:'Одна правильна відповідь',
+      prompt:"Що відбувається в момент виконання this.addButton = page.getByRole('button', { name: 'Add to cart' }) у конструкторі page object-а?",
+      options:[
+        { t:'Playwright шукає кнопку на сторінці й кидає помилку, якщо не знайшов', ok:false, why:'Створення локатора не звертається до браузера, тож помилки на цьому етапі бути не може.' },
+        { t:'Створюється опис пошуку (Locator); пошук відбудеться під час дії або перевірки', ok:true, why:'Локатор лінивий: він резолвиться при click(), fill(), expect(...) тощо, щоразу заново.' },
+        { t:'Playwright чекає до 5 секунд на появу кнопки', ok:false, why:'Автоочікування працює під час дії, а не під час створення локатора. До того ж метод синхронний.' },
+        { t:'Повертається ElementHandle, прив\'язаний до поточного DOM-вузла', ok:false, why:'getByRole повертає Locator. ElementHandle повертають застарілі методи на кшталт page.$().' }
+      ]},
+    { type:'single', kind:'Одна правильна відповідь',
+      prompt:'Навіщо BasePage.open() повертає Promise<this>, а не Promise<BasePage>?',
+      options:[
+        { t:'Це пришвидшує виконання тесту', ok:false, why:'Тип повернення існує лише на етапі компіляції і не впливає на швидкість.' },
+        { t:'Цього вимагає Playwright для методів page object-ів', ok:false, why:'Playwright не накладає жодних вимог на структуру page object-ів.' },
+        { t:'Щоб можна було викликати методи ланцюжком без await', ok:false, why:'Асинхронний метод усе одно повертає Promise, тож без await ланцюжок не спрацює.' },
+        { t:'Щоб виклик успадкованого open() на нащадку повертав тип нащадка, наприклад CatalogPage', ok:true, why:'Поліморфний this означає тип об\'єкта, на якому викликано метод, тож IDE знає всі методи конкретної сторінки.' }
+      ]},
+    { type:'single', kind:'Знайди проблему в коді',
+      prompt:'Що не так із цим класом?',
+      code:"export class CheckoutPage {\n  private readonly page: Page;\n  readonly payButton = this.page.getByRole('button', { name: 'Pay' });\n\n  constructor(page: Page) {\n    this.page = page;\n  }\n}",
+      options:[
+        { t:'Ініціалізатор поля виконується до тіла конструктора, тож this.page ще undefined — TypeError', ok:true, why:'У класі без extends ініціалізатори полів виконуються перед тілом конструктора. Присвоюйте локатори в конструкторі.' },
+        { t:'getByRole не можна викликати всередині класу', ok:false, why:'Можна — будь-де, де є доступ до об\'єкта Page.' },
+        { t:'readonly забороняє присвоєння в конструкторі', ok:false, why:'readonly-поля можна присвоювати в конструкторі; заборонено змінювати їх пізніше.' },
+        { t:'private-поле не можна використовувати в ініціалізаторі іншого поля', ok:false, why:'Модифікатор доступу тут ні до чого; проблема в порядку виконання.' }
+      ]},
+    { type:'single', kind:'Чи пройде цей тест і чому?',
+      prompt:'Метод goToCart() у CatalogPage реалізовано так. Що станеться з тестом?',
+      code:"async goToCart(): Promise<this> {\n  await this.header.cartLink.click();\n  return this;\n}\n\n// у тесті\nconst cart = await catalog.goToCart();\nawait cart.search('lamp');",
+      options:[
+        { t:'Пройде: search працює на будь-якій сторінці', ok:false, why:'Поле пошуку каталогу на сторінці кошика відсутнє — дія не має на чому виконатися.' },
+        { t:'Не скомпілюється: TypeScript помітить перехід на іншу сторінку', ok:false, why:'TypeScript не знає про стан браузера — типи кажуть, що це CatalogPage, тож компіляція проходить.' },
+        { t:'Скомпілюється, але впаде по таймауту: браузер на /cart, а поля пошуку каталогу там немає', ok:true, why:'Метод «бреше» типом. Перехід має повертати Promise<CartPage> і чекати expectLoaded().' },
+        { t:'Playwright автоматично повернеться на сторінку каталогу', ok:false, why:'Playwright ніколи не виконує навігацію сам.' }
+      ]},
+    { type:'multi', kind:'Кілька правильних відповідей',
+      prompt:'Що доречно розмістити в BasePage?',
+      options:[
+        { t:'Посилання на page і компоненти глобальної рамки (хедер)', ok:true, why:'Це спільне для кожної сторінки.' },
+        { t:'Логін через API для всіх тестів', ok:false, why:'Це стан сесії, а не поведінка сторінки; його розв\'язують фікстури і storageState.' },
+        { t:'Метод open() і абстрактний expectLoaded()', ok:true, why:'Спільний алгоритм і контракт — саме те, для чого існує BasePage.' },
+        { t:'Хелпер waitForPageLoad() з waitForTimeout(2000)', ok:false, why:'Явні паузи сповільнюють тести й не гарантують готовності; документація радить їх лише для дебагу.' }
+      ]},
+    { type:'single', kind:'Одна правильна відповідь',
+      prompt:'Що робить опція { box: true } у test.step?',
+      options:[
+        { t:'Повністю ховає крок зі звіту', ok:false, why:'Крок лишається у звіті; змінюється лише місце, на яке вказує помилка.' },
+        { t:'Помилка всередині кроку вказує на місце виклику кроку, а не в його надра', ok:true, why:'Так тест, що викликав page object, одразу видно у стеку. Опція доступна з версії 1.39.' },
+        { t:'Виконує крок в ізольованому контексті браузера', ok:false, why:'Кроки не створюють нових контекстів.' },
+        { t:'Автоматично повторює крок у разі помилки', ok:false, why:'Повтори налаштовуються на рівні тестів (retries), а не кроків.' }
+      ]},
+    { type:'single', kind:'Знайди проблему в коді',
+      prompt:"IDE показує помилку: «Property 'goToCart' does not exist on type 'Promise<CatalogPage>'». Яка причина?",
+      code:"const cart = await catalog.addToCart('Desk lamp').goToCart();",
+      options:[
+        { t:'Метод goToCart оголошено як private', ok:false, why:'Тоді повідомлення було б про приватність, і тип був би CatalogPage, а не Promise.' },
+        { t:'Циклічний імпорт між CatalogPage і CartPage', ok:false, why:'Циклічні імпорти дають помилки під час виконання, а не таке повідомлення компілятора.' },
+        { t:'Не ввімкнено noImplicitOverride', ok:false, why:'Ця опція стосується перевизначення членів, а не викликів.' },
+        { t:'Бракує await: goToCart викликано на промісі, який повернув addToCart', ok:true, why:'Спочатку await catalog.addToCart(...), потім окремим рядком await catalog.goToCart().' }
+      ]},
+    { type:'single', kind:'Одна правильна відповідь',
+      prompt:'Під час завантаження тестів з\'являється «TypeError: Class extends value undefined is not a constructor or null». Найімовірніша причина?',
+      options:[
+        { t:'BasePage імпортує свого нащадка, а нащадок наслідує BasePage — циклічний імпорт', ok:true, why:'Коли нащадок виконує extends, модуль бази ще не ініціалізований. База не повинна імпортувати нащадків.' },
+        { t:'У нащадку забули викликати super(page)', ok:false, why:'Це дає інші помилки — компіляції або ReferenceError при зверненні до this.' },
+        { t:'BasePage не позначено як abstract', ok:false, why:'abstract впливає лише на перевірку типів; помилки виконання тут не було б.' },
+        { t:'Playwright не підтримує наслідування класів', ok:false, why:'Page object-и — звичайні класи TypeScript, Playwright їх ніяк не обмежує.' }
+      ]},
+    { type:'single', kind:'Одна правильна відповідь',
+      prompt:'Фільтр товарів є лише на сторінках каталогу й пошуку. Як його краще оформити?',
+      options:[
+        { t:'Додати методи фільтра в BasePage', ok:false, why:'Тоді всі сторінки «вміють» фільтрувати, хоча фільтр є лише на двох.' },
+        { t:'Створити проміжний клас FilterablePage між BasePage і сторінками', ok:false, why:'Це поглиблює ієрархію заради блоку, який сторінка має, а не яким вона є.' },
+        { t:'Оформити FilterComponent і підключити полем у двох сторінках', ok:true, why:'Відношення «має» — композиція. Компонент перевикористовується без змін ієрархії.' },
+        { t:'Продублювати локатори фільтра в обох сторінках', ok:false, why:'Дублювання — саме та проблема, від якої ми тікаємо.' }
+      ]},
+    { type:'multi', kind:'Кілька правильних відповідей',
+      prompt:'Які твердження про Fluent API в Playwright правильні?',
+      options:[
+        { t:'Можна писати ланцюжки без await, як у Selenium Java', ok:false, why:'Кожна дія асинхронна й повертає Promise; ланцюжок без await не скомпілюється.' },
+        { t:'Метод, що переводить на іншу сторінку, має повертати об\'єкт цієї сторінки', ok:true, why:'Так типи описують навігацію, і тест не створює сторінки вручну.' },
+        { t:'Усі методи page object-а зобов\'язані повертати this', ok:false, why:'Методи переходу повертають нову сторінку, а методи, що дають дані чи локатори, повертають їх.' },
+        { t:'Fluent Builder для об\'єктів даних може бути повністю синхронним ланцюжком', ok:true, why:'Без асинхронності методи повертають this, і ланцюжок працює класично.' }
+      ]},
+    { type:'single', kind:'Одна правильна відповідь',
+      prompt:"Що змінює виклик locator.describe('Cart items counter') (з версії 1.53)?",
+      options:[
+        { t:'Шукає елемент за текстом «Cart items counter»', ok:false, why:'describe() не додає умов пошуку.' },
+        { t:'Робить локатор нестрогим', ok:false, why:'Строгість не змінюється.' },
+        { t:'Лише те, як локатор підписано в trace viewer і звітах; пошук той самий', ok:true, why:'Це людська назва для діагностики, особливо корисна для полів page object-а.' },
+        { t:'Кешує знайдений елемент для повторних дій', ok:false, why:'Локатори нічого не кешують — вони резолвляться заново при кожній дії.' }
+      ]}
+  ];
+
+  var quizRoot = document.getElementById('quizRoot');
+  var scoreText = document.getElementById('scoreText');
+  var answered = 0, correct = 0;
+  var letters = ['A','B','C','D','E'];
+
+  function updateScore(){
+    if (answered === Q.length){
+      scoreText.textContent = 'Результат: ' + correct + ' з ' + Q.length + (correct >= 9 ? ' — чудово, можна переходити до фікстур' : correct >= 6 ? ' — непогано; перечитайте розділи з помилками' : ' — варто повернутися до теорії');
+    } else {
+      scoreText.textContent = 'Відповідей: ' + answered + ' з ' + Q.length + ' · правильно: ' + correct;
+    }
+  }
+
+  function renderQuiz(){
+    quizRoot.innerHTML = ''; answered = 0; correct = 0;
+    Q.forEach(function(q, qi){
+      var box = document.createElement('div'); box.className = 'q';
+      var kind = document.createElement('p'); kind.className = 'q-type'; kind.textContent = 'Питання ' + (qi+1) + ' · ' + q.kind; box.appendChild(kind);
+      var pr = document.createElement('p'); pr.className = 'q-prompt'; pr.textContent = q.prompt; box.appendChild(pr);
+      if (q.code){
+        var cb = document.createElement('div'); cb.className = 'code';
+        var pre = document.createElement('pre'); var code = document.createElement('code');
+        code.className = 'language-typescript'; code.textContent = q.code; pre.appendChild(code); cb.appendChild(pre); box.appendChild(cb);
+        if (window.hljs) { try { window.hljs.highlightElement(code); } catch(e){} }
+      }
+      var opts = document.createElement('div'); opts.className = 'q-opts'; box.appendChild(opts);
+      var result = document.createElement('p'); result.className = 'q-result';
+      var btnEls = [];
+      q.options.forEach(function(o, oi){
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'q-opt';
+        var inner = '';
+        if (q.type === 'multi'){ inner += '<input type="checkbox" tabindex="-1" aria-hidden="true">'; }
+        b.innerHTML = inner + '<span class="letter">' + letters[oi] + '</span><span><span class="txt"></span><span class="q-why"></span></span>';
+        b.querySelector('.txt').textContent = o.t;
+        b.querySelector('.q-why').textContent = (o.ok ? '✓ ' : '✗ ') + o.why;
+        if (q.type === 'multi') b.setAttribute('aria-pressed','false');
+        opts.appendChild(b); btnEls.push(b);
+        b.addEventListener('click', function(){
+          if (box.classList.contains('done')) return;
+          if (q.type === 'single'){
+            finish([oi]);
+          } else {
+            var cbx = b.querySelector('input'); cbx.checked = !cbx.checked;
+            b.setAttribute('aria-pressed', cbx.checked ? 'true' : 'false');
+          }
+        });
+      });
+      if (q.type === 'multi'){
+        var check = document.createElement('button'); check.type='button'; check.className='btn btn-primary'; check.textContent='Перевірити';
+        check.addEventListener('click', function(){
+          var chosen = [];
+          btnEls.forEach(function(b, i){ if (b.querySelector('input').checked) chosen.push(i); });
+          if (!chosen.length){ result.style.display='block'; result.className='q-result no'; result.textContent='Оберіть хоча б один варіант.'; return; }
+          result.style.display=''; finish(chosen); check.disabled = true;
+        });
+        box.appendChild(check);
+      }
+      box.appendChild(result);
+      function finish(chosen){
+        box.classList.add('done');
+        var allOk = true;
+        q.options.forEach(function(o, i){
+          var picked = chosen.indexOf(i) !== -1;
+          var b = btnEls[i]; b.disabled = true;
+          if (picked && o.ok) b.classList.add('correct');
+          else if (picked && !o.ok){ b.classList.add('wrong'); allOk = false; }
+          else if (!picked && o.ok){ b.classList.add('missed'); allOk = false; }
+        });
+        answered++; if (allOk) correct++;
+        result.className = 'q-result ' + (allOk ? 'ok' : 'no');
+        result.textContent = allOk ? 'Правильно.' : 'Не зовсім — перегляньте пояснення до кожного варіанта.';
+        updateScore();
+      }
+      quizRoot.appendChild(box);
+    });
+    updateScore();
+  }
+  document.getElementById('quizReset').addEventListener('click', function(){
+    renderQuiz(); document.getElementById('quiz').scrollIntoView();
+  });
+  renderQuiz();
+})();
+</script>
+</body>
+</html>

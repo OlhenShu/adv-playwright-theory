@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('pw-course-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Component Object Model у Playwright + TypeScript</title>
+<style>
+:root{
+  --bg:#F3F5F9; --surface:#FFFFFF; --surface-2:#E9EEF6; --ink:#15213B; --muted:#4D5B78; --line:#D3DAE7;
+  --navy:#1B3363; --navy-soft:#DCE5F5; --accent:#E8780F; --accent-ink:#A9520A; --accent-soft:#FDEBD8;
+  --ok:#1D7A4C; --ok-soft:#DDF2E6; --bad:#B42318; --bad-soft:#FBE3E0;
+  --code-bg:#0E1A31; --code-head:#16264A; --code-ink:#DCE4F5;
+  --font:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,"Noto Sans","Helvetica Neue",Arial,sans-serif;
+  --mono:"Cascadia Code","JetBrains Mono","SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0A1326; --surface:#111D38; --surface-2:#172648; --ink:#E4EAF6; --muted:#9DABC8; --line:#253862;
+    --navy:#A9C0EE; --navy-soft:#1A2C55; --accent:#FF9A3C; --accent-ink:#FFB36B; --accent-soft:#3A2614;
+    --ok:#5FD39A; --ok-soft:#123826; --bad:#FF8A7E; --bad-soft:#3D1814;
+    --code-bg:#070F20; --code-head:#0F1C3A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0A1326; --surface:#111D38; --surface-2:#172648; --ink:#E4EAF6; --muted:#9DABC8; --line:#253862;
+  --navy:#A9C0EE; --navy-soft:#1A2C55; --accent:#FF9A3C; --accent-ink:#FFB36B; --accent-soft:#3A2614;
+  --ok:#5FD39A; --ok-soft:#123826; --bad:#FF8A7E; --bad-soft:#3D1814;
+  --code-bg:#070F20; --code-head:#0F1C3A;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 72px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.62}
+a{color:var(--navy);text-underline-offset:3px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--surface-2);padding:.1em .35em;border-radius:4px}
+.skip{position:absolute;left:-999px;top:0;background:var(--accent);color:#111;padding:8px 12px;z-index:100}
+.skip:focus{left:8px;top:8px}
+
+/* ---------- layout ---------- */
+.shell{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;overflow:auto;background:var(--navy-soft);border-right:1px solid var(--line);padding:22px 18px 30px}
+.brand{font-weight:800;font-size:1.05rem;color:var(--navy);line-height:1.25;margin:0 0 4px}
+.brand-sub{color:var(--muted);font-size:.82rem;margin:0 0 18px}
+.progress{margin:0 0 18px}
+.progress-track{height:8px;background:var(--surface);border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.progress-fill{height:100%;width:0;background:var(--accent);transition:width .35s ease}
+.progress-text{font-size:.8rem;color:var(--muted);margin-top:6px}
+.toc{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{margin:0}
+.toc a{display:grid;grid-template-columns:28px 1fr 16px;gap:4px;align-items:baseline;text-decoration:none;color:var(--ink);padding:6px 8px;border-radius:8px;font-size:.92rem;line-height:1.35}
+.toc a:hover{background:var(--surface)}
+.toc a[aria-current="true"]{background:var(--surface);box-shadow:inset 3px 0 0 var(--accent)}
+.toc .n{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.8rem}
+.toc .tick{color:var(--ok);font-size:.8rem;visibility:hidden}
+.toc a.visited .tick{visibility:visible}
+.side-foot{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap}
+.side-tools{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+.home{color:var(--accent-ink);font-size:.82rem;font-weight:600;text-decoration:none}
+.home:hover{color:var(--navy)}
+.theme-switch{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;gap:2px;background:var(--surface)}
+.theme-switch button{appearance:none;border:0;background:transparent;color:var(--ink);font:inherit;font-size:.72rem;padding:4px 8px;border-radius:999px;cursor:pointer}
+.theme-switch button[aria-pressed="true"]{background:var(--accent);color:#1B0E00;font-weight:600}
+.btn{font:inherit;font-size:.88rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 12px;border-radius:8px;cursor:pointer}
+.btn:hover{border-color:var(--navy)}
+.btn.primary{background:var(--navy);color:var(--surface);border-color:var(--navy)}
+:root[data-theme="dark"] .btn.primary{color:#0A1326}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn.primary{color:#0A1326}}
+.topbar{display:none}
+
+main{padding:0 clamp(18px,4vw,56px) 80px;min-width:0}
+.wrap{max-width:780px;margin:0 auto}
+.wide{max-width:1080px;margin:0 auto}
+
+/* ---------- hero ---------- */
+.hero{padding:56px 0 30px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.hero h1{font-size:clamp(2.1rem,5vw,3.4rem);line-height:1.04;letter-spacing:-.02em;margin:0 0 14px;font-weight:800;color:var(--navy)}
+.hero h1 span{display:block;font-weight:500;font-size:.48em;letter-spacing:0;color:var(--ink);margin-top:10px;line-height:1.25}
+.hero p.lead{font-size:1.12rem;max-width:62ch;margin:0 0 18px}
+.versions{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.versions li{font-size:.85rem;border:1px solid var(--line);background:var(--surface);padding:4px 10px;border-radius:20px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:22px;font-size:.9rem;color:var(--muted);align-items:center}
+
+/* ---------- sections ---------- */
+section.topic{padding:44px 0 10px;border-bottom:1px solid var(--line)}
+section.topic:last-of-type{border-bottom:0}
+.sec-head{display:flex;gap:14px;align-items:baseline;margin-bottom:8px}
+.sec-num{font-weight:800;color:var(--accent);font-size:1.15rem;font-variant-numeric:tabular-nums;min-width:2ch}
+h2{font-size:clamp(1.45rem,3vw,1.9rem);line-height:1.15;margin:0;color:var(--navy);letter-spacing:-.01em}
+h3{font-size:1.15rem;margin:30px 0 8px;color:var(--ink)}
+p{margin:0 0 14px}
+.doclink{display:inline-flex;gap:6px;align-items:center;font-size:.88rem;font-weight:600;margin:4px 0 16px;color:var(--accent-ink);text-decoration:none;border-bottom:1px solid currentColor}
+.doclinks{display:flex;flex-wrap:wrap;gap:4px 18px}
+
+/* level badges */
+.lvl{display:inline-block;font-size:.76rem;font-weight:700;padding:2px 9px;border-radius:20px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.lvl.pw{background:var(--navy);color:var(--surface)}
+:root[data-theme="dark"] .lvl.pw{color:#0A1326}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .lvl.pw{color:#0A1326}}
+.lvl.rec{background:transparent;color:var(--accent-ink);border:1.5px solid var(--accent)}
+.claim{border-left:3px solid var(--line);padding:2px 0 2px 14px;margin:0 0 16px}
+.claim.pw{border-left-color:var(--navy)}
+.claim.rec{border-left-color:var(--accent)}
+
+/* callout */
+.callout{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin:22px 0;overflow:hidden}
+.callout-title{background:var(--navy);color:var(--surface);padding:10px 16px;font-weight:700;font-size:.95rem}
+:root[data-theme="dark"] .callout-title{color:#0A1326}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .callout-title{color:#0A1326}}
+.callout dl{margin:0;display:grid;grid-template-columns:110px 1fr}
+.callout dt{padding:11px 14px;font-weight:700;font-size:.88rem;color:var(--accent-ink);border-top:1px solid var(--line)}
+.callout dd{margin:0;padding:11px 16px 11px 0;border-top:1px solid var(--line);font-size:.96rem}
+.callout dt:first-of-type,.callout dd:first-of-type{border-top:0}
+
+/* code */
+figure.code{margin:18px 0;border-radius:10px;overflow:hidden;background:var(--code-bg);border:1px solid #1E2F55}
+.code-head{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--code-head);padding:7px 10px 7px 14px;color:#9FB2D9;font-family:var(--mono);font-size:.8rem}
+.copy{font:600 .78rem var(--font);background:transparent;color:#FFB36B;border:1px solid #3B4E7A;border-radius:6px;padding:4px 10px;cursor:pointer}
+.copy:hover{border-color:#FFB36B}
+figure.code pre{margin:0;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:.84rem;line-height:1.6;color:var(--code-ink);tab-size:2}
+figure.code pre code{background:none;padding:0;font-size:inherit;color:inherit}
+.t-c{color:#7F93BA;font-style:italic}.t-s{color:#A6E3A1}.t-k{color:#FF9A3C}.t-t{color:#8CC8FF}.t-n{color:#F5C77E}.t-f{color:#E3D3FF}.t-r{color:#F7A8B8}
+
+/* interactive frame */
+.lab{background:var(--surface);border:1.5px solid var(--navy);border-radius:14px;margin:28px 0;padding:0 0 18px;overflow:hidden}
+.lab-head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.lab-head h3{margin:0;font-size:1.05rem;color:var(--navy)}
+.lab-tag{font-size:.75rem;font-weight:700;background:var(--accent);color:#1B1206;padding:2px 9px;border-radius:20px}
+.lab-body{padding:16px 18px 0}
+.lab-hint{color:var(--muted);font-size:.92rem;margin:0 0 12px}
+
+/* decomposition mock */
+.decomp{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:18px}
+.mock{position:relative;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:.82rem;min-height:380px}
+.z{position:relative;border:1.5px dashed transparent;border-radius:8px;cursor:pointer;transition:border-color .15s,background .15s}
+.z:hover{border-color:var(--muted)}
+.z.on{border-color:var(--accent);background:var(--accent-soft)}
+.z.on::after{content:"root";position:absolute;top:-9px;right:8px;font:700 .65rem var(--mono);background:var(--accent);color:#1B1206;padding:0 6px;border-radius:4px}
+.z-header{display:flex;align-items:center;gap:10px;background:var(--navy);color:var(--surface);padding:8px 10px}
+:root[data-theme="dark"] .z-header{color:#0A1326}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .z-header{color:#0A1326}}
+.z-header.on{background:var(--navy)}
+.logo{font-weight:800;letter-spacing:.02em}
+.z-nav{display:flex;gap:12px;align-items:center;flex:1;padding:4px 8px}
+.z-nav .lnk{opacity:.92}
+.z-user{margin-left:auto;padding:3px 8px;background:rgba(255,255,255,.14)}
+.mock-body{padding:12px 4px 4px;display:grid;gap:10px}
+.z-search{display:flex;gap:8px;padding:6px;max-width:360px}
+.fake-input{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--muted)}
+.fake-btn{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:4px 9px;white-space:nowrap}
+.z-table{padding:6px}
+.mtable{width:100%;border-collapse:collapse;background:var(--surface);border-radius:6px;overflow:hidden}
+.mtable th,.mtable td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.mtable th{font-size:.75rem;color:var(--muted);font-weight:600}
+.mtable tr.z{display:table-row}
+.mtable tr.z.on{outline:1.5px dashed var(--accent);outline-offset:-2px}
+.mtable tr.z.on::after{display:none}
+.z-actions{display:inline-flex;gap:6px;padding:2px 4px}
+.z-pagination{display:flex;gap:6px;padding:6px;justify-content:center}
+.pg{min-width:26px;text-align:center;border:1px solid var(--line);border-radius:6px;padding:2px 6px;background:var(--surface)}
+.pg.cur{background:var(--navy);color:var(--surface);border-color:var(--navy)}
+.z-modal{position:absolute;right:16px;bottom:16px;width:min(230px,58%);background:var(--surface);border:1px solid var(--line);box-shadow:0 10px 30px rgba(10,20,40,.25);padding:12px}
+.z-modal h4{margin:0 0 6px;font-size:.88rem}
+.z-modal .row-btns{display:flex;gap:6px;margin-top:10px}
+.mock-cap{position:absolute;right:16px;bottom:calc(16px + 118px);font-size:.7rem;color:var(--muted)}
+.info{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;font-size:.92rem}
+.info h4{margin:0 0 4px;font-size:1.05rem;color:var(--navy)}
+.info .muted{color:var(--muted)}
+.info pre{font-family:var(--mono);font-size:.78rem;background:var(--code-bg);color:var(--code-ink);padding:10px;border-radius:8px;overflow-x:auto;margin:8px 0 12px;white-space:pre}
+.ctree{list-style:none;margin:6px 0 0;padding:0;font-family:var(--mono);font-size:.8rem}
+.ctree li{padding:2px 0}
+.ctree span{padding:1px 6px;border-radius:4px}
+.ctree span.hit{background:var(--accent);color:#1B1206;font-weight:700}
+.ctree span.path{background:var(--accent-soft);color:var(--accent-ink)}
+
+/* scope visualizer */
+.opts{display:grid;gap:8px;margin-bottom:14px}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:9px 12px;cursor:pointer;background:var(--bg)}
+.opt input{margin-top:5px;accent-color:var(--accent)}
+.opt code{background:none;padding:0;font-size:.82rem;word-break:break-word}
+.opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.scope-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;align-items:start}
+.stable{width:100%;border-collapse:collapse;font-size:.88rem;background:var(--bg);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stable td,.stable th{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left}
+.stable th{font-size:.76rem;color:var(--muted)}
+.stable tr.scoped td{background:var(--accent-soft)}
+.stable tr.scoped td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.sbtn{display:inline-block;border:1px solid var(--line);border-radius:6px;padding:1px 8px;margin-right:4px;background:var(--surface);font-size:.8rem}
+.sbtn.match{border:2px solid var(--bad);background:var(--bad-soft);color:var(--bad);font-weight:700}
+.sbtn.match.good{border-color:var(--ok);background:var(--ok-soft);color:var(--ok)}
+.verdict{border-radius:10px;padding:12px 14px;font-size:.92rem;border:1px solid var(--line);background:var(--bg)}
+.verdict .big{font-size:1.9rem;font-weight:800;line-height:1;display:block;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.verdict.bad{border-color:var(--bad);background:var(--bad-soft)}
+.verdict.ok{border-color:var(--ok);background:var(--ok-soft)}
+.verdict.warn{border-color:var(--accent);background:var(--accent-soft)}
+
+/* tree */
+.tree-grid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.4fr);gap:16px;align-items:start}
+.tree,.tree ul{list-style:none;margin:0;padding:0}
+.tree ul{padding-left:18px;border-left:1px dashed var(--line);margin-left:9px}
+.tree li{margin:2px 0}
+.tnode{display:flex;align-items:center;gap:6px;width:100%;text-align:left;font:600 .86rem var(--mono);background:transparent;border:1px solid transparent;color:var(--ink);padding:5px 8px;border-radius:7px;cursor:pointer}
+.tnode:hover{background:var(--bg)}
+.tnode[aria-current="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+.caret{display:inline-block;width:12px;transition:transform .15s;color:var(--muted)}
+.tnode[aria-expanded="true"] .caret{transform:rotate(90deg)}
+.tnode .kind{font:500 .72rem var(--font);color:var(--muted);margin-left:auto}
+.tree-code figure.code{margin-top:0}
+
+/* fat vs com */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.seg button{font:600 .9rem var(--font);background:var(--bg);color:var(--ink);border:0;padding:8px 16px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--navy);color:var(--surface)}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#0A1326}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#0A1326}}
+.metrics{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.metric{flex:1 1 200px;border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--bg)}
+.metric b{display:block;font-size:1.7rem;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--navy)}
+.metric span{font-size:.85rem;color:var(--muted)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.col{border:1px solid var(--line);border-radius:10px;background:var(--bg);overflow:hidden}
+.col h4{margin:0;padding:8px 12px;font:700 .85rem var(--mono);background:var(--surface-2)}
+.col ul{list-style:none;margin:0;padding:8px 10px;font-family:var(--mono);font-size:.74rem}
+.col li{padding:4px 6px;border-radius:5px;margin:2px 0;word-break:break-word}
+.col li.dup{background:var(--bad-soft);color:var(--bad)}
+.col li.once{background:var(--ok-soft);color:var(--ok)}
+.col li.root{color:var(--muted)}
+
+/* builder */
+.builder{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr);gap:16px;align-items:start}
+fieldset{border:1px solid var(--line);border-radius:10px;margin:0 0 12px;padding:8px 12px 10px}
+legend{font-weight:700;font-size:.88rem;padding:0 6px;color:var(--navy)}
+fieldset label{display:flex;gap:8px;align-items:center;font-size:.9rem;padding:3px 0;cursor:pointer}
+fieldset input{accent-color:var(--accent)}
+.note{font-size:.88rem;border-radius:8px;padding:9px 12px;margin-top:10px;background:var(--bg);border:1px solid var(--line)}
+.note.warn{background:var(--accent-soft);border-color:var(--accent)}
+
+/* bugs */
+.bug{border:1px solid var(--line);border-radius:12px;margin:16px 0;background:var(--surface);overflow:hidden}
+.bug-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.bug-head h4{margin:0;font-size:.98rem}
+.bug figure.code{margin:0;border-radius:0;border:0}
+.bug-answer{padding:12px 16px;background:var(--accent-soft);border-top:1px solid var(--accent);font-size:.95rem}
+.bug-answer[hidden]{display:none}
+.bug-answer p:last-child{margin-bottom:0}
+
+/* checklist table */
+.tbl-wrap{overflow-x:auto;margin:18px 0}
+table.check{border-collapse:collapse;width:100%;font-size:.92rem;background:var(--surface)}
+table.check th,table.check td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+table.check th{background:var(--navy);color:var(--surface)}
+:root[data-theme="dark"] table.check th{color:#0A1326}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) table.check th{color:#0A1326}}
+
+/* quiz */
+.q{border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:14px 0;background:var(--surface)}
+.q-title{font-weight:700;margin:0 0 10px}
+.q-n{color:var(--accent-ink);margin-right:6px}
+.answers{display:grid;gap:7px}
+.ans{font:inherit;font-size:.94rem;text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;padding:9px 12px;cursor:pointer}
+.ans:hover:not(:disabled){border-color:var(--navy)}
+.ans:disabled{cursor:default}
+.ans.right{border-color:var(--ok);background:var(--ok-soft);color:var(--ok);font-weight:600}
+.ans.wrong{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+.feedback{margin-top:10px;font-size:.93rem}
+.score{position:sticky;bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--navy);color:var(--surface);border-radius:12px;padding:12px 18px;margin-top:20px;font-weight:700}
+:root[data-theme="dark"] .score{color:#0A1326}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .score{color:#0A1326}}
+.score .btn{font-weight:600}
+
+/* ---------- responsive ---------- */
+@media (max-width: 980px){
+  .shell{grid-template-columns:1fr}
+  .side{position:fixed;inset:0 auto 0 0;width:min(320px,86vw);z-index:40;transform:translateX(-102%);transition:transform .25s ease;padding-top:calc(22px + env(safe-area-inset-top,0px));box-shadow:0 0 40px rgba(0,0,0,.3)}
+  .side.open{transform:none}
+  .topbar{display:flex;position:sticky;top:0;z-index:30;align-items:center;gap:10px;background:var(--surface);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top,0px)) 14px 8px}
+  .topbar .t{font-weight:700;font-size:.92rem;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--navy)}
+  .topbar .mini{width:70px;height:6px;background:var(--surface-2);border-radius:6px;overflow:hidden}
+  .topbar .mini i{display:block;height:100%;width:0;background:var(--accent);transition:width .35s}
+  .decomp,.scope-grid,.tree-grid,.builder{grid-template-columns:1fr}
+  .scrim{position:fixed;inset:0;background:rgba(5,10,25,.45);z-index:35}
+  .scrim[hidden]{display:none}
+}
+@media (max-width: 560px){
+  body{font-size:16px}
+  .callout dl{grid-template-columns:1fr}
+  .callout dt{padding-bottom:0}
+  .callout dd{padding:4px 14px 11px;border-top:0}
+  .mock{font-size:.74rem}
+  .z-nav .lnk.extra{display:none}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;scroll-behavior:auto!important}}
+@media print{.side,.topbar,.lab,.copy,.score{display:none!important}.shell{display:block}}
+</style>
+</head>
+
+<body>
+<a class="skip" href="#content">Перейти до змісту</a>
+<div class="topbar">
+  <button class="btn" id="menuBtn" aria-controls="side" aria-expanded="false">Розділи</button>
+  <span class="t" id="topTitle">Component Object Model</span>
+  <span class="mini" aria-hidden="true"><i id="miniFill"></i></span>
+</div>
+<div class="scrim" id="scrim" hidden></div>
+<div class="shell">
+<aside class="side" id="side" aria-label="Навігація по розділах">
+  <div class="side-tools">
+    <a class="home" href="../index.html">На головну</a>
+    <div class="theme-switch" role="group" aria-label="Тема оформлення">
+      <button type="button" data-theme-set="auto" aria-pressed="true">Авто</button>
+      <button type="button" data-theme-set="light" aria-pressed="false">Світла</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Темна</button>
+    </div>
+  </div>
+  <p class="brand">Component Object Model</p>
+  <p class="brand-sub">Playwright + TypeScript</p>
+  <div class="progress">
+    <div class="progress-track" role="progressbar" aria-label="Прогрес читання" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText">Переглянуто 0 з 12 розділів</div>
+  </div>
+  <nav><ol class="toc" id="toc"></ol></nav>
+</aside>
+
+<main id="content">
+<div class="wrap">
+<header class="hero">
+  <h1>Component Object Model<span>Компоненти, вкладені об'єкти й повторне використання в тестах на Playwright</span></h1>
+  <p class="lead">Ви вже вмієте будувати page objects для цілих сторінок. Тут ми розберемо, як розкласти сторінку на менші частини, кожна з яких має власний кореневий локатор, і як скласти з них сторінки, фікстури й тести без дублювання.</p>
+  <ul class="versions" aria-label="Версії">
+    <li>@playwright/test 1.63</li>
+    <li>TypeScript 7.0, strict</li>
+    <li>Приклади перевірено <code>tsc --noEmit</code> і <code>playwright test --list</code></li>
+  </ul>
+  <div class="legend">
+    <span><span class="lvl pw">Так працює Playwright</span> поведінка з офіційної документації</span>
+    <span><span class="lvl rec">Рекомендація</span> проєктне рішення з аргументацією</span>
+  </div>
+</header>
+</div>
+
+<!-- 1 -->
+<section class="topic" id="s1" data-title="Від POM до компонентів">
+<div class="wrap">
+  <div class="sec-head"><span class="sec-num">1</span><h2>Від POM до компонентів</h2></div>
+  <div class="doclinks"><a class="doclink" href="https://playwright.dev/docs/pom" target="_blank" rel="noopener">Документація: Page object models →</a></div>
+
+  <p>Важливо одразу домовитися про статус теми. Component Object Model не є частиною API Playwright: у бібліотеці немає класу Component чи спеціального декоратора. Це спосіб організувати тестовий код, який спирається на звичайні, задокументовані механізми: локатори, їхні ланцюжки, фільтри та фікстури.</p>
+
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span>У розділі Page object models документація визначає page object як об'єкт, що представляє частину вебзастосунку. Такі об'єкти спрощують написання тестів, бо дають вищорівневий API, зрозумілий у термінах вашого застосунку, і спрощують підтримку, бо селектори зібрано в одному місці, а повторно використовуваний код усуває дублювання.</div>
+
+  <p>Зверніть увагу на слово «частину». Визначення не вимагає, щоб page object відповідав цілій сторінці. Саме тут і народжується компонентний підхід: якщо page object може описувати частину застосунку, то хедер, таблиця чи модальне вікно теж можуть мати власні об'єкти.</p>
+
+  <h3>Проблема «товстих» page-класів</h3>
+  <p>Уявіть адмін-панель із трьома розділами: користувачі, замовлення, товари. На кожній сторінці є однаковий хедер із меню облікового запису, однаковий пошук, таблиця і пагінація. Класичний POM, де кожна сторінка оголошує всі свої локатори самостійно, швидко перетворюється на копіювання одних і тих самих рядків у три класи.</p>
+  <figure class="code" data-src="snip/fat-pom.ts" data-title="pages/UsersPage.ts (до рефакторингу)"></figure>
+  <p>Цей клас ще не великий, але подивіться на перші п'ять локаторів: вони не належать сторінці користувачів. Вони належать хедеру, пошуку й пагінації, які живуть на кожній сторінці адмінки. Коли дизайнер перейменує пункт меню «Log out», цей рядок доведеться виправити в усіх трьох класах, і легко пропустити один.</p>
+
+  <div class="callout"><div class="callout-title">Компонент як page object для частини сторінки</div><dl>
+    <dt>Проблема</dt><dd>Однакові фрагменти інтерфейсу описано в кожному page-класі окремо, тож локатори дублюються, а зміна в UI вимагає правок у кількох місцях.</dd>
+    <dt>Чому</dt><dd>Page-клас моделює сторінку, а повторюваний фрагмент є окремою сутністю, яка просто трапляється на багатьох сторінках.</dd>
+    <dt>Рішення</dt><dd>Описати фрагмент власним класом, який знає лише про свою частину DOM, а сторінку скласти з таких класів.</dd>
+    <dt>Коли</dt><dd>Коли фрагмент повторюється на двох і більше сторінках, або коли на одній сторінці є кілька однакових віджетів (рядки, картки), або коли page-клас став важко читати.</dd>
+  </dl></div>
+</div>
+
+<div class="wide">
+  <div class="lab" id="lab-decomp">
+    <div class="lab-head"><span class="lab-tag">Інтерактив</span><h3>Розбери сторінку на компоненти</h3></div>
+    <div class="lab-body">
+      <p class="lab-hint">Натисніть на будь-яку зону макета (або оберіть її клавішею Tab і натисніть Enter). Праворуч з'явиться клас компонента, його кореневий локатор і місце в дереві вкладеності.</p>
+      <div class="decomp">
+        <div class="mock" id="mock" aria-label="Макет сторінки Users в адмін-панелі">
+          <div class="z z-header" data-zone="header" tabindex="0" role="button" aria-label="Хедер">
+            <span class="logo">Admin</span>
+            <div class="z z-nav" data-zone="nav" tabindex="0" role="button" aria-label="Головне меню">
+              <span class="lnk">Users</span><span class="lnk">Orders</span><span class="lnk extra">Products</span>
+              <div class="z z-user" data-zone="usermenu" tabindex="0" role="button" aria-label="Меню облікового запису">Account ▾</div>
+            </div>
+          </div>
+          <div class="mock-body">
+            <div class="z z-search" data-zone="search" tabindex="0" role="button" aria-label="Пошук"><span class="fake-input">Search users…</span><span class="fake-btn">Search</span></div>
+            <div class="z z-table" data-zone="table" tabindex="0" role="button" aria-label="Таблиця користувачів">
+              <table class="mtable">
+                <thead><tr><th>Name</th><th>Email</th><th>Actions</th></tr></thead>
+                <tbody id="mockRows"></tbody>
+              </table>
+            </div>
+            <div class="z z-pagination" data-zone="pagination" tabindex="0" role="button" aria-label="Пагінація"><span class="pg">‹</span><span class="pg cur">1</span><span class="pg">2</span><span class="pg">3</span><span class="pg">›</span></div>
+            <div style="height:120px" aria-hidden="true"></div>
+          </div>
+          <div class="z z-modal" data-zone="modal" tabindex="0" role="button" aria-label="Модальне вікно">
+            <h4>Delete user</h4>
+            <div>Delete bob@example.com?</div>
+            <div class="row-btns"><span class="fake-btn">Confirm</span><span class="fake-btn">Close</span></div>
+          </div>
+        </div>
+        <div class="info" id="decompInfo" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- 2 -->
+<section class="topic" id="s2" data-title="Анатомія компонента">
+<div class="wrap">
+  <div class="sec-head"><span class="sec-num">2</span><h2>Анатомія компонента</h2></div>
+  <div class="doclinks">
+    <a class="doclink" href="https://playwright.dev/docs/locators#matching-inside-a-locator" target="_blank" rel="noopener">Документація: Matching inside a locator →</a>
+    <a class="doclink" href="https://playwright.dev/docs/locators#locating-elements" target="_blank" rel="noopener">Документація: Locating elements →</a>
+    <a class="doclink" href="https://playwright.dev/docs/api/class-locator#locator-page" target="_blank" rel="noopener">Документація: locator.page() →</a>
+  </div>
+
+  <p>Ключова ідея всього підходу вміщується в один рядок: компонент отримує в конструктор не <code>Page</code>, а <code>Locator</code> свого кореня. Корінь — це елемент, що обгортає весь фрагмент: банер хедера, діалог, таблицю, конкретний рядок. Усі внутрішні локатори компонент будує від кореня, а не від сторінки.</p>
+
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span>Усі методи, що створюють локатори на <code>page</code> (getByRole, getByLabel, getByTestId, locator тощо), так само доступні на класі <code>Locator</code>. Тому їх можна ланцюжити й поступово звужувати пошук до певної частини сторінки: <code>root.getByRole('button', { name: 'Save' })</code> шукає кнопку лише всередині <code>root</code>.</div>
+
+  <p>Друга властивість, на якій тримається патерн, — лінивість локаторів. Створення локатора не звертається до DOM. Елемент шукається в момент дії, і щоразу заново.</p>
+
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span>Документація пояснює: щоразу, коли локатор використовується для дії, на сторінці шукається актуальний DOM-елемент. Якщо між двома викликами DOM змінився через повторний рендер, буде використано новий елемент, що відповідає локатору.</div>
+
+  <figure class="code" data-src="snip/lazy.ts" data-title="components/SearchBar.ts (фрагмент)"></figure>
+  <p>Саме тому створювати локатори в конструкторі безпечно: у момент <code>new SearchBar(...)</code> пошукового поля може ще не бути на сторінці, і це нормально. Воно знадобиться лише тоді, коли тест викличе <code>search()</code>, а Playwright дочекається його появи завдяки автоочікуванню перед дією.</p>
+
+  <h3>Коли компоненту все ж потрібен Page</h3>
+  <p>Деякі речі не належать жодному елементу: події завантаження файлів, діалоги браузера, навігація. Для них компоненту потрібен <code>Page</code>. Є два способи його отримати.</p>
+  <figure class="code" data-src="snip/page-access.ts" data-title="Два способи доступу до Page"></figure>
+
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span><code>locator.page()</code> повертає сторінку, якій належить локатор. Отже, компонент може отримати Page зі свого кореня без окремого параметра.</div>
+  <div class="claim rec"><span class="lvl rec">Рекомендація</span>Якщо Page потрібен в одному-двох методах, беріть його через <code>this.root.page()</code>: сигнатура конструктора лишається простою, і всі компоненти створюються однаково. Якщо компонент постійно працює зі сторінкою (слухає події, керує навігацією), передайте Page явно: залежність видно з конструктора, і її легше помітити під час рев'ю. Ціна явного параметра — у компонента з'являється «вихід» за межі кореня, тому стежте, щоб через нього не почали шукати звичайні елементи.</div>
+
+  <div class="callout"><div class="callout-title">Кореневий локатор</div><dl>
+    <dt>Проблема</dt><dd>Компонент, що шукає елементи від <code>page</code>, бачить усю сторінку і знаходить чужі кнопки та поля.</dd>
+    <dt>Чому</dt><dd>Локатор від <code>page</code> не має меж, тож на сторінці з кількома однаковими віджетами він неоднозначний.</dd>
+    <dt>Рішення</dt><dd>Передавати компоненту Locator його кореня й будувати всі внутрішні локатори через <code>root.getBy…()</code>.</dd>
+    <dt>Коли</dt><dd>Завжди, коли клас описує фрагмент сторінки. Page потрібен лише для того, що не має елемента: подій, діалогів, навігації.</dd>
+  </dl></div>
+</div>
+</section>
+
+<!-- 3 -->
+<section class="topic" id="s3" data-title="BaseComponent">
+<div class="wrap">
+  <div class="sec-head"><span class="sec-num">3</span><h2>BaseComponent</h2></div>
+  <div class="doclinks">
+    <a class="doclink" href="https://www.typescriptlang.org/docs/handbook/2/classes.html#abstract-classes-and-members" target="_blank" rel="noopener">Документація TS: abstract classes →</a>
+    <a class="doclink" href="https://www.typescriptlang.org/docs/handbook/2/classes.html#member-visibility" target="_blank" rel="noopener">Документація TS: member visibility →</a>
+  </div>
+
+  <p>Коли компонентів кілька, у них з'являється спільна частина: кожен зберігає корінь. Її зручно винести в абстрактний базовий клас.</p>
+  <figure class="code" data-src="components/BaseComponent.ts"></figure>
+
+  <div class="claim pw"><span class="lvl pw">Так працює TypeScript</span>Абстрактний клас не можна створити напряму через <code>new</code>, його можна лише успадкувати. Поле з модифікатором <code>protected</code> доступне в підкласах, але не ззовні, а <code>readonly</code> забороняє перевизначати його після конструктора.</div>
+
+  <p>Що тут відбувається. Поле <code>root</code> захищене: підкласи будують від нього свої локатори, а тест не може ланцюжити від нього довільні пошуки і тим самим обходити API компонента. Водночас тесту інколи потрібно перевірити компонент цілком, наприклад що модалка зникла. Для цього є єдиний публічний геттер <code>rootLocator</code>, і більше в базовому класі нічого немає. Конструктор публічний: абстрактність класу вже не дає створити «просто компонент», а підкласи без власного конструктора залишаються створюваними.</p>
+
+  <h3>Чому не варто тягнути в базовий клас «все про всяк випадок»</h3>
+  <figure class="code" data-src="snip/bloated-base.ts" data-title="Антиприклад"></figure>
+  <div class="claim rec"><span class="lvl rec">Рекомендація</span>Кожен метод базового класу успадковують усі компоненти, тож він має бути справді спільним для всіх. У прикладі вище <code>clickByText</code> шукає від сторінки й руйнує скоуп, <code>waitForSpinner</code> знає про конкретну реалізацію інтерфейсу, а <code>isDisplayed</code> повертає миттєвий стан без очікування. Поле <code>page</code> у базовому класі змушує кожен компонент приймати Page, навіть коли він не потрібен. Додавайте в базовий клас лише те, що вже повторилося в кількох компонентах, а не те, що «може знадобитися».</div>
+
+  <div class="callout"><div class="callout-title">Мінімальний базовий клас</div><dl>
+    <dt>Проблема</dt><dd>Базовий клас обростає утилітами, і кожен компонент отримує методи, які йому не потрібні або порушують його межі.</dd>
+    <dt>Чому</dt><dd>Успадкування поширює все одразу на всіх нащадків, і прибрати метод згодом важче, ніж не додати його.</dd>
+    <dt>Рішення</dt><dd>Тримати в базі корінь і мінімальний доступ до нього, а поведінку описувати в конкретних компонентах.</dd>
+    <dt>Коли</dt><dd>Розширювати базу, коли той самий код з'явився щонайменше у двох-трьох компонентах і справді не залежить від їхнього змісту.</dd>
+  </dl></div>
+</div>
+</section>
+
+<!-- 4 -->
+<section class="topic" id="s4" data-title="Прості компоненти">
+<div class="wrap">
+  <div class="sec-head"><span class="sec-num">4</span><h2>Прості компоненти</h2></div>
+  <div class="doclinks">
+    <a class="doclink" href="https://playwright.dev/docs/best-practices#use-locators" target="_blank" rel="noopener">Документація: Best practices, locators →</a>
+    <a class="doclink" href="https://playwright.dev/docs/locators#quick-guide" target="_blank" rel="noopener">Документація: Locators, quick guide →</a>
+  </div>
+
+  <p>Почнімо з компонентів без вкладеності. Два правила роблять їх корисними. Перше: методи називаються мовою предметної області. Тест каже <code>search('bob')</code> чи <code>goToPage(2)</code>, а не «клікни по кнопці з таким-то текстом». Метод-обгортка над одним <code>click()</code> без жодного сенсу нічого не додає до читабельності. Друге: внутрішні локатори обираються за пріоритетом із документації.</p>
+
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span>Документація рекомендує віддавати перевагу атрибутам, які бачить користувач, і явним контрактам: <code>getByRole</code> найближчий до того, як сторінку сприймають користувачі й допоміжні технології; <code>getByLabel</code> підходить для полів форм; <code>getByTestId</code> є найстійкішим до змін тексту чи ролі, але не орієнтований на користувача. CSS і XPath можуть ламатися при зміні структури DOM.</div>
+
+  <figure class="code" data-src="components/SearchBar.ts"></figure>
+  <p>Кореневий елемент пошуку зазвичай має роль <code>search</code> (елемент <code>&lt;search&gt;</code> або атрибут <code>role="search"</code>), тож сторінка створить компонент як <code>new SearchBar(page.getByRole('search'))</code>. Поле <code>input</code> публічне, бо тесту корисно перевіряти його значення через <code>toHaveValue</code>; кнопка приватна, бо натискання вже інкапсульовано в <code>search()</code>.</p>
+
+  <figure class="code" data-src="components/Modal.ts"></figure>
+  <p>Модалка отримує корінь <code>page.getByRole('dialog', { name: 'Delete user' })</code>. Ім'я діалогу важливе: якщо на сторінці можуть з'явитися два діалоги, без імені корінь буде неоднозначним.</p>
+
+  <figure class="code" data-src="components/Pagination.ts"></figure>
+  <p>У пагінації <code>exact: true</code> не дає посиланню «2» збігтися з «12» чи «20», бо за замовчуванням ім'я ролі порівнюється як підрядок без урахування регістру. Поточну сторінку тут знайдено через атрибут <code>aria-current</code> CSS-селектором: серед опцій <code>getByRole</code> такого параметра немає, а атрибут є стабільним контрактом доступності, не деталлю верстки.</p>
+
+  <div class="claim rec"><span class="lvl rec">Рекомендація</span>Робіть публічними ті локатори, які тест перевірятиме (<code>heading</code>, <code>currentPage</code>, <code>input</code>), а ті, через які лише виконуються дії, ховайте за методами. Так API компонента показує, що з ним можна робити і що можна перевіряти.</div>
+</div>
+
+<div class="wide">
+  <div class="lab" id="lab-builder">
+    <div class="lab-head"><span class="lab-tag">Інтерактив</span><h3>Конструктор компонента</h3></div>
+    <div class="lab-body">
+      <p class="lab-hint">Оберіть тип компонента, стратегію кореневого локатора і набір дій. Скелет класу оновлюється одразу.</p>
+      <div class="builder">
+        <div>
+          <fieldset><legend>Тип</legend>
+            <label><input type="radio" name="bType" value="Modal" checked> Modal</label>
+            <label><input type="radio" name="bType" value="Table"> Table</label>
+            <label><input type="radio" name="bType" value="SearchBar"> SearchBar</label>
+          </fieldset>
+          <fieldset><legend>Кореневий локатор</legend>
+            <label><input type="radio" name="bRoot" value="role" checked> getByRole з іменем</label>
+            <label><input type="radio" name="bRoot" value="testid"> getByTestId</label>
+            <label><input type="radio" name="bRoot" value="css"> locator('css')</label>
+          </fieldset>
+          <fieldset id="bActions"><legend>Дії та поля</legend></fieldset>
+        </div>
+        <div>
+          <figure class="code" id="builderOut" data-title="components/Generated.ts"></figure>
+          <div class="note" id="builderNote" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- 5 -->
+<section class="topic" id="s5" data-title="Вкладені компоненти">
+<div class="wrap">
+  <div class="sec-head"><span class="sec-num">5</span><h2>Вкладені об'єкти</h2></div>
+  <div class="doclinks">
+    <a class="doclink" href="https://playwright.dev/docs/locators#filtering-locators" target="_blank" rel="noopener">Документація: Filtering locators →</a>
+    <a class="doclink" href="https://playwright.dev/docs/locators#lists" target="_blank" rel="noopener">Документація: Lists →</a>
+    <a class="doclink" href="https://playwright.dev/docs/api/class-locator#locator-all" target="_blank" rel="noopener">Документація: locator.all() →</a>
+  </div>
+
+  <p>Компонент може містити інші компоненти. Хедер містить головне меню, меню містить випадаюче меню облікового запису. Таблиця містить рядки, рядок містить блок дій. Правило вкладення одне: дочірній компонент створюється від локатора всередині кореня батьківського. Тоді скоуп звужується на кожному рівні, і найглибший компонент шукає елементи у невеликому, однозначному фрагменті DOM.</p>
+
+  <h3>Header → NavMenu → UserMenu</h3>
+  <figure class="code" data-src="components/Header.ts"></figure>
+  <figure class="code" data-src="components/NavMenu.ts"></figure>
+  <figure class="code" data-src="components/UserMenu.ts"></figure>
+  <p>Ланцюжок коренів у підсумку такий: сторінка дає хедеру <code>banner</code>, хедер дає меню <code>navigation</code> з іменем «Main», а меню дає блоку облікового запису елемент з test id. Тест пише <code>usersPage.header.nav.userMenu.logout()</code>, і кожна ланка шукає лише всередині попередньої.</p>
+
+  <h3>Table → Row → Actions</h3>
+  <p>Таблиця — класичний приклад компонента-колекції. Рядків багато, вони однакові за структурою, тож рядок сам стає компонентом, а таблиця вміє повертати потрібний рядок.</p>
+  <figure class="code" data-src="components/RowActions.ts"></figure>
+  <figure class="code" data-src="components/UserRow.ts"></figure>
+  <figure class="code" data-src="components/DataTable.ts"></figure>
+
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span><code>filter({ hasText })</code> залишає елементи, які містять текст десь усередині, зокрема в нащадках; рядок порівнюється як підрядок без урахування регістру. <code>filter({ has })</code> залишає елементи, що містять елемент за внутрішнім локатором. Внутрішній локатор має бути відносним: він шукається, починаючи від знайденого зовнішнього елемента, а не від кореня документа.</div>
+
+  <p>Остання вимога пояснює, чому в <code>rowWithCell</code> внутрішній локатор побудовано від <code>this.root.page()</code>, а не від <code>this.root</code>. Локатор <code>page.getByRole('cell', …)</code> у ролі внутрішнього означає «клітинка всередині рядка». Ланцюжок від кореня таблиці означав би «таблиця, а в ній клітинка» всередині рядка, а таблиці в рядку немає, тож фільтр нічого б не знайшов. Цей самий прийом використано в прикладах документації: <code>filter({ has: page.getByRole('heading', …) })</code>.</p>
+
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span><code>first()</code>, <code>last()</code> і <code>nth()</code> обирають елемент за позицією. Документація застерігає: сторінка може змінитися, і локатор вкаже на інший елемент, ніж очікувалося; краще знайти унікальний локатор. Тому <code>rowAt()</code> у таблиці доречний лише там, де порядок справді є предметом перевірки, наприклад після сортування.</div>
+
+  <h3>Масив компонентів через all()</h3>
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span><code>locator.all()</code> повертає масив локаторів для кожного знайденого елемента, але не чекає появи елементів і повертає те, що є на сторінці зараз. Якщо список змінюється динамічно, результат буде непередбачуваним; якщо список стабільний, але завантажується, треба дочекатися завершення завантаження. У розділі Lists документація відносить перебір елементів до рідкісних випадків, а для перевірки списку пропонує <code>toHaveCount</code> і <code>toHaveText</code> з масивом.</div>
+  <figure class="code" data-src="snip/lists.ts" data-title="tests/users.spec.ts (фрагмент)"></figure>
+  <div class="claim rec"><span class="lvl rec">Рекомендація</span>За замовчуванням працюйте з локатором списку (<code>table.rows</code>) і web-first перевірками. Метод <code>allRows()</code> лишайте для випадків, коли з кожним рядком треба виконати дію, і завжди викликайте його після перевірки, що список уже стабільний.</div>
+
+  <div class="callout"><div class="callout-title">Вкладення компонентів</div><dl>
+    <dt>Проблема</dt><dd>У фрагменті є повторювані частини, і без вкладення батьківський компонент розростається до розмірів «товстої» сторінки.</dd>
+    <dt>Чому</dt><dd>Рядок, меню, картка мають власну поведінку і власні межі, які не залежать від того, де саме вони розміщені.</dd>
+    <dt>Рішення</dt><dd>Створювати дочірній компонент від локатора в межах батьківського кореня, а для колекцій повертати компонент-елемент через <code>filter</code>.</dd>
+    <dt>Коли</dt><dd>Коли в частини є кілька дій або вона повторюється. Якщо це одна кнопка, достатньо поля-локатора в батьківському компоненті.</dd>
+  </dl></div>
+</div>
+
+<div class="wide">
+  <div class="lab" id="lab-tree">
+    <div class="lab-head"><span class="lab-tag">Інтерактив</span><h3>Дерево вкладених компонентів</h3></div>
+    <div class="lab-body">
+      <p class="lab-hint">Розгортайте вузли і відкривайте код кожного компонента. Стрілки ліворуч і праворуч на клавіатурі згортають і розгортають обраний вузол.</p>
+      <div class="tree-grid">
+        <ul class="tree" id="tree" role="tree" aria-label="Дерево компонентів UsersPage"></ul>
+        <div class="tree-code" id="treeCode"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- 6 -->
+<section class="topic" id="s6" data-title="Строгість і неоднозначність">
+<div class="wrap">
+  <div class="sec-head"><span class="sec-num">6</span><h2>Строгість і неоднозначність</h2></div>
+  <div class="doclinks"><a class="doclink" href="https://playwright.dev/docs/locators#strictness" target="_blank" rel="noopener">Документація: Strictness →</a></div>
+
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span>Локатори строгі: будь-яка операція, що передбачає один цільовий елемент, кидає виняток, якщо локатору відповідає більше ніж один елемент. Операції над кількома елементами, як-от <code>count()</code>, працюють без помилки. Від перевірки строгості можна явно відмовитися через <code>first()</code>, <code>last()</code> чи <code>nth()</code>, але документація цього не рекомендує.</div>
+
+  <p>На сторінці з таблицею строгість проявляється одразу: у кожному рядку є кнопка «Delete», тож локатор від сторінки знаходить їх усі. Компонентний підхід розв'язує це не обхідним шляхом, а архітектурно: коли кнопку шукає рядок від свого кореня, у межах скоупу вона одна.</p>
+  <figure class="code" data-src="snip/strict.ts" data-title="Одна кнопка, три підходи"></figure>
+  <p>Те саме стосується кореня. Якщо <code>page.getByRole('dialog')</code> знаходить два діалоги, помилку кине перша ж дія всередині компонента, бо всі його локатори успадковують неоднозначний корінь. Тому корінь обирають так, щоб він однозначно ідентифікував фрагмент: за іменем ролі, test id чи фільтром.</p>
+</div>
+
+<div class="wide">
+  <div class="lab" id="lab-scope">
+    <div class="lab-head"><span class="lab-tag">Інтерактив</span><h3>Візуалізатор скоупу</h3></div>
+    <div class="lab-body">
+      <p class="lab-hint">Оберіть локатор і подивіться, скільки кнопок він знаходить у таблиці з чотирма рядками.</p>
+      <div class="opts" role="radiogroup" aria-label="Варіант локатора" id="scopeOpts">
+        <label class="opt"><input type="radio" name="scope" value="page" checked><span><code>page.getByRole('button', { name: 'Delete' })</code></span></label>
+        <label class="opt"><input type="radio" name="scope" value="row"><span><code>this.root.getByRole('button', { name: 'Delete' })</code><br><small>усередині <code>RowActions</code>, де root веде від рядка «bob@example.com»</small></span></label>
+        <label class="opt"><input type="radio" name="scope" value="first"><span><code>page.getByRole('button', { name: 'Delete' }).first()</code></span></label>
+      </div>
+      <div class="scope-grid">
+        <table class="stable" aria-label="Таблиця користувачів">
+          <thead><tr><th>Name</th><th>Email</th><th>Actions</th></tr></thead>
+          <tbody id="scopeRows"></tbody>
+        </table>
+        <div class="verdict" id="scopeVerdict" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- 7 -->
+<section class="topic" id="s7" data-title="Повторне використання">
+<div class="wrap">
+  <div class="sec-head"><span class="sec-num">7</span><h2>Повторне використання</h2></div>
+  <div class="doclinks">
+    <a class="doclink" href="https://playwright.dev/docs/pom" target="_blank" rel="noopener">Документація: Page object models →</a>
+    <a class="doclink" href="https://www.typescriptlang.org/docs/handbook/2/generics.html#generic-classes" target="_blank" rel="noopener">Документація TS: generic classes →</a>
+  </div>
+
+  <p>Тепер сторінки складаються з компонентів. Page-клас перестає описувати елементи: він лише вирішує, які компоненти є на сторінці і де їхні корені. Це композиція: сторінка має поля <code>header</code>, <code>search</code>, <code>table</code>, а не успадковує їх.</p>
+  <figure class="code" data-src="pages/UsersPage.ts"></figure>
+  <figure class="code" data-src="pages/OrdersPage.ts"></figure>
+  <figure class="code" data-src="components/OrderRow.ts"></figure>
+  <p>Хедер, пошук, таблиця і пагінація однакові в обох сторінках, різняться лише корінь таблиці та тип рядка. Логіка пошуку, меню і переходів між сторінками описана один раз, у компонентах.</p>
+
+  <h3>Композиція проти успадкування</h3>
+  <figure class="code" data-src="snip/composition.ts" data-title="Коли extends, а коли поле"></figure>
+  <div class="claim rec"><span class="lvl rec">Рекомендація</span>Перевіряйте зв'язок питанням «є» чи «має». <code>ConfirmDialog</code> є модалкою з додатковим повідомленням, тому <code>extends Modal</code> природний: він отримує <code>confirm()</code> і <code>close()</code> і додає своє. Сторінка не є хедером, вона його має, тому хедер стає полем. Успадкування від компонента, щоб «отримати його методи», змішує дві сутності й закриває шлях до другого такого ж компонента на сторінці.</div>
+
+  <h3>Generic-таблиця з типізованим рядком</h3>
+  <p><code>DataTable&lt;TRow extends BaseComponent&gt;</code> з попереднього розділу — це одна реалізація таблиці для будь-якого типу рядка. Сторінка передає фабрику <code>(row: Locator): UserRow =&gt; new UserRow(row)</code>, і TypeScript виводить <code>TRow</code> як <code>UserRow</code>. Тепер <code>usersPage.table.rowByText(...)</code> повертає саме <code>UserRow</code> з полем <code>actions</code>, а <code>ordersPage.table.rowByText(...)</code> повертає <code>OrderRow</code> з полем <code>status</code>, і компілятор не дасть переплутати.</p>
+  <div class="claim pw"><span class="lvl pw">Так працює TypeScript</span>Обмеження <code>TRow extends BaseComponent</code> гарантує, що фабрика повертає компонент. Тип параметра класу виводиться з аргументів конструктора, тож явно писати <code>new DataTable&lt;UserRow&gt;(…)</code> не обов'язково, хоча в полі класу тип вказано явно: <code>readonly table: DataTable&lt;UserRow&gt;</code>.</div>
+
+  <div class="callout"><div class="callout-title">Композиція сторінки</div><dl>
+    <dt>Проблема</dt><dd>Однаковий функціонал на різних сторінках потрібно описувати один раз, але кожна сторінка має свій набір фрагментів.</dd>
+    <dt>Чому</dt><dd>Успадкування дає лише одного предка, а сторінка складається з багатьох незалежних частин.</dd>
+    <dt>Рішення</dt><dd>Сторінка тримає компоненти як <code>readonly</code> поля і передає кожному його корінь.</dd>
+    <dt>Коли</dt><dd>Завжди для зв'язку «сторінка має компонент». <code>extends</code> лишайте для «компонент є різновидом іншого компонента».</dd>
+  </dl></div>
+</div>
+
+<div class="wide">
+  <div class="lab" id="lab-fat">
+    <div class="lab-head"><span class="lab-tag">Інтерактив</span><h3>Товстий POM проти COM</h3></div>
+    <div class="lab-body">
+      <p class="lab-hint">Ті самі три сторінки до і після рефакторингу. Червоним позначено локатори, які повторюються в кількох класах.</p>
+      <div class="seg" role="group" aria-label="Варіант архітектури">
+        <button type="button" aria-pressed="true" data-mode="fat">Товстий POM</button>
+        <button type="button" aria-pressed="false" data-mode="com">COM</button>
+      </div>
+      <div class="metrics" id="fatMetrics" aria-live="polite"></div>
+      <div class="cols" id="fatCols"></div>
+      <p class="note" id="fatNote"></p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- 8 -->
+<section class="topic" id="s8" data-title="Компоненти й фікстури">
+<div class="wrap">
+  <div class="sec-head"><span class="sec-num">8</span><h2>Компоненти й фікстури</h2></div>
+  <div class="doclinks"><a class="doclink" href="https://playwright.dev/docs/test-fixtures#creating-a-fixture" target="_blank" rel="noopener">Документація: Creating a fixture →</a></div>
+
+  <p>Фікстури детально розбираються в окремій темі, тож тут лише зв'язок із компонентами. Тесту не потрібно знати, як зібрано сторінку: він отримує готовий page object, у якому вже є всі компоненти.</p>
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span>Власні фікстури оголошуються через <code>test.extend</code> з типом фікстур як параметром. Функція фікстури отримує інші фікстури першим аргументом і функцію <code>use</code> другим; значення передається в тест через <code>await use(...)</code>, а код після цього виклику виконується як teardown.</div>
+  <figure class="code" data-src="fixtures/admin.fixture.ts"></figure>
+  <div class="claim rec"><span class="lvl rec">Рекомендація</span>Створюйте у фікстурах page objects, а не окремі компоненти. Компонент без сторінки не має кореня, а фікстура <code>searchBar</code> незабаром знадобиться для кожної сторінки окремо. Тест працює зі сторінкою і через неї дістається компонентів: <code>usersPage.search</code>, <code>usersPage.table</code>.</div>
+</div>
+</section>
+
+<!-- 9 -->
+<section class="topic" id="s9" data-title="Компоненти й assertions">
+<div class="wrap">
+  <div class="sec-head"><span class="sec-num">9</span><h2>Компоненти й assertions</h2></div>
+  <div class="doclinks">
+    <a class="doclink" href="https://playwright.dev/docs/test-assertions" target="_blank" rel="noopener">Документація: Assertions →</a>
+    <a class="doclink" href="https://playwright.dev/docs/best-practices#use-web-first-assertions" target="_blank" rel="noopener">Документація: web-first assertions →</a>
+  </div>
+
+  <p>Найчастіше питання про компоненти: де мають жити перевірки? Почнімо з того, як працюють самі перевірки в Playwright.</p>
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span>Асинхронні матчери на кшталт <code>expect(locator).toBeVisible()</code> чи <code>toHaveText()</code> повторюють перевірку, доки умова не виконається або не мине таймаут. Best practices прямо радять використовувати web-first assertions і не писати ручних перевірок на зразок <code>expect(await locator.isVisible()).toBe(true)</code>: <code>isVisible()</code> повертає стан на поточну мить і не чекає.</div>
+
+  <figure class="code" data-src="snip/assert-bad.ts" data-title="Антиприклад: стан через isVisible і if"></figure>
+  <p>Тут дві проблеми. Якщо діалог з'являється з анімацією, <code>isOpen()</code> може повернути <code>false</code> за мить до появи, і тест мовчки пропустить підтвердження. А остання перевірка порівнює миттєве значення, тож після кліку діалог ще не встигає зникнути, і тест падає випадково. Обидві проблеми зникають, коли компонент надає локатори, а тест перевіряє їх web-first матчерами.</p>
+  <figure class="code" data-src="snip/assert-good.ts" data-title="Web-first перевірки в тесті"></figure>
+
+  <div class="claim rec"><span class="lvl rec">Рекомендація</span>Компонент відповідає за дії та за доступ до елементів, а тест вирішує, що перевіряти. Тоді один компонент обслуговує і позитивні, і негативні сценарії: модалку можна перевірити і на появу, і на зникнення, без методів <code>isOpen</code> та <code>isClosed</code>. Якщо в кількох тестах повторюється та сама група перевірок, її можна винести в helper-функцію поруч із тестами, але й там вона має складатися з <code>await expect(...)</code>, а не з <code>if</code>.</div>
+
+  <h3>Наскрізний тест</h3>
+  <p>Так виглядає повний ланцюжок: BaseComponent, компоненти, сторінка, фікстура і тест.</p>
+  <figure class="code" data-src="tests/users.spec.ts"></figure>
+
+  <div class="callout"><div class="callout-title">Перевірки поза компонентом</div><dl>
+    <dt>Проблема</dt><dd>Методи-перевірки в компоненті з <code>isVisible()</code> та <code>if</code> дають нестабільні тести, що проходять або падають залежно від таймінгу.</dd>
+    <dt>Чому</dt><dd>Миттєві методи не чекають і не повторюють перевірку, на відміну від web-first матчерів.</dd>
+    <dt>Рішення</dt><dd>Компонент надає локатори, тест робить <code>await expect(component.locator)…</code> з автоочікуванням.</dd>
+    <dt>Коли</dt><dd>Для будь-якої перевірки стану UI. Розгалуження в тесті доречне лише тоді, коли сценарій справді має дві гілки, і документація показує, як дочекатися однієї з них через <code>or()</code>.</dd>
+  </dl></div>
+</div>
+</section>
+
+<!-- 10 -->
+<section class="topic" id="s10" data-title="Особливі випадки">
+<div class="wrap">
+  <div class="sec-head"><span class="sec-num">10</span><h2>Особливі випадки</h2></div>
+  <div class="doclinks">
+    <a class="doclink" href="https://playwright.dev/docs/frames" target="_blank" rel="noopener">Документація: Frames →</a>
+    <a class="doclink" href="https://playwright.dev/docs/test-use-options" target="_blank" rel="noopener">Документація: use options →</a>
+    <a class="doclink" href="https://playwright.dev/docs/api/class-locator#locator-describe" target="_blank" rel="noopener">Документація: locator.describe() →</a>
+  </div>
+
+  <h3>Компонент усередині iframe</h3>
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span><code>locator.contentFrame()</code> повертає <code>FrameLocator</code>, що вказує на той самий iframe, а методи створення локаторів доступні і на <code>FrameLocator</code>. Тобто від iframe можна побудувати звичайний <code>Locator</code> для елемента всередині. Водночас для <code>filter({ has })</code> документація вимагає, щоб внутрішній і зовнішній локатори належали одному фрейму і внутрішній не містив FrameLocator.</div>
+  <figure class="code" data-src="components/PaymentWidget.ts"></figure>
+  <figure class="code" data-src="pages/CheckoutPage.ts"></figure>
+  <p>Компонент <code>PaymentWidget</code> нічого не знає про iframe: він отримує звичайний Locator і будує від нього свої локатори. Перехід у фрейм відбувається один раз, у сторінці. Сам iframe знайдено за атрибутом <code>title</code> через <code>getByTitle</code>, а не через CSS.</p>
+
+  <h3>Власний атрибут для test id</h3>
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span>За замовчуванням <code>getByTestId</code> шукає атрибут <code>data-testid</code>. Інший атрибут задають опцією <code>testIdAttribute</code> у секції <code>use</code> конфігурації.</div>
+  <figure class="code" data-src="playwright.config.ts"></figure>
+  <p>Компоненти від цього не змінюються: <code>root.getByTestId('row-actions')</code> тепер шукатиме <code>data-qa="row-actions"</code>. Це ще одна перевага того, що локатори зібрані в компонентах, а атрибут налаштований в одному місці.</p>
+
+  <h3>Зрозумілі назви в trace viewer</h3>
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span><code>locator.describe(description)</code> задає опис, який показується в trace viewer і звітах, і повертає локатор на той самий елемент.</div>
+  <figure class="code" data-src="snip/describe.ts" data-title="pages/UsersPage.ts (фрагмент)"></figure>
+  <div class="claim rec"><span class="lvl rec">Рекомендація</span>Описуйте корені компонентів, особливо однотипних: «Users search», «Payment widget (iframe)». Опис наслідують усі локатори, побудовані від кореня, тож у трейсі видно, якому компоненту належала дія.</div>
+
+  <h3>Лише видимі елементи</h3>
+  <div class="claim pw"><span class="lvl pw">Так працює Playwright</span>Для вибору тільки видимих елементів документація 1.63 показує <code>locator.visible()</code>, а в описі <code>filter({ visible })</code> радить надавати перевагу саме цьому скороченню. Там само є примітка, що зазвичай краще знайти надійніший спосіб однозначно ідентифікувати елемент, ніж перевіряти видимість. Рольові локатори вже за замовчуванням не бачать елементів, прихованих з дерева доступності.</div>
+  <figure class="code" data-src="snip/visible.ts" data-title="Два однакові віджети, один прихований"></figure>
+</div>
+</section>
+
+<!-- 11 -->
+<section class="topic" id="s11" data-title="Антипатерни й чек-лист">
+<div class="wrap">
+  <div class="sec-head"><span class="sec-num">11</span><h2>Антипатерни й чек-лист</h2></div>
+  <div class="doclinks"><a class="doclink" href="https://playwright.dev/docs/best-practices" target="_blank" rel="noopener">Документація: Best practices →</a></div>
+  <p>Кожен фрагмент нижче компілюється, але містить проєктну помилку. Спробуйте назвати її самостійно, а тоді відкрийте пояснення.</p>
+  <div id="bugs"></div>
+
+  <h3>Чек-лист гарного компонента</h3>
+  <div class="tbl-wrap">
+  <table class="check">
+    <thead><tr><th scope="col">Перевірте</th><th scope="col">Чому це важливо</th></tr></thead>
+    <tbody>
+      <tr><td>Конструктор приймає <code>Locator</code> кореня, а не <code>Page</code></td><td>Компонент обмежений своїм фрагментом і може існувати в кількох екземплярах на сторінці</td></tr>
+      <tr><td>Усі внутрішні локатори будуються від <code>root</code></td><td>Скоуп звужується, строгість не порушується через сусідні віджети</td></tr>
+      <tr><td>Корінь однозначний: роль з іменем, test id або фільтр</td><td>Неоднозначний корінь робить неоднозначними всі локатори компонента</td></tr>
+      <tr><td>Локатори обрано за пріоритетом best practices</td><td>getByRole, getByLabel, getByTestId стійкіші до змін верстки, ніж CSS-ланцюжки</td></tr>
+      <tr><td>Методи названо мовою предметної області</td><td>Тест читається як сценарій користувача, а не як послідовність кліків</td></tr>
+      <tr><td>Немає методів-перевірок з <code>isVisible()</code> та <code>if</code></td><td>Перевірки роблять web-first матчери в тесті з автоочікуванням</td></tr>
+      <tr><td>Компонент не імпортує сторінки</td><td>Його можна використати на будь-якій сторінці без циклічних залежностей</td></tr>
+      <tr><td>Вкладеність відповідає реальній структурі UI і лишається неглибокою</td><td>Тест не перетворюється на довгий ланцюжок проміжних об'єктів</td></tr>
+      <tr><td>Кожен локатор описано в одному компоненті</td><td>Зміна в UI виправляється в одному місці</td></tr>
+      <tr><td>Поля-локатори <code>readonly</code>, async-методи мають явний <code>Promise&lt;…&gt;</code></td><td>Контракт компонента видно з типів, і його не змінять випадково</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+</section>
+
+<!-- 12 -->
+<section class="topic" id="s12" data-title="Фінальний квіз">
+<div class="wrap">
+  <div class="sec-head"><span class="sec-num">12</span><h2>Фінальний квіз</h2></div>
+  <p>Десять запитань на перевірку розуміння. Після відповіді з'являється пояснення з посиланням на документацію.</p>
+  <div id="quiz"></div>
+  <div class="score" aria-live="polite"><span id="scoreText">Відповідей: 0 з 10, правильних: 0</span><button class="btn" type="button" id="quizReset">Пройти ще раз</button></div>
+</div>
+</section>
+</main>
+</div>
+
+<script>
+(function () {
+'use strict';
+const CODE = {"components/BaseComponent.ts":"import type { Locator } from '@playwright/test';\n\nexport abstract class BaseComponent {\n  protected readonly root: Locator;\n\n  constructor(root: Locator) {\n    this.root = root;\n  }\n\n  /** Root of the component, exposed for web-first assertions in tests. */\n  get rootLocator(): Locator {\n    return this.root;\n  }\n}\n","components/DataTable.ts":"import type { Download, Locator } from '@playwright/test';\nimport { BaseComponent } from './BaseComponent';\n\nexport type RowFactory<TRow extends BaseComponent> = (rowRoot: Locator) => TRow;\n\nexport class DataTable<TRow extends BaseComponent> extends BaseComponent {\n  readonly rows: Locator;\n  private readonly createRow: RowFactory<TRow>;\n\n  constructor(root: Locator, createRow: RowFactory<TRow>) {\n    super(root);\n    this.rows = root.locator('tbody').getByRole('row');\n    this.createRow = createRow;\n  }\n\n  rowByText(text: string): TRow {\n    return this.createRow(this.rows.filter({ hasText: text }));\n  }\n\n  rowWithCell(cellText: string): TRow {\n    const cell: Locator = this.root\n      .page()\n      .getByRole('cell', { name: cellText, exact: true });\n    return this.createRow(this.rows.filter({ has: cell }));\n  }\n\n  rowAt(index: number): TRow {\n    return this.createRow(this.rows.nth(index));\n  }\n\n  async allRows(): Promise<TRow[]> {\n    const rowLocators: Locator[] = await this.rows.all();\n    return rowLocators.map((row: Locator): TRow => this.createRow(row));\n  }\n\n  async exportCsv(): Promise<Download> {\n    const downloadPromise: Promise<Download> = this.root.page().waitForEvent('download');\n    await this.root.getByRole('button', { name: 'Export CSV' }).click();\n    return downloadPromise;\n  }\n}\n","components/Header.ts":"import type { Locator } from '@playwright/test';\nimport { BaseComponent } from './BaseComponent';\nimport { NavMenu } from './NavMenu';\n\nexport class Header extends BaseComponent {\n  readonly logo: Locator;\n  readonly nav: NavMenu;\n\n  constructor(root: Locator) {\n    super(root);\n    this.logo = root.getByRole('link', { name: 'Admin home' });\n    this.nav = new NavMenu(root.getByRole('navigation', { name: 'Main' }));\n  }\n}\n","components/Modal.ts":"import type { Locator } from '@playwright/test';\nimport { BaseComponent } from './BaseComponent';\n\nexport class Modal extends BaseComponent {\n  readonly heading: Locator;\n  private readonly confirmButton: Locator;\n  private readonly closeButton: Locator;\n\n  constructor(root: Locator) {\n    super(root);\n    this.heading = root.getByRole('heading');\n    this.confirmButton = root.getByRole('button', { name: 'Confirm' });\n    this.closeButton = root.getByRole('button', { name: 'Close' });\n  }\n\n  async confirm(): Promise<void> {\n    await this.confirmButton.click();\n  }\n\n  async close(): Promise<void> {\n    await this.closeButton.click();\n  }\n}\n","components/NavMenu.ts":"import type { Locator } from '@playwright/test';\nimport { BaseComponent } from './BaseComponent';\nimport { UserMenu } from './UserMenu';\n\nexport class NavMenu extends BaseComponent {\n  readonly userMenu: UserMenu;\n\n  constructor(root: Locator) {\n    super(root);\n    this.userMenu = new UserMenu(root.getByTestId('user-menu'));\n  }\n\n  async openSection(name: string): Promise<void> {\n    await this.root.getByRole('link', { name }).click();\n  }\n}\n","components/OrderRow.ts":"import type { Locator } from '@playwright/test';\nimport { BaseComponent } from './BaseComponent';\n\nexport class OrderRow extends BaseComponent {\n  readonly status: Locator;\n\n  constructor(root: Locator) {\n    super(root);\n    this.status = root.getByTestId('order-status');\n  }\n\n  async openDetails(): Promise<void> {\n    await this.root.getByRole('link', { name: 'Details' }).click();\n  }\n}\n","components/Pagination.ts":"import type { Locator } from '@playwright/test';\nimport { BaseComponent } from './BaseComponent';\n\nexport class Pagination extends BaseComponent {\n  readonly currentPage: Locator;\n  private readonly nextLink: Locator;\n\n  constructor(root: Locator) {\n    super(root);\n    this.currentPage = root.locator('[aria-current=\"page\"]');\n    this.nextLink = root.getByRole('link', { name: 'Next' });\n  }\n\n  async goToPage(pageNumber: number): Promise<void> {\n    await this.root\n      .getByRole('link', { name: String(pageNumber), exact: true })\n      .click();\n  }\n\n  async next(): Promise<void> {\n    await this.nextLink.click();\n  }\n}\n","components/PaymentWidget.ts":"import type { Locator } from '@playwright/test';\nimport { BaseComponent } from './BaseComponent';\n\nexport class PaymentWidget extends BaseComponent {\n  readonly cardNumber: Locator;\n  private readonly payButton: Locator;\n\n  constructor(root: Locator) {\n    super(root);\n    this.cardNumber = root.getByLabel('Card number');\n    this.payButton = root.getByRole('button', { name: 'Pay' });\n  }\n\n  async pay(card: string): Promise<void> {\n    await this.cardNumber.fill(card);\n    await this.payButton.click();\n  }\n}\n","components/RowActions.ts":"import type { Locator } from '@playwright/test';\nimport { BaseComponent } from './BaseComponent';\n\nexport class RowActions extends BaseComponent {\n  private readonly editButton: Locator;\n  private readonly deleteButton: Locator;\n\n  constructor(root: Locator) {\n    super(root);\n    this.editButton = root.getByRole('button', { name: 'Edit' });\n    this.deleteButton = root.getByRole('button', { name: 'Delete' });\n  }\n\n  async edit(): Promise<void> {\n    await this.editButton.click();\n  }\n\n  async delete(): Promise<void> {\n    await this.deleteButton.click();\n  }\n}\n","components/SearchBar.ts":"import type { Locator } from '@playwright/test';\nimport { BaseComponent } from './BaseComponent';\n\nexport class SearchBar extends BaseComponent {\n  readonly input: Locator;\n  private readonly submitButton: Locator;\n\n  constructor(root: Locator) {\n    super(root);\n    this.input = root.getByRole('searchbox');\n    this.submitButton = root.getByRole('button', { name: 'Search' });\n  }\n\n  async search(query: string): Promise<void> {\n    await this.input.fill(query);\n    await this.submitButton.click();\n  }\n\n  async clear(): Promise<void> {\n    await this.input.clear();\n  }\n}\n","components/UserMenu.ts":"import type { Locator } from '@playwright/test';\nimport { BaseComponent } from './BaseComponent';\n\nexport class UserMenu extends BaseComponent {\n  readonly menu: Locator;\n  private readonly trigger: Locator;\n\n  constructor(root: Locator) {\n    super(root);\n    this.trigger = root.getByRole('button', { name: 'Account' });\n    this.menu = root.getByRole('menu');\n  }\n\n  async open(): Promise<void> {\n    await this.trigger.click();\n  }\n\n  async logout(): Promise<void> {\n    await this.open();\n    await this.menu.getByRole('menuitem', { name: 'Log out' }).click();\n  }\n}\n","components/UserRow.ts":"import type { Locator } from '@playwright/test';\nimport { BaseComponent } from './BaseComponent';\nimport { RowActions } from './RowActions';\n\nexport class UserRow extends BaseComponent {\n  readonly cells: Locator;\n  readonly actions: RowActions;\n\n  constructor(root: Locator) {\n    super(root);\n    this.cells = root.getByRole('cell');\n    this.actions = new RowActions(root.getByTestId('row-actions'));\n  }\n}\n","fixtures/admin.fixture.ts":"import { test as base } from '@playwright/test';\nimport { UsersPage } from '../pages/UsersPage';\nimport { OrdersPage } from '../pages/OrdersPage';\n\ntype AdminFixtures = {\n  usersPage: UsersPage;\n  ordersPage: OrdersPage;\n};\n\nexport const test = base.extend<AdminFixtures>({\n  usersPage: async ({ page }, use) => {\n    const usersPage: UsersPage = new UsersPage(page);\n    await usersPage.goto();\n    await use(usersPage);\n  },\n  ordersPage: async ({ page }, use) => {\n    const ordersPage: OrdersPage = new OrdersPage(page);\n    await ordersPage.goto();\n    await use(ordersPage);\n  },\n});\n\nexport { expect } from '@playwright/test';\n","pages/CheckoutPage.ts":"import type { FrameLocator, Page } from '@playwright/test';\nimport { PaymentWidget } from '../components/PaymentWidget';\n\nexport class CheckoutPage {\n  readonly page: Page;\n  readonly payment: PaymentWidget;\n\n  constructor(page: Page) {\n    this.page = page;\n    const paymentFrame: FrameLocator = page.getByTitle('Payment form').contentFrame();\n    this.payment = new PaymentWidget(\n      paymentFrame.getByRole('form', { name: 'Payment' }).describe('Payment widget (iframe)'),\n    );\n  }\n}\n","pages/OrdersPage.ts":"import type { Locator, Page } from '@playwright/test';\nimport { Header } from '../components/Header';\nimport { SearchBar } from '../components/SearchBar';\nimport { DataTable } from '../components/DataTable';\nimport { Pagination } from '../components/Pagination';\nimport { OrderRow } from '../components/OrderRow';\n\nexport class OrdersPage {\n  readonly page: Page;\n  readonly header: Header;\n  readonly search: SearchBar;\n  readonly table: DataTable<OrderRow>;\n  readonly pagination: Pagination;\n\n  constructor(page: Page) {\n    this.page = page;\n    this.header = new Header(page.getByRole('banner'));\n    this.search = new SearchBar(page.getByRole('search'));\n    this.table = new DataTable(\n      page.getByRole('table', { name: 'Orders' }),\n      (row: Locator): OrderRow => new OrderRow(row),\n    );\n    this.pagination = new Pagination(page.getByRole('navigation', { name: 'Pagination' }));\n  }\n\n  async goto(): Promise<void> {\n    await this.page.goto('/admin/orders');\n  }\n}\n","pages/UsersPage.ts":"import type { Locator, Page } from '@playwright/test';\nimport { Header } from '../components/Header';\nimport { SearchBar } from '../components/SearchBar';\nimport { DataTable } from '../components/DataTable';\nimport { UserRow } from '../components/UserRow';\nimport { Pagination } from '../components/Pagination';\nimport { Modal } from '../components/Modal';\n\nexport class UsersPage {\n  readonly page: Page;\n  readonly header: Header;\n  readonly search: SearchBar;\n  readonly table: DataTable<UserRow>;\n  readonly pagination: Pagination;\n  readonly deleteDialog: Modal;\n\n  constructor(page: Page) {\n    this.page = page;\n    this.header = new Header(page.getByRole('banner'));\n    this.search = new SearchBar(page.getByRole('search').describe('Users search'));\n    this.table = new DataTable(\n      page.getByRole('table', { name: 'Users' }),\n      (row: Locator): UserRow => new UserRow(row),\n    );\n    this.pagination = new Pagination(page.getByRole('navigation', { name: 'Pagination' }));\n    this.deleteDialog = new Modal(page.getByRole('dialog', { name: 'Delete user' }));\n  }\n\n  async goto(): Promise<void> {\n    await this.page.goto('/admin/users');\n  }\n}\n","playwright.config.ts":"import { defineConfig } from '@playwright/test';\n\nexport default defineConfig({\n  use: {\n    baseURL: 'http://localhost:3000',\n    testIdAttribute: 'data-qa',\n  },\n});\n","tests/users.spec.ts":"import { test, expect } from '../fixtures/admin.fixture';\nimport type { UserRow } from '../components/UserRow';\n\ntest('admin can delete a user found via search', async ({ usersPage }) => {\n  await usersPage.search.search('bob@example.com');\n\n  const row: UserRow = usersPage.table.rowByText('bob@example.com');\n  await expect(row.rootLocator).toBeVisible();\n\n  await row.actions.delete();\n  await expect(usersPage.deleteDialog.heading).toHaveText('Delete user');\n\n  await usersPage.deleteDialog.confirm();\n  await expect(usersPage.deleteDialog.rootLocator).toBeHidden();\n  await expect(row.rootLocator).toHaveCount(0);\n});\n\ntest('pagination switches the visible page', async ({ usersPage }) => {\n  await usersPage.pagination.goToPage(2);\n  await expect(usersPage.pagination.currentPage).toHaveText('2');\n  await expect(usersPage.table.rows).toHaveCount(10);\n});\n\ntest('header is the same component on another page', async ({ ordersPage }) => {\n  await ordersPage.header.nav.openSection('Users');\n  await expect(ordersPage.page).toHaveURL(/\\/admin\\/users/);\n});\n","snip/assert-bad.ts":"// components/Modal.ts\nasync isOpen(): Promise<boolean> {\n  return this.root.isVisible();   // returns the state \"right now\", never waits\n}\n\n// tests/users.spec.ts\nawait row.actions.delete();\nif (await usersPage.deleteDialog.isOpen()) {   // the dialog may still be animating in\n  await usersPage.deleteDialog.confirm();\n}\nexpect(await usersPage.deleteDialog.isOpen()).toBe(false);\n","snip/assert-good.ts":"await row.actions.delete();\nawait expect(usersPage.deleteDialog.rootLocator).toBeVisible();\nawait expect(usersPage.deleteDialog.heading).toHaveText('Delete user');\n\nawait usersPage.deleteDialog.confirm();\nawait expect(usersPage.deleteDialog.rootLocator).toBeHidden();\nawait expect(row.rootLocator).toHaveCount(0);\n","snip/bloated-base.ts":"// ✗ \"Just in case\" base class\nexport abstract class BaseComponent {\n  protected readonly root: Locator;\n  protected readonly page: Page;\n\n  constructor(root: Locator, page: Page) {\n    this.root = root;\n    this.page = page;\n  }\n\n  async clickByText(text: string): Promise<void> {\n    await this.page.getByText(text).click();          // escapes the component scope\n  }\n\n  async waitForSpinner(): Promise<void> {\n    await this.page.locator('.spinner').waitFor({ state: 'hidden' });\n  }\n\n  async isDisplayed(): Promise<boolean> {\n    return this.root.isVisible();                      // no auto-waiting\n  }\n}\n","snip/composition.ts":"// ✓ Inheritance: ConfirmDialog IS a Modal and only adds behaviour\nexport class ConfirmDialog extends Modal {\n  readonly message: Locator;\n\n  constructor(root: Locator) {\n    super(root);\n    this.message = root.getByRole('paragraph');\n  }\n}\n\n// ✗ Inheritance: a page is not a header, it HAS a header\nexport class UsersPage extends Header { /* ... */ }\n\n// ✓ Composition: the page owns its components as fields\nexport class UsersPage {\n  readonly header: Header;\n  readonly search: SearchBar;\n  /* ... */\n}\n","snip/describe.ts":"this.search = new SearchBar(\n  page.getByRole('search').describe('Users search'),\n);\n// Trace viewer and reports show \"Users search\" instead of the raw locator\n","snip/fat-pom.ts":"export class UsersPage {\n  readonly page: Page;\n  // header: repeated in every page class\n  readonly logoutButton: Locator;\n  readonly usersNavLink: Locator;\n  // search: repeated\n  readonly searchInput: Locator;\n  readonly searchButton: Locator;\n  // table + pagination: repeated\n  readonly deleteBobButton: Locator;\n  readonly nextPageLink: Locator;\n\n  constructor(page: Page) {\n    this.page = page;\n    this.logoutButton = page.getByRole('menuitem', { name: 'Log out' });\n    this.usersNavLink = page.getByRole('link', { name: 'Users' });\n    this.searchInput = page.getByRole('searchbox');\n    this.searchButton = page.getByRole('button', { name: 'Search' });\n    this.deleteBobButton = page\n      .getByRole('row')\n      .filter({ hasText: 'bob@example.com' })\n      .getByRole('button', { name: 'Delete' });\n    this.nextPageLink = page.getByRole('link', { name: 'Next' });\n  }\n}\n","snip/lazy.ts":"constructor(root: Locator) {\n  super(root);\n  // No DOM query happens here: a locator is only a recipe for finding an element\n  this.input = root.getByRole('searchbox');\n}\n\nasync search(query: string): Promise<void> {\n  // The locator is resolved right now, against the up-to-date DOM\n  await this.input.fill(query);\n}\n","snip/lists.ts":"// Assert the list as a whole: web-first, retries until it matches\nawait usersPage.search.search('example.com');\nawait expect(usersPage.table.rows).toHaveCount(3);\nawait expect(usersPage.table.rows).toHaveText([/alice/, /bob/, /carol/]);\n\n// all() does not wait: make sure the list is stable first, then iterate\nconst rows: UserRow[] = await usersPage.table.allRows();\nfor (const row of rows) {\n  await expect(row.actions.rootLocator).toBeVisible();\n}\n","snip/page-access.ts":"// Option A: get the page from the root locator when it is rarely needed\nasync exportCsv(): Promise<Download> {\n  const downloadPromise: Promise<Download> = this.root.page().waitForEvent('download');\n  await this.root.getByRole('button', { name: 'Export CSV' }).click();\n  return downloadPromise;\n}\n\n// Option B: pass the page explicitly when the component depends on it constantly\nexport class NotificationCenter extends BaseComponent {\n  private readonly page: Page;\n\n  constructor(root: Locator, page: Page) {\n    super(root);\n    this.page = page;\n  }\n}\n","snip/strict.ts":"// The table has 4 rows, so the page has 4 \"Delete\" buttons\nawait page.getByRole('button', { name: 'Delete' }).click();\n// ✗ throws: strict mode violation, the locator resolved to 4 elements\n\n// The component scope narrows the search to one row\nconst row: UserRow = usersPage.table.rowByText('bob@example.com');\nawait row.actions.delete();\n// ✓ inside the row root there is exactly one \"Delete\" button\n\n// Opting out with first() silences the error, but the docs do not recommend it\nawait page.getByRole('button', { name: 'Delete' }).first().click();\n","snip/visible.ts":"// The app renders two search bars: a desktop one and a hidden mobile one\nthis.search = new SearchBar(page.getByTestId('search-bar').visible());\n"};
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/* ---------- syntax highlighting ---------- */
+const KW = new Set('import from export class extends implements abstract constructor readonly private protected public async await return const let new type interface this super for of if else get void true false null typeof as'.split(' '));
+const TOKEN = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|('(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"|`(?:\\.|[^`\\])*`)|((?<=[(,=:\s])\/(?![\/*\s])(?:\\.|[^\/\\\n])+\/[gimsuy]*)|\b(\d+)\b|\b([A-Za-z_$][\w$]*)\b(?=(\s*\())?/g;
+function highlight(src) {
+  let out = '', last = 0, m;
+  TOKEN.lastIndex = 0;
+  while ((m = TOKEN.exec(src))) {
+    out += esc(src.slice(last, m.index));
+    const t = m[0];
+    if (m[1]) out += '<span class="t-c">' + esc(t) + '</span>';
+    else if (m[2]) out += '<span class="t-s">' + esc(t) + '</span>';
+    else if (m[3]) out += '<span class="t-r">' + esc(t) + '</span>';
+    else if (m[4]) out += '<span class="t-n">' + t + '</span>';
+    else if (m[5]) {
+      if (KW.has(t)) out += '<span class="t-k">' + t + '</span>';
+      else if (/^[A-Z]/.test(t)) out += '<span class="t-t">' + t + '</span>';
+      else if (m[6] !== undefined) out += '<span class="t-f">' + t + '</span>';
+      else out += t;
+    } else out += esc(t);
+    last = m.index + t.length;
+  }
+  return out + esc(src.slice(last));
+}
+
+async function copyText(text, btn) {
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; }
+  catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+    ta.remove();
+  }
+  btn.textContent = ok ? 'Скопійовано' : 'Не вдалося';
+  setTimeout(() => { btn.textContent = 'Копіювати'; }, 1600);
+}
+
+function renderCode(fig, src, title) {
+  const text = src.replace(/\s+$/, '');
+  fig.innerHTML = '';
+  const head = document.createElement('div');
+  head.className = 'code-head';
+  const name = document.createElement('span');
+  name.textContent = title || '';
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'copy'; btn.textContent = 'Копіювати';
+  btn.setAttribute('aria-label', 'Копіювати код' + (title ? ': ' + title : ''));
+  btn.addEventListener('click', () => copyText(text, btn));
+  head.append(name, btn);
+  const pre = document.createElement('pre');
+  pre.tabIndex = 0;
+  const code = document.createElement('code');
+  code.innerHTML = highlight(text);
+  pre.appendChild(code);
+  fig.append(head, pre);
+}
+function mountStaticCode(root) {
+  $$('figure.code[data-src]', root).forEach((fig) => {
+    const key = fig.dataset.src;
+    if (!(key in CODE)) { fig.textContent = 'Missing: ' + key; return; }
+    renderCode(fig, CODE[key], fig.dataset.title || key);
+  });
+}
+
+/* ---------- theme ---------- */
+(function(){
+  var KEY = 'pw-course-theme';
+  var root = document.documentElement;
+  var buttons = document.querySelectorAll('[data-theme-set]');
+  function current(){
+    try { return localStorage.getItem(KEY) || 'auto'; } catch (e) { return 'auto'; }
+  }
+  function paint(v){
+    if (v === 'light' || v === 'dark') root.setAttribute('data-theme', v);
+    else root.removeAttribute('data-theme');
+    buttons.forEach(function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-set') === v)); });
+  }
+  paint(current());
+  buttons.forEach(function(b){
+    b.addEventListener('click', function(){
+      var v = b.getAttribute('data-theme-set');
+      try { localStorage.setItem(KEY, v); } catch (e) {}
+      paint(v);
+    });
+  });
+})();
+
+/* ---------- navigation & progress ---------- */
+const sections = $$('section.topic');
+const toc = $('#toc');
+sections.forEach((s, i) => {
+  const li = document.createElement('li');
+  const a = document.createElement('a');
+  a.href = '#' + s.id;
+  a.innerHTML = '<span class="n">' + (i + 1) + '</span><span>' + esc(s.dataset.title) + '</span><span class="tick" aria-hidden="true">✓</span>';
+  li.appendChild(a); toc.appendChild(li);
+});
+const visited = new Set();
+const side = $('#side'), menuBtn = $('#menuBtn'), scrim = $('#scrim');
+function setMenu(open) {
+  side.classList.toggle('open', open);
+  scrim.hidden = !open;
+  menuBtn.setAttribute('aria-expanded', String(open));
+}
+menuBtn.addEventListener('click', () => setMenu(!side.classList.contains('open')));
+scrim.addEventListener('click', () => setMenu(false));
+toc.addEventListener('click', (e) => { if (e.target.closest('a')) setMenu(false); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && side.classList.contains('open')) { setMenu(false); menuBtn.focus(); } });
+
+function updateProgress() {
+  const pct = Math.round((visited.size / sections.length) * 100);
+  $('#progressFill').style.width = pct + '%';
+  $('#miniFill').style.width = pct + '%';
+  $('#progressBar').setAttribute('aria-valuenow', String(pct));
+  $('#progressText').textContent = 'Переглянуто ' + visited.size + ' з ' + sections.length + ' розділів';
+}
+const io = new IntersectionObserver((entries) => {
+  entries.forEach((en) => {
+    if (!en.isIntersecting) return;
+    const id = en.target.id;
+    visited.add(id);
+    $$('#toc a').forEach((a) => {
+      const on = a.getAttribute('href') === '#' + id;
+      a.setAttribute('aria-current', on ? 'true' : 'false');
+      if (visited.has(a.getAttribute('href').slice(1))) a.classList.add('visited');
+    });
+    $('#topTitle').textContent = en.target.dataset.title;
+    updateProgress();
+  });
+}, { rootMargin: '-35% 0px -55% 0px' });
+sections.forEach((s) => io.observe(s));
+
+/* ---------- 1. decomposition ---------- */
+const PEOPLE = [['Alice', 'alice@example.com'], ['Bob', 'bob@example.com'], ['Carol', 'carol@example.com'], ['Dave', 'dave@example.com']];
+const mockRows = $('#mockRows');
+PEOPLE.forEach(([n, e]) => {
+  const tr = document.createElement('tr');
+  tr.className = 'z'; tr.dataset.zone = 'row'; tr.dataset.email = e; tr.tabIndex = 0;
+  tr.setAttribute('role', 'button'); tr.setAttribute('aria-label', 'Рядок ' + e);
+  tr.innerHTML = '<td>' + n + '</td><td>' + e + '</td><td><span class="z z-actions" data-zone="actions" tabindex="0" role="button" aria-label="Дії рядка ' + e + '"><span class="fake-btn">Edit</span><span class="fake-btn">Delete</span></span></td>';
+  mockRows.appendChild(tr);
+});
+const TREE = [
+  ['UsersPage', 'page', [
+    ['Header', 'header', [['NavMenu', 'nav', [['UserMenu', 'usermenu', []]]]]],
+    ['SearchBar', 'search', []],
+    ['DataTable<UserRow>', 'table', [['UserRow', 'row', [['RowActions', 'actions', []]]]]],
+    ['Pagination', 'pagination', []],
+    ['Modal', 'modal', []]
+  ]]
+];
+const ZONES = {
+  header: { cls: 'Header', file: 'components/Header.ts', where: 'pages/UsersPage.ts', root: "page.getByRole('banner')", text: 'Корінь хедера має роль banner. Хедер створює вкладене меню від свого кореня.' },
+  nav: { cls: 'NavMenu', file: 'components/NavMenu.ts', where: 'components/Header.ts', root: "root.getByRole('navigation', { name: 'Main' })", text: 'Меню створюється всередині хедера, тому шукає посилання лише в межах банера.' },
+  usermenu: { cls: 'UserMenu', file: 'components/UserMenu.ts', where: 'components/NavMenu.ts', root: "root.getByTestId('user-menu')", text: 'Найглибший рівень: випадаюче меню облікового запису з діями open() і logout().' },
+  search: { cls: 'SearchBar', file: 'components/SearchBar.ts', where: 'pages/UsersPage.ts', root: "page.getByRole('search')", text: 'Той самий клас використовується на сторінках Users, Orders і Products.' },
+  table: { cls: 'DataTable<UserRow>', file: 'components/DataTable.ts', where: 'pages/UsersPage.ts', root: "page.getByRole('table', { name: 'Users' })", text: 'Компонент-колекція: повертає рядки як компоненти UserRow.' },
+  row: { cls: 'UserRow', file: 'components/UserRow.ts', where: 'components/DataTable.ts', root: null, text: 'Рядок не створюється в конструкторі сторінки: таблиця повертає його на вимогу через rowByText().' },
+  actions: { cls: 'RowActions', file: 'components/RowActions.ts', where: 'components/UserRow.ts', root: "root.getByTestId('row-actions')", text: 'Кнопки Edit і Delete шукаються лише в межах одного рядка, тож строгість не порушується.' },
+  pagination: { cls: 'Pagination', file: 'components/Pagination.ts', where: 'pages/UsersPage.ts', root: "page.getByRole('navigation', { name: 'Pagination' })", text: 'Друга навігація на сторінці, тому ім\'я в корені обов\'язкове: інакше роль navigation збіглася б і з головним меню.' },
+  modal: { cls: 'Modal', file: 'components/Modal.ts', where: 'pages/UsersPage.ts', root: "page.getByRole('dialog', { name: 'Delete user' })", text: 'Локатор лінивий: компонент створено разом зі сторінкою, хоча діалог з\'являється лише після натискання Delete.' }
+};
+function pathTo(zone) {
+  const res = [];
+  (function walk(nodes, acc) {
+    for (const [name, z, kids] of nodes) {
+      const next = acc.concat(z);
+      if (z === zone) { res.push(...next); return true; }
+      if (walk(kids, next)) return true;
+    }
+    return false;
+  })(TREE, []);
+  return res;
+}
+function treeHtml(nodes, path, zone) {
+  let h = '<ul class="ctree">';
+  for (const [name, z, kids] of nodes) {
+    const cls = z === zone ? 'hit' : (path.includes(z) ? 'path' : '');
+    h += '<li><span class="' + cls + '">' + esc(name) + '</span>' + (kids.length ? '<div style="padding-left:16px">' + treeHtml(kids, path, zone) + '</div>' : '') + '</li>';
+  }
+  return h + '</ul>';
+}
+const info = $('#decompInfo');
+function selectZone(el) {
+  $$('.z.on', $('#mock')).forEach((x) => x.classList.remove('on'));
+  el.classList.add('on');
+  const zone = el.dataset.zone;
+  const d = ZONES[zone];
+  let root = d.root;
+  if (zone === 'row') root = "rows.filter({ hasText: '" + el.dataset.email + "' })";
+  if (zone === 'actions') {
+    const tr = el.closest('tr');
+    tr.classList.add('on');
+  }
+  const path = pathTo(zone);
+  info.innerHTML = '<h4>' + esc(d.cls) + '</h4><div class="muted">' + esc(d.file) + '</div>' +
+    '<p style="margin:10px 0 0">Кореневий локатор (створюється у <code>' + esc(d.where) + '</code>):</p><pre>' + highlight(root) + '</pre>' +
+    '<p>' + esc(d.text) + '</p><div class="muted">Дерево вкладеності</div>' + treeHtml(TREE, path, zone);
+}
+$('#mock').addEventListener('click', (e) => {
+  const z = e.target.closest('.z');
+  if (z) selectZone(z);
+});
+$('#mock').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const z = e.target.closest('.z');
+  if (z && z === e.target) { e.preventDefault(); selectZone(z); }
+});
+selectZone($('.z-search'));
+
+/* ---------- 4. builder ---------- */
+const BUILD = {
+  Modal: {
+    roots: { role: "page.getByRole('dialog', { name: 'Delete user' })", testid: "page.getByTestId('delete-dialog')", css: "page.locator('.modal')" },
+    field: 'deleteDialog',
+    parts: [
+      { id: 'heading', label: 'поле heading для перевірок', on: true, fields: ['readonly heading: Locator;'], init: ["this.heading = root.getByRole('heading');"] },
+      { id: 'confirm', label: 'confirm()', on: true, fields: ['private readonly confirmButton: Locator;'], init: ["this.confirmButton = root.getByRole('button', { name: 'Confirm' });"], method: 'async confirm(): Promise<void> {\n    await this.confirmButton.click();\n  }' },
+      { id: 'close', label: 'close()', on: true, fields: ['private readonly closeButton: Locator;'], init: ["this.closeButton = root.getByRole('button', { name: 'Close' });"], method: 'async close(): Promise<void> {\n    await this.closeButton.click();\n  }' },
+      { id: 'fill', label: 'fillReason(text)', on: false, fields: ['private readonly reasonInput: Locator;'], init: ["this.reasonInput = root.getByLabel('Reason');"], method: 'async fillReason(text: string): Promise<void> {\n    await this.reasonInput.fill(text);\n  }' }
+    ]
+  },
+  Table: {
+    roots: { role: "page.getByRole('table', { name: 'Users' })", testid: "page.getByTestId('users-table')", css: "page.locator('table.users')" },
+    field: 'table', imports: ["import { UserRow } from './UserRow';"],
+    parts: [
+      { id: 'rows', label: 'поле rows для перевірок списку', on: true, fields: ['readonly rows: Locator;'], init: ["this.rows = root.locator('tbody').getByRole('row');"] },
+      { id: 'byText', label: 'rowByText(text)', on: true, needs: 'rows', method: 'rowByText(text: string): UserRow {\n    return new UserRow(this.rows.filter({ hasText: text }));\n  }' },
+      { id: 'at', label: 'rowAt(index)', on: false, needs: 'rows', method: '// The docs advise caution with nth(): use it only when order matters\n  rowAt(index: number): UserRow {\n    return new UserRow(this.rows.nth(index));\n  }' },
+      { id: 'sort', label: 'sortBy(column)', on: false, method: 'async sortBy(column: string): Promise<void> {\n    await this.root.getByRole(\'columnheader\', { name: column }).click();\n  }' }
+    ]
+  },
+  SearchBar: {
+    roots: { role: "page.getByRole('search')", testid: "page.getByTestId('search-bar')", css: "page.locator('.search-bar')" },
+    field: 'search',
+    parts: [
+      { id: 'search', label: 'search(query)', on: true, fields: ['readonly input: Locator;', 'private readonly submitButton: Locator;'], init: ["this.input = root.getByRole('searchbox');", "this.submitButton = root.getByRole('button', { name: 'Search' });"], method: 'async search(query: string): Promise<void> {\n    await this.input.fill(query);\n    await this.submitButton.click();\n  }' },
+      { id: 'clear', label: 'clear()', on: false, needs: 'search', method: 'async clear(): Promise<void> {\n    await this.input.clear();\n  }' },
+      { id: 'suggest', label: 'pickSuggestion(text)', on: false, method: 'async pickSuggestion(text: string): Promise<void> {\n    await this.root.getByRole(\'option\', { name: text }).click();\n  }' }
+    ]
+  }
+};
+const bActions = $('#bActions');
+function builderState() {
+  return { type: $('input[name="bType"]:checked').value, root: $('input[name="bRoot"]:checked').value };
+}
+function renderActions() {
+  const { type } = builderState();
+  bActions.innerHTML = '<legend>Дії та поля</legend>';
+  BUILD[type].parts.forEach((p) => {
+    const l = document.createElement('label');
+    l.innerHTML = '<input type="checkbox" value="' + p.id + '"' + (p.on ? ' checked' : '') + '> ' + esc(p.label);
+    bActions.appendChild(l);
+  });
+}
+function generate() {
+  const { type, root } = builderState();
+  const def = BUILD[type];
+  const picked = new Set($$('input[type="checkbox"]:checked', bActions).map((i) => i.value));
+  def.parts.forEach((p) => { if (picked.has(p.id) && p.needs) picked.add(p.needs); });
+  $$('input[type="checkbox"]', bActions).forEach((i) => { i.checked = picked.has(i.value); });
+  const parts = def.parts.filter((p) => picked.has(p.id));
+  const cls = type === 'Table' ? 'UsersTable' : type;
+  const lines = ["import type { Locator } from '@playwright/test';", "import { BaseComponent } from './BaseComponent';"].concat(def.imports || []);
+  lines.push('', 'export class ' + cls + ' extends BaseComponent {');
+  const fields = parts.flatMap((p) => p.fields || []);
+  fields.forEach((f) => lines.push('  ' + f));
+  if (fields.length) lines.push('');
+  lines.push('  constructor(root: Locator) {', '    super(root);');
+  parts.flatMap((p) => p.init || []).forEach((i) => lines.push('    ' + i));
+  lines.push('  }');
+  parts.filter((p) => p.method).forEach((p) => { lines.push('', '  ' + p.method); });
+  lines.push('}', '', '// pages/SomePage.ts', 'this.' + def.field + ' = new ' + cls + '(' + def.roots[root] + ');');
+  renderCode($('#builderOut'), lines.join('\n'), 'components/' + cls + '.ts');
+  const note = $('#builderNote');
+  const notes = {
+    role: ['', 'Корінь знайдено за роллю з іменем: так компонент бачить користувач, і ім\'я розрізняє однакові віджети. Це перший пріоритет за best practices.'],
+    testid: ['', 'Test id стійкий до змін тексту й ролі, але не орієнтований на користувача. Добрий вибір, коли в кореня немає ролі з іменем або команда домовилася про контракт через test id.'],
+    css: ['warn', 'CSS-клас є деталлю реалізації: документація попереджає, що такі селектори ламаються при зміні структури DOM. Використовуйте, лише якщо немає ролі чи test id, і обмежтеся одним коротким селектором.']
+  };
+  note.className = 'note ' + notes[root][0];
+  note.textContent = notes[root][1];
+}
+$$('input[name="bType"]').forEach((r) => r.addEventListener('change', () => { renderActions(); generate(); }));
+$$('input[name="bRoot"]').forEach((r) => r.addEventListener('change', generate));
+bActions.addEventListener('change', generate);
+renderActions(); generate();
+
+/* ---------- 5. tree ---------- */
+const TNODES = [
+  { id: 'UsersPage', file: 'pages/UsersPage.ts', kind: 'page', kids: [
+    { id: 'Header', file: 'components/Header.ts', kind: 'banner', kids: [
+      { id: 'NavMenu', file: 'components/NavMenu.ts', kind: 'navigation', kids: [
+        { id: 'UserMenu', file: 'components/UserMenu.ts', kind: 'test id', kids: [] } ] } ] },
+    { id: 'SearchBar', file: 'components/SearchBar.ts', kind: 'search', kids: [] },
+    { id: 'DataTable<UserRow>', file: 'components/DataTable.ts', kind: 'table', kids: [
+      { id: 'UserRow', file: 'components/UserRow.ts', kind: 'filter', kids: [
+        { id: 'RowActions', file: 'components/RowActions.ts', kind: 'test id', kids: [] } ] } ] },
+    { id: 'Pagination', file: 'components/Pagination.ts', kind: 'navigation', kids: [] },
+    { id: 'Modal', file: 'components/Modal.ts', kind: 'dialog', kids: [] },
+    { id: 'BaseComponent', file: 'components/BaseComponent.ts', kind: 'abstract', kids: [] }
+  ] }
+];
+const treeEl = $('#tree');
+function buildTree(nodes, parent, level) {
+  nodes.forEach((n) => {
+    const li = document.createElement('li');
+    li.setAttribute('role', 'none');
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tnode'; b.setAttribute('role', 'treeitem');
+    b.setAttribute('aria-level', String(level));
+    b.dataset.file = n.file;
+    b.innerHTML = '<span class="caret" aria-hidden="true">' + (n.kids.length ? '▸' : '·') + '</span>' + esc(n.id) + '<span class="kind">' + esc(n.kind) + '</span>';
+    li.appendChild(b);
+    if (n.kids.length) {
+      const ul = document.createElement('ul');
+      ul.setAttribute('role', 'group');
+      const open = level < 2;
+      b.setAttribute('aria-expanded', String(open));
+      ul.hidden = !open;
+      buildTree(n.kids, ul, level + 1);
+      li.appendChild(ul);
+    }
+    parent.appendChild(li);
+  });
+}
+buildTree(TNODES, treeEl, 1);
+const treeCode = $('#treeCode');
+function selectNode(b) {
+  $$('.tnode', treeEl).forEach((x) => x.setAttribute('aria-current', 'false'));
+  b.setAttribute('aria-current', 'true');
+  const fig = document.createElement('figure');
+  fig.className = 'code';
+  treeCode.innerHTML = '';
+  treeCode.appendChild(fig);
+  renderCode(fig, CODE[b.dataset.file], b.dataset.file);
+}
+function toggleNode(b, force) {
+  if (!b.hasAttribute('aria-expanded')) return;
+  const open = force !== undefined ? force : b.getAttribute('aria-expanded') !== 'true';
+  b.setAttribute('aria-expanded', String(open));
+  b.nextElementSibling.hidden = !open;
+}
+treeEl.addEventListener('click', (e) => {
+  const b = e.target.closest('.tnode');
+  if (!b) return;
+  toggleNode(b);
+  selectNode(b);
+});
+treeEl.addEventListener('keydown', (e) => {
+  const b = e.target.closest('.tnode');
+  if (!b) return;
+  if (e.key === 'ArrowRight') { e.preventDefault(); toggleNode(b, true); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); toggleNode(b, false); }
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    const vis = $$('.tnode', treeEl).filter((x) => x.offsetParent !== null);
+    const i = vis.indexOf(b) + (e.key === 'ArrowDown' ? 1 : -1);
+    if (vis[i]) vis[i].focus();
+  }
+});
+selectNode($('.tnode', treeEl));
+
+/* ---------- 6. scope ---------- */
+const scopeRows = $('#scopeRows');
+PEOPLE.forEach(([n, e], i) => {
+  const tr = document.createElement('tr');
+  tr.dataset.i = String(i);
+  tr.innerHTML = '<td>' + n + '</td><td>' + e + '</td><td><span class="sbtn">Edit</span><span class="sbtn del">Delete</span></td>';
+  scopeRows.appendChild(tr);
+});
+function renderScope() {
+  const mode = $('input[name="scope"]:checked').value;
+  const rows = $$('tr', scopeRows);
+  rows.forEach((r) => { r.classList.remove('scoped'); const d = $('.del', r); d.className = 'sbtn del'; });
+  const v = $('#scopeVerdict');
+  if (mode === 'page') {
+    rows.forEach((r) => $('.del', r).classList.add('match'));
+    v.className = 'verdict bad';
+    v.innerHTML = '<span class="big">4</span><b>Помилка строгості.</b> Локатор від сторінки бачить кнопки в усіх рядках. Дія <code>click()</code> передбачає один елемент, тому Playwright кидає виняток strict mode violation, а <code>count()</code> на тому самому локаторі спрацював би без помилки.';
+  } else if (mode === 'row') {
+    rows[1].classList.add('scoped');
+    $('.del', rows[1]).classList.add('match', 'good');
+    v.className = 'verdict ok';
+    v.innerHTML = '<span class="big">1</span><b>Рівно один елемент.</b> Корінь рядка обмежує пошук фрагментом «bob@example.com» (виділено), і в ньому одна кнопка Delete. Строгість дотримано без жодних first() чи nth().';
+  } else {
+    $('.del', rows[0]).classList.add('match');
+    v.className = 'verdict warn';
+    v.innerHTML = '<span class="big">1</span><b>Помилки немає, але кнопка не та.</b> <code>first()</code> вимкнув перевірку строгості й обрав рядок Alice, хоча тест мав видалити Bob. Документація не рекомендує цей прийом: при зміні сторінки локатор може вказати на непередбачений елемент.';
+  }
+}
+$('#scopeOpts').addEventListener('change', renderScope);
+renderScope();
+
+/* ---------- 7. fat vs com ---------- */
+const SHARED = [
+  "page.getByRole('menuitem', { name: 'Log out' })",
+  "page.getByRole('link', { name: 'Users' })",
+  "page.getByRole('searchbox')",
+  "page.getByRole('button', { name: 'Search' })",
+  "page.getByRole('link', { name: 'Next' })"
+];
+const PAGES = ['UsersPage', 'OrdersPage', 'ProductsPage'];
+const TABLES = { UsersPage: 'Users', OrdersPage: 'Orders', ProductsPage: 'Products' };
+const COMPONENT_LOCATORS = {
+  UserMenu: ["root.getByRole('button', { name: 'Account' })", "menu.getByRole('menuitem', { name: 'Log out' })"],
+  NavMenu: ["root.getByRole('link', { name })"],
+  SearchBar: ["root.getByRole('searchbox')", "root.getByRole('button', { name: 'Search' })"],
+  Pagination: ["root.getByRole('link', { name: 'Next' })"]
+};
+function renderFat(mode) {
+  $$('#lab-fat .seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+  const cols = $('#fatCols'), metrics = $('#fatMetrics'), note = $('#fatNote');
+  cols.innerHTML = '';
+  if (mode === 'fat') {
+    const all = [];
+    PAGES.forEach((p) => {
+      const list = SHARED.concat(["page.getByRole('table', { name: '" + TABLES[p] + "' })"]);
+      all.push(...list);
+      const counts = {};
+      cols.insertAdjacentHTML('beforeend', '<div class="col"><h4>' + p + '</h4><ul>' + list.map((l) => '<li class="' + (SHARED.includes(l) ? 'dup' : 'once') + '">' + esc(l) + '</li>').join('') + '</ul></div>');
+    });
+    const dup = all.length - new Set(all).size;
+    metrics.innerHTML = '<div class="metric"><b>' + dup + '</b><span>дубльованих рядків-локаторів</span></div><div class="metric"><b>' + PAGES.length + '</b><span>місця, де треба виправити «Log out», якщо зміниться назва</span></div>';
+    note.textContent = 'Кожна сторінка описує хедер, пошук і пагінацію самостійно. ' + SHARED.length + ' спільних локаторів повторено в ' + PAGES.length + ' класах, тож ' + dup + ' рядків є копіями.';
+  } else {
+    Object.entries(COMPONENT_LOCATORS).forEach(([c, list]) => {
+      cols.insertAdjacentHTML('beforeend', '<div class="col"><h4>components/' + c + '</h4><ul>' + list.map((l) => '<li class="once">' + esc(l) + '</li>').join('') + '</ul></div>');
+    });
+    PAGES.forEach((p) => {
+      const list = ["new Header(page.getByRole('banner'))", "new SearchBar(page.getByRole('search'))", "new DataTable(page.getByRole('table', { name: '" + TABLES[p] + "' }), …)", "new Pagination(page.getByRole('navigation', { name: 'Pagination' }))"];
+      cols.insertAdjacentHTML('beforeend', '<div class="col"><h4>' + p + '</h4><ul>' + list.map((l) => '<li class="root">' + esc(l) + '</li>').join('') + '</ul></div>');
+    });
+    metrics.innerHTML = '<div class="metric"><b>0</b><span>дубльованих внутрішніх локаторів</span></div><div class="metric"><b>1</b><span>місце, де треба виправити «Log out»: UserMenu</span></div>';
+    note.textContent = 'Внутрішні локатори описано один раз у компонентах. Сторінки лише створюють компоненти й передають їм корені (сірим). Корені хедера, пошуку й пагінації теж повторюються в трьох сторінках; якщо це заважає, їх можна зібрати в спільний компонент макета адмінки, але це вже рішення команди, а не вимога патерну.';
+  }
+}
+$$('#lab-fat .seg button').forEach((b) => b.addEventListener('click', () => renderFat(b.dataset.mode)));
+renderFat('fat');
+
+/* ---------- 11. bugs ---------- */
+const BUGS = [
+  { t: 'Видалення користувача з рядка', code: "export class UserRow extends BaseComponent {\n  private readonly page: Page;\n\n  constructor(root: Locator, page: Page) {\n    super(root);\n    this.page = page;\n  }\n\n  async delete(): Promise<void> {\n    await this.page.getByRole('button', { name: 'Delete' }).click();\n  }\n}",
+    a: '<p><b>Глобальний селектор замість кореня.</b> Компонент отримав корінь рядка, але шукає кнопку від <code>page</code>. На сторінці з кількома рядками локатор знайде всі кнопки Delete і порушить строгість, а скоуп рядка втрачено. Виправлення: <code>this.root.getByRole(\'button\', { name: \'Delete\' })</code>, і параметр <code>page</code> більше не потрібен.</p>', doc: 'https://playwright.dev/docs/locators#strictness' },
+  { t: 'Закрити модалку, якщо вона відкрита', code: "async closeIfOpen(): Promise<void> {\n  if (await this.root.isVisible()) {\n    await this.close();\n  }\n}",
+    a: '<p><b>Перевірка з <code>isVisible()</code> та <code>if</code>.</b> <code>isVisible()</code> повертає стан на поточну мить і не чекає. Якщо модалка ще з\'являється, метод вирішить, що закривати нічого, і тест продовжить з відкритим діалогом. Тест має знати, чи очікує він модалку, і перевірити це через <code>await expect(modal.rootLocator).toBeVisible()</code>.</p>', doc: 'https://playwright.dev/docs/best-practices#use-web-first-assertions' },
+  { t: 'Підтвердження в модалці', code: "import { UsersPage } from '../pages/UsersPage';\n\nexport class Modal extends BaseComponent {\n  async confirm(): Promise<UsersPage> {\n    await this.root.getByRole('button', { name: 'Confirm' }).click();\n    return new UsersPage(this.root.page());\n  }\n}",
+    a: '<p><b>Компонент знає про сторінку-батька.</b> Модалка тепер прив\'язана до UsersPage: її не можна використати на сторінці замовлень, а UsersPage і Modal імпортують одна одну. Рекомендація: компонент виконує дію і нічого не знає про те, де він розміщений; тест або сторінка вирішують, що відбувається далі.</p>', doc: 'https://playwright.dev/docs/pom' },
+  { t: 'Довгий шлях до кнопки', code: "await usersPage.layout.main.content.table.body\n  .rowAt(2).cells.lastCell.actions.buttons.delete.click();",
+    a: '<p><b>Надмірна глибина вкладення.</b> Компоненти <code>layout</code>, <code>main</code>, <code>content</code>, <code>body</code>, <code>buttons</code> не мають власної поведінки, вони лише повторюють структуру DOM. Тест прив\'язаний до верстки, а не до сценарію. До того ж <code>rowAt(2)</code> обирає рядок за позицією. Рекомендація: вкладати лише частини з власним сенсом і діями, наприклад <code>usersPage.table.rowByText(\'bob\').actions.delete()</code>.</p>', doc: 'https://playwright.dev/docs/locators#get-by-nth-item' },
+  { t: 'Універсальна кнопка', code: "export class ButtonComponent extends BaseComponent {\n  async click(): Promise<void> {\n    await this.root.click();\n  }\n\n  async getText(): Promise<string> {\n    return this.root.innerText();\n  }\n}",
+    a: '<p><b>Компонент-утиліта без UI-сенсу.</b> Клас лише дублює методи <code>Locator</code>, які вже є. Він не додає предметної мови і не інкапсулює жодної групи елементів. А <code>getText()</code> підштовхує до ручних перевірок замість <code>toHaveText()</code>. Кнопка має бути полем-локатором у компоненті, якому вона належить.</p>', doc: 'https://playwright.dev/docs/api/class-locator#locator-inner-text' },
+  { t: 'Пошук на двох сторінках', code: "// pages/UsersPage.ts\nthis.searchInput = page.getByRole('search').getByRole('searchbox');\n\n// pages/OrdersPage.ts\nthis.searchInput = page.getByRole('search').getByRole('searchbox');\n\n// components/SearchBar.ts\nthis.input = root.getByRole('searchbox');",
+    a: '<p><b>Дублювання локаторів.</b> Компонент SearchBar уже існує, але сторінки оголошують той самий локатор ще раз. Тепер його треба підтримувати в трьох місцях. Сторінки мають містити <code>readonly search: SearchBar</code> і звертатися до <code>this.search.input</code>.</p>', doc: 'https://playwright.dev/docs/pom' },
+  { t: 'Швидке виправлення строгості', code: "export class DataTable<TRow extends BaseComponent> extends BaseComponent {\n  async deleteFirstMatch(): Promise<void> {\n    await this.root.getByRole('button', { name: 'Delete' }).first().click();\n  }\n}",
+    a: '<p><b>Приглушена строгість.</b> <code>first()</code> прибирає помилку, але не відповідає на питання, який рядок видаляється. Документація називає first, last і nth не рекомендованими для обходу строгості. Правильніше знайти рядок за змістом через <code>rowByText()</code> і викликати дію в його скоупі.</p>', doc: 'https://playwright.dev/docs/locators#strictness' }
+];
+const bugsEl = $('#bugs');
+BUGS.forEach((b, i) => {
+  const wrap = document.createElement('div');
+  wrap.className = 'bug';
+  const id = 'bug-a-' + i;
+  wrap.innerHTML = '<div class="bug-head"><h4>' + (i + 1) + '. ' + esc(b.t) + '</h4><button type="button" class="btn" aria-expanded="false" aria-controls="' + id + '">Показати відповідь</button></div><figure class="code"></figure><div class="bug-answer" id="' + id + '" hidden>' + b.a + '<p><a href="' + b.doc + '" target="_blank" rel="noopener">Документація →</a></p></div>';
+  bugsEl.appendChild(wrap);
+  renderCode($('figure', wrap), b.code, 'Знайдіть помилку');
+  const btn = $('.bug-head .btn', wrap), ans = $('.bug-answer', wrap);
+  btn.addEventListener('click', () => {
+    const open = ans.hidden;
+    ans.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
+    btn.textContent = open ? 'Сховати відповідь' : 'Показати відповідь';
+  });
+});
+
+/* ---------- 12. quiz ---------- */
+const QUIZ = [
+  { q: 'Що отримує компонент у конструктор у підході з кореневим локатором?', o: ['Об\'єкт Page, щоб мати доступ до всієї сторінки', 'Locator свого кореневого елемента', 'Рядок CSS-селектора кореня', 'ElementHandle кореневого елемента'], c: 1, e: 'Компонент будує внутрішні локатори від кореня через root.getBy…(), тому скоуп обмежений його фрагментом. ElementHandle документація не рекомендує, а Page дав би доступ до всієї сторінки.', d: 'https://playwright.dev/docs/locators#matching-inside-a-locator' },
+  { q: 'Чому створювати локатори в конструкторі компонента безпечно, навіть якщо елемента ще немає на сторінці?', o: ['Конструктор чекає, доки елемент з\'явиться', 'Локатори ліниві: елемент шукається в момент дії, щоразу заново', 'Playwright кешує елемент після першого пошуку', 'Це небезпечно, локатори треба створювати в методах'], c: 1, e: 'Документація пояснює, що при кожному використанні локатора для дії шукається актуальний DOM-елемент. Створення локатора не звертається до DOM.', d: 'https://playwright.dev/docs/locators#locating-elements' },
+  { q: 'У таблиці 4 рядки, у кожному кнопка Delete. Що станеться при page.getByRole(\'button\', { name: \'Delete\' }).click()?', o: ['Буде натиснуто першу кнопку', 'Буде натиснуто всі чотири кнопки', 'Виняток strict mode violation', 'Тест чекатиме, доки кнопка лишиться одна'], c: 2, e: 'Локатори строгі: операція, що передбачає один елемент, кидає виняток, якщо збігів більше одного.', d: 'https://playwright.dev/docs/locators#strictness' },
+  { q: 'Чому в rowWithCell внутрішній локатор для filter({ has }) побудовано від page(), а не від кореня таблиці?', o: ['Бо від кореня таблиці локатор не можна створити', 'Бо внутрішній локатор відносний і шукається від знайденого рядка, а ланцюжок від таблиці вимагав би таблицю всередині рядка', 'Бо page() працює швидше', 'Бо has приймає лише локатори від page'], c: 1, e: 'Документація: внутрішній локатор має бути відносним і шукається, починаючи від зовнішнього елемента, а не від кореня документа.', d: 'https://playwright.dev/docs/locators#filter-by-childdescendant' },
+  { q: 'Що правда про locator.all()?', o: ['Чекає, доки знайдеться хоча б один елемент', 'Не чекає елементів і повертає те, що є на сторінці зараз', 'Кидає помилку строгості при кількох збігах', 'Повертає масив ElementHandle'], c: 1, e: 'all() не чекає; для динамічних списків результат непередбачуваний. Для перевірок списку документація пропонує toHaveCount і toHaveText.', d: 'https://playwright.dev/docs/api/class-locator#locator-all' },
+  { q: 'Де найкраще перевіряти стан модалки?', o: ['У методі isOpen() компонента з isVisible()', 'У тесті через await expect(modal.rootLocator).toBeVisible()', 'Через if (await modal.rootLocator.isVisible()) у тесті', 'У конструкторі компонента'], c: 1, e: 'Web-first assertions повторюють перевірку до виконання умови, а isVisible() повертає миттєвий стан без очікування.', d: 'https://playwright.dev/docs/best-practices#use-web-first-assertions' },
+  { q: 'Як правильно пов\'язати UsersPage і Header?', o: ['class UsersPage extends Header', 'Поле readonly header: Header у UsersPage', 'Header імпортує UsersPage і створює її', 'Скопіювати локатори хедера в UsersPage'], c: 1, e: 'Сторінка має хедер, а не є ним, тому це композиція. Успадкування доречне для «компонент є різновидом іншого», як ConfirmDialog extends Modal. Це проєктна рекомендація.', d: 'https://playwright.dev/docs/pom' },
+  { q: 'Як передати в тест page object, складений з компонентів, за документацією фікстур?', o: ['Глобальна змінна в beforeAll', 'base.extend<…>() і await use(new UsersPage(page))', 'test.use({ usersPage })', 'Створювати компонент у кожному тесті через new SearchBar(page)'], c: 1, e: 'Власна фікстура оголошується через test.extend, отримує функцію use другим аргументом і передає значення через await use(...).', d: 'https://playwright.dev/docs/test-fixtures#creating-a-fixture' },
+  { q: 'Компонент оплати живе в iframe. Як отримати для нього кореневий Locator?', o: ['page.locator(\'iframe\').getByRole(\'form\')', 'page.getByTitle(\'Payment form\').contentFrame().getByRole(\'form\', { name: \'Payment\' })', 'Компоненти в iframe не підтримуються', 'Передати компоненту FrameLocator як корінь і викликати на ньому filter()'], c: 1, e: 'contentFrame() повертає FrameLocator, а методи створення локаторів на ньому дають звичайний Locator для елемента всередині фрейму.', d: 'https://playwright.dev/docs/frames' },
+  { q: 'Що робить locator.describe(\'Users search\')?', o: ['Додає атрибут aria-label на елемент', 'Задає опис для trace viewer і звітів та повертає локатор на той самий елемент', 'Перевіряє, що елемент має такий текст', 'Змінює testIdAttribute'], c: 1, e: 'describe() з\'явився у 1.53: опис показується в trace viewer і звітах, сторінка не змінюється.', d: 'https://playwright.dev/docs/api/class-locator#locator-describe' }
+];
+const quizEl = $('#quiz');
+let answered = 0, correct = 0;
+function updateScore() {
+  $('#scoreText').textContent = answered === QUIZ.length
+    ? 'Результат: ' + correct + ' з ' + QUIZ.length + (correct === QUIZ.length ? '. Чудово!' : correct >= 7 ? '. Добре, перегляньте пояснення до помилок.' : '. Варто повернутися до розділів із поясненнями.')
+    : 'Відповідей: ' + answered + ' з ' + QUIZ.length + ', правильних: ' + correct;
+}
+function renderQuiz() {
+  quizEl.innerHTML = ''; answered = 0; correct = 0;
+  QUIZ.forEach((item, qi) => {
+    const box = document.createElement('div');
+    box.className = 'q';
+    box.setAttribute('role', 'group');
+    box.setAttribute('aria-labelledby', 'qt' + qi);
+    box.innerHTML = '<p class="q-title" id="qt' + qi + '"><span class="q-n">' + (qi + 1) + '.</span>' + esc(item.q) + '</p><div class="answers"></div><div class="feedback" aria-live="polite"></div>';
+    const ans = $('.answers', box), fb = $('.feedback', box);
+    item.o.forEach((txt, oi) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'ans'; b.textContent = txt;
+      b.addEventListener('click', () => {
+        $$('.ans', ans).forEach((x, xi) => { x.disabled = true; if (xi === item.c) x.classList.add('right'); });
+        const ok = oi === item.c;
+        if (!ok) b.classList.add('wrong');
+        answered++; if (ok) correct++;
+        fb.innerHTML = '<b>' + (ok ? 'Правильно.' : 'Не зовсім.') + '</b> ' + esc(item.e) + ' <a href="' + item.d + '" target="_blank" rel="noopener">Документація →</a>';
+        updateScore();
+      });
+      ans.appendChild(b);
+    });
+    quizEl.appendChild(box);
+  });
+  updateScore();
+}
+$('#quizReset').addEventListener('click', () => { renderQuiz(); quizEl.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+renderQuiz();
+
+mountStaticCode(document);
+})();
+
+</script>
+</body>
+</html>
